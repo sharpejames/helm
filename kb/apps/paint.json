@@ -1,0 +1,47 @@
+{
+  "name": "Paint",
+  "exe": "mspaint.exe",
+  "shortcuts": {
+    "save_as": "F12",
+    "new": "Ctrl+N",
+    "undo": "Ctrl+Z",
+    "select_all": "Ctrl+A",
+    "copy": "Ctrl+C",
+    "paste": "Ctrl+V"
+  },
+  "tools": {
+    "Pencil": "UIA name 'Pencil' \u00e2\u20ac\u201d freehand drawing tool",
+    "Fill with color": "UIA name 'Fill with color' \u00e2\u20ac\u201d flood fill tool",
+    "Color 1": "UIA name 'Color 1' \u00e2\u20ac\u201d click before Edit Colors to set primary color",
+    "Edit colors": "UIA name 'Edit colors' \u00e2\u20ac\u201d opens RGB color picker dialog",
+    "Eraser": "UIA name 'Eraser'",
+    "Text": "UIA name 'Text' \u00e2\u20ac\u201d click then click canvas to place text box",
+    "Select": "UIA name 'Select' \u00e2\u20ac\u201d rectangular selection",
+    "Magnifier": "UIA name 'Magnifier'"
+  },
+  "known_issues": [
+    "Canvas size != window size. The canvas is a specific region inside the window. ALWAYS use get_canvas_bounds() which reads the actual canvas dimensions from Paint's status bar (e.g. '795 \u00c3\u2014 605px'). NEVER assume canvas fills the window.",
+    "Canvas resize handles at edges \u00e2\u20ac\u201d stay 15px away from all canvas borders. If a drag starts/ends too close to the edge, it resizes the canvas instead of drawing.",
+    "Edit Colors dialog edits Color 2 (secondary) if Color 1 is not clicked first. Always click 'Color 1' UIA element before opening Edit Colors.",
+    "Ctrl+W opens Resize and Skew dialog, NOT close. Use kill_app() or Alt+F4 to close Paint.",
+    "Brush size selection via map_screen is dangerous \u00e2\u20ac\u201d 'size' partial-matches 'Resize' button and opens Resize and Skew dialog. Don't attempt brush size changes.",
+    "If Paint is NOT maximized, toolbar coordinates differ. Always maximize before drawing.",
+    "Ctrl+S saves in-place if file was previously saved. Use F12 for Save As to specify a new path.",
+    "Save As dialog: filename field is pre-focused. Pasting replaces selected text directly. Do NOT use Ctrl+A in Save As \u00e2\u20ac\u201d it selects files in the list, not text.",
+    "After Ctrl+N (new canvas), a 'Save changes?' dialog may appear. Press 'N' for Don't Save."
+  ],
+  "tips": [
+    "ALWAYS use get_canvas_bounds() to detect canvas area \u00e2\u20ac\u201d it reads from Paint's status bar via UIA. Returns (left, top, right, bottom) in screen coords.",
+    "ALWAYS maximize Paint before drawing for consistent coordinates: ensure_maximized('Paint')",
+    "Use select_color('red') for colors \u00e2\u20ac\u201d it opens Edit Colors dialog and sets exact RGB via pywinauto auto_ids 706/707/708. More reliable than clicking palette swatches.",
+    "Use app_save(filepath, 'Paint') or paint_save(filepath) to save \u00e2\u20ac\u201d handles focus, Save As dialog, format confirmation, and verification automatically.",
+    "Use new_canvas() to reset to blank instead of kill+reopen \u00e2\u20ac\u201d faster and handles Save dialog.",
+    "For drawing: pick color FIRST with select_color(), THEN draw. Never draw then repaint.",
+    "NEVER use flood fill (use_fill) on pencil-drawn shapes \u2014 pencil lines have pixel gaps so fill leaks and destroys the entire canvas. Only use fill ONCE at the very start to set a background color on a blank canvas, then switch to pencil and NEVER switch back to fill. Draw everything with outlines only.",
+    "Canvas top-left is approximately (5, 144) when maximized on 1920x1080, but ALWAYS verify with get_canvas_bounds().",
+    "Plan the composition before drawing. Draw each element exactly once. Simple and clean beats complex and messy."
+  ],
+  "versions": {},
+  "feedback": [],
+  "updated": 0
+}

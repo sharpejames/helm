@@ -1,0 +1,42 @@
+server:
+  host: 0.0.0.0
+  port: 8765
+  secret_key: ""
+
+llm:
+  # Option A: Kiro Gateway (free with Kiro IDE subscription)
+  provider: kiro
+  base_url: http://localhost:8000
+  api_key: your-kiro-proxy-key
+  model: claude-sonnet-4.6
+
+  # Option B: Anthropic direct
+  # provider: anthropic
+  # api_key: sk-ant-your-key-here
+  # model: claude-sonnet-4-20250514
+
+  # Option C: OpenAI
+  # provider: openai
+  # api_key: sk-your-key-here
+  # model: gpt-4o
+
+vision:
+  provider: gemini
+  api_key: your-gemini-api-key-here
+  model: gemini-2.5-flash
+
+pipeline:
+  max_retries: 3
+  locate_max_attempts: 5
+  locate_damping: 0.75
+  settle_delay_ms: 500
+  blocker_max_attempts: 2
+
+clawmetheus:
+  path: ./clawmetheus          # Path to clawmetheus directory
+  url: http://127.0.0.1:7331   # Clawmetheus server URL
+
+timezone: America/Los_Angeles
+
+db:
+  path: ./helm.db

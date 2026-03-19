@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Helm — AI Desktop Operator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .view { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+    .view.active { display: flex; }
+    .nav-btn { width:40px; height:40px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#9ca3af; cursor:pointer; transition:all .15s; font-size:18px; border:none; background:none; }
+    .nav-btn:hover { color:#fff; background:#374151; }
+    .nav-btn.active { color:#fff; background:#374151; }
+    .artifact-card { background:#1f2937; border-radius:8px; padding:10px; margin-top:8px; font-size:12px; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:500; }
+    .badge-completed { background:#14532d; color:#86efac; }
+    .badge-failed { background:#7f1d1d; color:#fca5a5; }
+    .badge-running { background:#1e3a5f; color:#93c5fd; }
+    .badge-pending { background:#374151; color:#9ca3af; }
+    pre { white-space: pre-wrap; word-break: break-word; }
+    ::-webkit-scrollbar { width:6px; } ::-webkit-scrollbar-track { background:#111827; } ::-webkit-scrollbar-thumb { background:#374151; border-radius:3px; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 h-screen flex overflow-hidden">
+
+  <!-- Sidebar -->
+  <div class="flex-shrink-0 w-14 bg-gray-900 border-r border-gray-800 flex flex-col items-center py-4 gap-2">
+    <div class="text-2xl mb-3" title="Helm">⚓</div>
+    <button class="nav-btn active" id="nav-chat" onclick="showView('chat')" title="Chat">💬</button>
+    <button class="nav-btn" id="nav-tasks" onclick="showView('tasks')" title="Tasks">📋</button>
+    <button class="nav-btn" id="nav-settings" onclick="showView('settings')" title="Settings">⚙️</button>
+  </div>
+
+  <!-- Chat View -->
+  <div id="view-chat" class="view active">
+    <div class="px-4 py-3 border-b border-gray-800 flex items-center gap-3 flex-shrink-0">
+      <span class="font-semibold text-sm">Chat</span>
+      <span id="agent-status" class="text-xs text-gray-500">ready</span>
+    </div>
+    <div id="messages" class="flex-1 overflow-y-auto p-4 space-y-3">
+      <div id="empty-state" class="text-center text-gray-600 text-sm mt-12">
+        <div class="text-5xl mb-3">⚓</div>
+        <div class="text-gray-400 font-medium">Helm is ready</div>
+        <div class="mt-1 text-gray-600">Tell me what to do on your computer.</div>
+        <div class="mt-4 text-xs text-gray-700 max-w-sm mx-auto">
+          Try: "Go to reddit.com and take a screenshot" or "Open Notepad and type Hello World"
+        </div>
+      </div>
+    </div>
+      <div class="p-3 border-t border-gray-800 flex-shrink-0">
+        <div id="escape-hint" class="hidden text-center text-xs text-red-400 mb-2 font-medium">
+          ⚠ Task running — press <kbd class="bg-gray-700 px-1.5 py-0.5 rounded text-gray-300">Esc</kbd> or click <strong>■ STOP</strong> to abort
+        </div>
+        <div class="flex gap-2">
+          <input id="chat-input" type="text"
+            placeholder="Tell Helm what to do..."
+            class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 placeholder-gray-600"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}">
+          <button id="send-btn" onclick="sendMessage()"
+            class="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            Send
+          </button>
+          <button id="stop-btn" onclick="stopTask()"
+            class="hidden bg-red-600 hover:bg-red-700 active:bg-red-800 px-5 py-2 rounded-lg text-sm font-bold transition-colors ring-2 ring-red-500 ring-offset-1 ring-offset-gray-950"
+            title="Stop task (Escape)">
+            ■ STOP
+          </button>
+        </div>
+      </div>
+  </div>
+
+  <!-- Tasks View -->
+  <div id="view-tasks" class="view">
+    <div class="px-4 py-3 border-b border-gray-800 flex items-center justify-between flex-shrink-0">
+      <span class="font-semibold text-sm">Scheduled Tasks</span>
+      <button onclick="showModal('modal-new-task')"
+        class="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-xs font-medium">+ New Task</button>
+    </div>
+    <div class="flex-1 overflow-y-auto p-4">
+      <div id="tasks-list"></div>
+    </div>
+  </div>
+
+  <!-- Settings View -->
+  <div id="view-settings" class="view">
+    <div class="px-4 py-3 border-b border-gray-800 flex-shrink-0">
+      <span class="font-semibold text-sm">Settings</span>
+    </div>
+    <div class="flex-1 overflow-y-auto p-6">
+      <div class="max-w-lg space-y-6">
+
+        <div>
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Language Model</div>
+          <div class="bg-gray-900 rounded-xl p-4 space-y-3 border border-gray-800">
+            <div>
+              <label class="text-xs text-gray-400 block mb-1">Provider</label>
+              <select id="s-llm-provider" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                <option value="kiro">Kiro (local proxy)</option>
+                <option value="anthropic">Anthropic (direct)</option>
+                <option value="openai-compatible">OpenAI-compatible</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-gray-400 block mb-1">Base URL</label>
+              <input id="s-llm-base-url" type="text" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="http://localhost:8000">
+            </div>
+            <div>
+              <label class="text-xs text-gray-400 block mb-1">API Key</label>
+              <input id="s-llm-api-key" type="password" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="sk-ant-...">
+            </div>
+            <div>
+              <label class="text-xs text-gray-400 block mb-1">Model</label>
+              <input id="s-llm-model" type="text" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="kiro/claude-sonnet-4.6">
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Vision Model</div>
+          <div class="bg-gray-900 rounded-xl p-4 space-y-3 border border-gray-800">
+            <div>
+              <label class="text-xs text-gray-400 block mb-1">API Key (Gemini)</label>
+              <input id="s-vision-api-key" type="password" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="AIza...">
+            </div>
+            <div>
+              <label class="text-xs text-gray-400 block mb-1">Model</label>
+              <input id="s-vision-model" type="text" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="gemini-2.5-flash">
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button onclick="saveSettings()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium">Save</button>
+          <button onclick="testConnection()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium">Test Connection</button>
+        </div>
+        <div id="settings-msg" class="text-sm"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: New Task -->
+  <div id="modal-new-task" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div class="bg-gray-900 rounded-xl p-6 w-full max-w-md border border-gray-700 shadow-2xl">
+      <h3 class="font-semibold mb-4">New Scheduled Task</h3>
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Name</label>
+          <input id="nt-name" type="text" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Daily Reddit post">
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">What to do</label>
+          <textarea id="nt-desc" rows="3" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 resize-none" placeholder="Go to reddit.com/r/ScreenDetox and post..."></textarea>
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Cron schedule</label>
+          <input id="nt-schedule" type="text" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-blue-500" placeholder="0 9 * * 1-5">
+          <div class="text-xs text-gray-600 mt-1">minute hour day month weekday — e.g. <code>0 9 * * 1-5</code> = 9am weekdays</div>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-5">
+        <button onclick="createTask()" class="flex-1 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium">Create</button>
+        <button onclick="hideModal('modal-new-task')" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Run Detail -->
+  <div id="modal-run" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div class="bg-gray-900 rounded-xl p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto border border-gray-700 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold" id="run-modal-title">Task Details</h3>
+        <button onclick="hideModal('modal-run')" class="text-gray-500 hover:text-white text-lg leading-none">✕</button>
+      </div>
+      <div id="run-modal-body"></div>
+    </div>
+  </div>
+
+<script>
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
+function setStatus(text, cls='text-gray-500') {
+  const el = document.getElementById('agent-status');
+  el.textContent = text; el.className = 'text-xs ' + cls;
+}
+
+// ── Views ─────────────────────────────────────────────────────────────────────
+function showView(name) {
+  ['chat','tasks','settings'].forEach(v => {
+    document.getElementById('view-'+v).classList.remove('active');
+    document.getElementById('nav-'+v).classList.remove('active');
+  });
+  document.getElementById('view-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if (name === 'tasks') loadTasks();
+  if (name === 'settings') loadSettings();
+}
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+let busy = false;
+let abortController = null;
+let currentKbId = null;
+
+function renderFeedback(kbId, success) {
+  const color = success ? 'border-green-800' : 'border-red-800';
+  const msg = success
+    ? "How'd it do? Your feedback helps Helm learn."
+    : "Task failed. What went wrong? Your feedback helps Helm learn.";
+  return `<div class="artifact-card ${color} border mt-2" id="feedback-${kbId}">
+    <div class="text-xs text-gray-400 mb-2">${msg}</div>
+    <div class="flex gap-2 mb-2">
+      <input id="fb-text-${kbId}" type="text" placeholder="Optional: what worked / what didn't..."
+        class="flex-1 bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500 placeholder-gray-600"
+        onkeydown="if(event.key==='Enter'){sendFeedback('${kbId}', true)}">
+    </div>
+    <div class="flex gap-2">
+      <button onclick="sendFeedback('${kbId}', true)"
+        class="flex items-center gap-1 bg-green-900 hover:bg-green-800 px-3 py-1.5 rounded text-xs font-medium transition-colors">
+        👍 Good
+      </button>
+      <button onclick="sendFeedback('${kbId}', false)"
+        class="flex items-center gap-1 bg-red-900 hover:bg-red-800 px-3 py-1.5 rounded text-xs font-medium transition-colors">
+        👎 Bad
+      </button>
+    </div>
+  </div>`;
+}
+
+async function sendFeedback(kbId, thumbsUp) {
+  const el = document.getElementById('feedback-' + kbId);
+  const textInput = document.getElementById('fb-text-' + kbId);
+  const context = textInput ? textInput.value.trim() : '';
+  if (!el) return;
+  try {
+    const r = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({id: kbId, thumbs_up: thumbsUp, context: context})
+    });
+    const data = await r.json();
+    if (thumbsUp) {
+      el.innerHTML = `<span class="text-xs text-green-400">👍 Saved to knowledge base${context ? ' — "' + esc(context) + '"' : ''}</span>`;
+    } else if (data.status === 'removed') {
+      el.innerHTML = `<span class="text-xs text-red-400">👎 Removed from knowledge base${context ? ' — "' + esc(context) + '"' : ''}</span>`;
+    } else {
+      el.innerHTML = `<span class="text-xs text-yellow-400">👎 Noted${context ? ' — "' + esc(context) + '"' : ''} (rating: ${data.rating||0})</span>`;
+    }
+  } catch(e) {
+    el.innerHTML = '<span class="text-xs text-red-400">Feedback failed</span>';
+  }
+}
+
+async function stopTask() {
+  // Server-side stop first (kills the agent loop)
+  try { await fetch('/api/stop', {method:'POST'}); } catch(e) {}
+  // Then abort the SSE stream
+  if (abortController) abortController.abort();
+  busy = false;
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('stop-btn').classList.add('hidden');
+  setStatus('stopped — press Escape or Stop to abort next time', 'text-yellow-500');
+  setTimeout(() => setStatus('ready'), 3000);
+}
+
+// Escape key stops the current task
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && busy) { e.preventDefault(); stopTask(); }
+});
+
+function msgEl(role, html) {
+  const wrap = document.createElement('div');
+  wrap.className = role === 'user' ? 'flex justify-end' : 'flex justify-start';
+  const bubble = document.createElement('div');
+  bubble.className = role === 'user'
+    ? 'bg-blue-600 rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[80%] text-sm'
+    : 'bg-gray-800 rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-[80%] text-sm';
+  bubble.innerHTML = html;
+  wrap.appendChild(bubble);
+  const msgs = document.getElementById('messages');
+  const empty = document.getElementById('empty-state');
+  if (empty) empty.remove();
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+  return bubble;
+}
+
+function renderArtifact(a) {
+  if (!a || !a.value) return '';
+  if (a.type === 'screenshot') {
+    return `<div class="artifact-card">
+      <div class="text-gray-500 mb-1">📸 ${esc(a.label||'Screenshot')}</div>
+      <img src="data:image/png;base64,${a.value}" class="rounded max-w-full" style="max-height:180px;cursor:pointer" onclick="this.style.maxHeight=this.style.maxHeight?'':'180px'">
+    </div>`;
+  }
+  if (a.type === 'url') {
+    return `<div class="artifact-card">
+      <div class="text-gray-500 mb-1">🔗 ${esc(a.label||'URL')}</div>
+      <a href="${esc(a.value)}" target="_blank" class="text-blue-400 hover:underline break-all text-xs">${esc(a.value)}</a>
+    </div>`;
+  }
+  if (a.type === 'file') {
+    return `<div class="artifact-card">
+      <div class="text-gray-500 mb-1">📁 ${esc(a.label||'File')}</div>
+      <code class="text-gray-300 text-xs">${esc(a.value)}</code>
+    </div>`;
+  }
+  if (a.type === 'text') {
+    return `<div class="artifact-card">
+      <div class="text-gray-500 mb-1">📝 ${esc(a.label||'Output')}</div>
+      <pre class="text-gray-300 text-xs">${esc(a.value)}</pre>
+    </div>`;
+  }
+  return '';
+}
+
+async function sendMessage() {
+  if (busy) return;
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  input.value = '';
+  busy = true;
+  abortController = new AbortController();
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('stop-btn').classList.remove('hidden');
+  setStatus('running...', 'text-blue-400');
+
+  msgEl('user', esc(msg));
+  const bubble = msgEl('agent', '<span class="text-gray-500 text-xs animate-pulse">thinking…</span>');
+
+  try {
+    const resp = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({message: msg}),
+      signal: abortController.signal
+    });
+
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, {stream:true});
+      const lines = buf.split('\n');
+      buf = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        let ev;
+        try { ev = JSON.parse(line.slice(6)); } catch { continue; }
+
+        if (ev.type === 'status' || ev.type === 'step') {
+          bubble.innerHTML = `<span class="text-gray-400 text-xs">${esc(ev.data)}</span>`;
+        } else if (ev.type === 'artifact') {
+          bubble.insertAdjacentHTML('afterend', renderArtifact(ev.data));
+        } else if (ev.type === 'warning') {
+          bubble.insertAdjacentHTML('beforeend', `<div class="text-yellow-500 text-xs mt-1">⚠ ${esc(ev.data)}</div>`);
+        } else if (ev.type === 'error') {
+          bubble.innerHTML = `<span class="text-red-400 text-xs">✗ ${esc(ev.data)}</span>`;
+        } else if (ev.type === 'done') {
+          bubble.innerHTML = esc(ev.data).replace(/\n/g,'<br>');
+          if (ev.artifacts) ev.artifacts.forEach(a => {
+            if (a.value) bubble.insertAdjacentHTML('afterend', renderArtifact(a));
+          });
+        } else if (ev.type === 'feedback_request') {
+          currentKbId = ev.data.id;
+          bubble.insertAdjacentHTML('afterend', renderFeedback(ev.data.id, ev.data.success));
+        }
+      }
+    }
+  } catch(e) {
+    bubble.innerHTML = `<span class="text-red-400 text-xs">Connection error: ${esc(e.message)}</span>`;
+  }
+
+  busy = false;
+  abortController = null;
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('stop-btn').classList.add('hidden');
+  setStatus('ready');
+}
+
+async function loadHistory() {
+  try {
+    const runs = await fetch('/api/chat/history?limit=20').then(r=>r.json());
+    if (!runs.length) return;
+    const msgs = document.getElementById('messages');
+    const empty = document.getElementById('empty-state');
+    if (empty) empty.remove();
+    for (const run of [...runs].reverse()) {
+      msgEl('user', esc(run.input||''));
+      const b = msgEl('agent', esc(run.output||run.error||'(no output)'));
+      if (run.artifacts) run.artifacts.forEach(a => {
+        if (a.value) b.insertAdjacentHTML('afterend', renderArtifact(a));
+      });
+    }
+  } catch(e) {}
+}
+
+// ── Tasks ─────────────────────────────────────────────────────────────────────
+async function loadTasks() {
+  const list = document.getElementById('tasks-list');
+  list.innerHTML = '<div class="text-gray-600 text-sm text-center py-8">Loading…</div>';
+  try {
+    const tasks = await fetch('/api/tasks').then(r=>r.json());
+    if (!tasks.length) {
+      list.innerHTML = '<div class="text-gray-600 text-sm text-center py-8">No scheduled tasks yet.</div>';
+      return;
+    }
+    list.innerHTML = tasks.map(t => `
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-2 hover:border-gray-700 transition-colors">
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex-1 min-w-0">
+            <div class="font-medium text-sm">${esc(t.name)}</div>
+            ${t.description ? `<div class="text-xs text-gray-500 mt-0.5 truncate">${esc(t.description)}</div>` : ''}
+            ${t.schedule ? `<div class="text-xs text-gray-600 mt-1 font-mono">🕐 ${esc(t.schedule)}</div>` : ''}
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span class="badge ${t.enabled ? 'badge-completed' : 'badge-pending'}">${t.enabled ? 'on' : 'off'}</span>
+            <button onclick="viewTask('${t.id}')" class="text-xs text-blue-400 hover:text-blue-300">Runs</button>
+            <button onclick="deleteTask('${t.id}')" class="text-xs text-red-400 hover:text-red-300">Delete</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    list.innerHTML = `<div class="text-red-400 text-sm">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+async function createTask() {
+  const name = document.getElementById('nt-name').value.trim();
+  const desc = document.getElementById('nt-desc').value.trim();
+  const schedule = document.getElementById('nt-schedule').value.trim();
+  if (!name || !desc) return alert('Name and description required');
+  try {
+    await fetch('/api/tasks', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name, description: desc, type: schedule ? 'scheduled' : 'manual', schedule: schedule||null})
+    });
+    hideModal('modal-new-task');
+    document.getElementById('nt-name').value = '';
+    document.getElementById('nt-desc').value = '';
+    document.getElementById('nt-schedule').value = '';
+    loadTasks();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function deleteTask(id) {
+  if (!confirm('Delete this task?')) return;
+  await fetch(`/api/tasks/${id}`, {method:'DELETE'});
+  loadTasks();
+}
+
+async function viewTask(id) {
+  const task = await fetch(`/api/tasks/${id}`).then(r=>r.json());
+  document.getElementById('run-modal-title').textContent = task.name;
+  const body = document.getElementById('run-modal-body');
+
+  if (!task.runs || !task.runs.length) {
+    body.innerHTML = '<div class="text-gray-600 text-sm">No runs yet.</div>';
+  } else {
+    body.innerHTML = task.runs.map(run => `
+      <div class="bg-gray-800 rounded-xl p-4 mb-3">
+        <div class="flex items-center justify-between mb-2">
+          <span class="badge badge-${run.status}">${run.status}</span>
+          <span class="text-xs text-gray-500">${run.started_at ? new Date(run.started_at).toLocaleString() : ''}</span>
+        </div>
+        ${run.output ? `<div class="text-sm text-gray-300 mb-2">${esc(run.output)}</div>` : ''}
+        ${run.error ? `<div class="text-xs text-red-400 mb-2">✗ ${esc(run.error)}</div>` : ''}
+        ${(run.artifacts||[]).map(a => renderArtifact(a)).join('')}
+      </div>
+    `).join('');
+  }
+  showModal('modal-run');
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+async function loadSettings() {
+  try {
+    const s = await fetch('/api/settings').then(r=>r.json());
+    if (s.llm) {
+      document.getElementById('s-llm-provider').value = s.llm.provider || 'kiro';
+      document.getElementById('s-llm-base-url').value = s.llm.base_url || '';
+      document.getElementById('s-llm-api-key').value = '';
+      document.getElementById('s-llm-model').value = s.llm.model || '';
+    }
+    if (s.vision) {
+      document.getElementById('s-vision-api-key').value = '';
+      document.getElementById('s-vision-model').value = s.vision.model || '';
+    }
+  } catch(e) {}
+}
+
+async function saveSettings() {
+  const body = {
+    llm: {
+      provider: document.getElementById('s-llm-provider').value,
+      base_url: document.getElementById('s-llm-base-url').value,
+      model: document.getElementById('s-llm-model').value,
+    },
+    vision: {
+      model: document.getElementById('s-vision-model').value,
+    }
+  };
+  const apiKey = document.getElementById('s-llm-api-key').value;
+  if (apiKey) body.llm.api_key = apiKey;
+  const visionKey = document.getElementById('s-vision-api-key').value;
+  if (visionKey) body.vision.api_key = visionKey;
+
+  try {
+    const r = await fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    const data = await r.json();
+    const msg = document.getElementById('settings-msg');
+    msg.textContent = data.message || 'Saved.';
+    msg.className = 'text-sm text-green-400';
+    setTimeout(() => msg.textContent = '', 3000);
+  } catch(e) {
+    document.getElementById('settings-msg').textContent = 'Error: ' + e.message;
+    document.getElementById('settings-msg').className = 'text-sm text-red-400';
+  }
+}
+
+async function testConnection() {
+  const msg = document.getElementById('settings-msg');
+  msg.textContent = 'Testing…';
+  msg.className = 'text-sm text-gray-400';
+  try {
+    const r = await fetch('/api/settings/test').then(r=>r.json());
+    const llm = r.llm?.status === 'ok' ? '✓ LLM ok' : `✗ LLM: ${r.llm?.error||'error'}`;
+    const vis = r.vision?.status === 'ok' ? '✓ Vision ok' : r.vision?.status === 'not_configured' ? '⚠ Vision not configured' : `✗ Vision: ${r.vision?.error||'error'}`;
+    msg.textContent = `${llm} · ${vis}`;
+    msg.className = 'text-sm ' + (r.llm?.status === 'ok' ? 'text-green-400' : 'text-red-400');
+  } catch(e) {
+    msg.textContent = 'Connection failed: ' + e.message;
+    msg.className = 'text-sm text-red-400';
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadHistory();
+</script>
+</body>
+</html>

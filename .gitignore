@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.db
+*.sqlite
+logs/
+*.png
+*.jpg
+*.jpeg
+config.yaml
+map_screen_debug.*
+kb/scripts.json
+v2/
+.vscode/
+.idea/
