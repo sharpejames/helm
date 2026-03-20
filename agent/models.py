@@ -15,7 +15,11 @@ class LLMClient:
             base_url = cfg.get('base_url', 'http://localhost:8000').rstrip('/')
             if not base_url.endswith('/v1'):
                 base_url += '/v1'
-            self._client = OpenAI(base_url=base_url, api_key=cfg.get('api_key', 'no-key'))
+            self._client = OpenAI(
+                base_url=base_url,
+                api_key=cfg.get('api_key', 'no-key'),
+                timeout=300.0,  # 5 min timeout to avoid BodyStreamBuffer abort
+            )
             self._mode = 'openai'
         elif provider == 'anthropic':
             import anthropic

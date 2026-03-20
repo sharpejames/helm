@@ -1,6 +1,7 @@
 {
   "name": "Paint",
   "exe": "mspaint.exe",
+  "version_note": "Windows 11 Paint (Cocreator) — NOT classic Paint. Dark mode enabled. No ribbon, minimal toolbar.",
   "shortcuts": {
     "save_as": "F12",
     "new": "Ctrl+N",
@@ -10,36 +11,81 @@
     "paste": "Ctrl+V"
   },
   "tools": {
-    "Pencil": "UIA name 'Pencil' \u00e2\u20ac\u201d freehand drawing tool",
-    "Fill with color": "UIA name 'Fill with color' \u00e2\u20ac\u201d flood fill tool",
-    "Color 1": "UIA name 'Color 1' \u00e2\u20ac\u201d click before Edit Colors to set primary color",
-    "Edit colors": "UIA name 'Edit colors' \u00e2\u20ac\u201d opens RGB color picker dialog",
+    "Pencil": "UIA name 'Pencil' — freehand drawing tool. In toolbar at ~y=131.",
+    "Fill with color": "UIA name 'Fill with color' — flood fill tool (BANNED — destroys canvas)",
     "Eraser": "UIA name 'Eraser'",
-    "Text": "UIA name 'Text' \u00e2\u20ac\u201d click then click canvas to place text box",
-    "Select": "UIA name 'Select' \u00e2\u20ac\u201d rectangular selection",
-    "Magnifier": "UIA name 'Magnifier'"
+    "Text": "UIA name 'Text' — click then click canvas to place text box",
+    "Select": "UIA name 'Select' — rectangular selection",
+    "Shapes": "UIA name 'Shapes' — opens the shapes gallery/dropdown with Ellipse, Rectangle, Triangle, Line, etc.",
+    "Ellipse": "Inside Shapes gallery — click 'Shapes' first to expand, then click 'Ellipse'. Use Shift+drag for perfect circle.",
+    "Rectangle": "Inside Shapes gallery — click 'Shapes' first to expand, then click 'Rectangle'.",
+    "Line": "Inside Shapes gallery — click 'Shapes' first, then 'Line'.",
+    "Triangle": "Inside Shapes gallery — click 'Shapes' first, then 'Triangle'.",
+    "Brushes": "UIA name 'Brushes' — dropdown with brush variants"
+  },
+  "colors": {
+    "note": "New Paint has small color circles in the toolbar area (~y=125-140). Colors are identified by tooltip on hover. Use select_color('red') which scans for swatches automatically.",
+    "method": "select_color() first tries to find and click the toolbar swatch by hovering to read tooltips. Falls back to Edit Colors dialog if swatch not found."
+  },
+  "canvas": {
+    "dark_mode": true,
+    "background_color": "RGB(254,184,112) in dark mode — NOT white",
+    "detection": "get_canvas_bounds() uses pixel scanning. Detects both white (light mode) and warm-toned (dark mode) canvas.",
+    "note": "Canvas is NOT the full window. Always use get_canvas_bounds() to get exact coordinates."
+  },
+  "drawing": {
+    "method": "smoothDrag via clawmetheus HTTP API using Win32 mouse_event for reliable input.",
+    "canvas_activation": "All draw_* functions activate the canvas automatically by clicking it before drawing. No manual activation needed.",
+    "speed": "Default speed is 200. Keep <= 300. Filled shapes use speed 400 internally.",
+    "primitives": {
+      "draw_line": "Straight line between two points",
+      "draw_rect": "Rectangle outline as single continuous path",
+      "draw_circle": "Circle outline",
+      "draw_ellipse": "Ellipse outline with separate rx/ry radii",
+      "draw_arc": "Partial circle (angles in radians)",
+      "draw_polygon": "Closed polygon through list of points",
+      "draw_star": "Star shape with outer/inner radii",
+      "draw_path": "Open path through points (straight segments)",
+      "draw_curve": "Smooth Catmull-Rom curve through control points",
+      "draw_rays": "Radial lines from inner to outer radius",
+      "draw_filled_rect": "Filled rectangle via pencil hatching — SLOW (~45s for 300px). Use Paint shape tools instead.",
+      "draw_filled_circle": "Filled circle via pencil hatching — SLOW (~60s for 200px radius). Use Paint shape tools instead.",
+      "drag": "General-purpose mouse drag (alias for draw_line)",
+      "activate_canvas": "Standalone canvas focus helper"
+    },
+    "pattern": "1) select_color(), 2) ensure_foreground(), 3) use_pencil(), 4) draw_*(). Group by color to minimize switches."
   },
   "known_issues": [
-    "Canvas size != window size. The canvas is a specific region inside the window. ALWAYS use get_canvas_bounds() which reads the actual canvas dimensions from Paint's status bar (e.g. '795 \u00c3\u2014 605px'). NEVER assume canvas fills the window.",
-    "Canvas resize handles at edges \u00e2\u20ac\u201d stay 15px away from all canvas borders. If a drag starts/ends too close to the edge, it resizes the canvas instead of drawing.",
-    "Edit Colors dialog edits Color 2 (secondary) if Color 1 is not clicked first. Always click 'Color 1' UIA element before opening Edit Colors.",
+    "Canvas background is RGB(254,184,112) in dark mode — NOT white. _find_canvas_by_pixels handles both.",
+    "Edit Colors dialog may NOT work in new Paint — pywinauto can't find auto_ids 706/707/708. select_color() tries toolbar swatches first.",
+    "Canvas resize handles at edges — stay 15px away from all canvas borders.",
     "Ctrl+W opens Resize and Skew dialog, NOT close. Use kill_app() or Alt+F4 to close Paint.",
-    "Brush size selection via map_screen is dangerous \u00e2\u20ac\u201d 'size' partial-matches 'Resize' button and opens Resize and Skew dialog. Don't attempt brush size changes.",
     "If Paint is NOT maximized, toolbar coordinates differ. Always maximize before drawing.",
-    "Ctrl+S saves in-place if file was previously saved. Use F12 for Save As to specify a new path.",
-    "Save As dialog: filename field is pre-focused. Pasting replaces selected text directly. Do NOT use Ctrl+A in Save As \u00e2\u20ac\u201d it selects files in the list, not text.",
-    "After Ctrl+N (new canvas), a 'Save changes?' dialog may appear. Press 'N' for Don't Save."
+    "Ctrl+S saves in-place if file was previously saved. Use F12 for Save As.",
+    "Save As dialog: filename field is pre-focused. Do NOT use Ctrl+A in Save As.",
+    "After Ctrl+N (new canvas), a 'Save changes?' dialog may appear. Press 'N' for Don't Save.",
+    "Shape tools are inside 'Shapes' gallery dropdown. Click 'Shapes' first to expand, THEN click the shape.",
+    "find_tool('Ellipse') may return off-screen coordinates (Y=-20011). Always validate coords are on-screen.",
+    "pyautogui.mouseDown/moveTo does NOT draw in Paint. Only clawmetheus smoothDrag works.",
+    "After clicking a toolbar button, you MUST click the canvas before smoothDrag will draw.",
+    "Screen resolution may not be 1920x1080. Use get_screen_size() or pyautogui.size().",
+    "key() only accepts positional args: key('enter'), key('ctrl','s'). NO keyword args.",
+    "draw_filled_rect/draw_filled_circle are EXTREMELY SLOW (30-60s each). Use Paint shape tools for filled shapes instead.",
+    "Scripts timeout at 300s. Max ~30 draw_* calls per script. Keep it simple."
   ],
   "tips": [
-    "ALWAYS use get_canvas_bounds() to detect canvas area \u00e2\u20ac\u201d it reads from Paint's status bar via UIA. Returns (left, top, right, bottom) in screen coords.",
-    "ALWAYS maximize Paint before drawing for consistent coordinates: ensure_maximized('Paint')",
-    "Use select_color('red') for colors \u00e2\u20ac\u201d it opens Edit Colors dialog and sets exact RGB via pywinauto auto_ids 706/707/708. More reliable than clicking palette swatches.",
-    "Use app_save(filepath, 'Paint') or paint_save(filepath) to save \u00e2\u20ac\u201d handles focus, Save As dialog, format confirmation, and verification automatically.",
-    "Use new_canvas() to reset to blank instead of kill+reopen \u00e2\u20ac\u201d faster and handles Save dialog.",
-    "For drawing: pick color FIRST with select_color(), THEN draw. Never draw then repaint.",
-    "NEVER use flood fill (use_fill) on pencil-drawn shapes \u2014 pencil lines have pixel gaps so fill leaks and destroys the entire canvas. Only use fill ONCE at the very start to set a background color on a blank canvas, then switch to pencil and NEVER switch back to fill. Draw everything with outlines only.",
-    "Canvas top-left is approximately (5, 144) when maximized on 1920x1080, but ALWAYS verify with get_canvas_bounds().",
-    "Plan the composition before drawing. Draw each element exactly once. Simple and clean beats complex and messy."
+    "ALWAYS use get_canvas_bounds() to detect canvas area.",
+    "ALWAYS maximize Paint before drawing: ensure_maximized('Paint')",
+    "Use select_color('red') for colors — tries toolbar swatches first, falls back to Edit Colors dialog.",
+    "Use app_save(filepath, 'Paint') to save — handles Save As dialog automatically.",
+    "Use new_canvas() to reset to blank instead of kill+reopen.",
+    "For drawing: pick color FIRST with select_color(), THEN use_pencil(), THEN draw_circle/draw_line.",
+    "NEVER use flood fill (use_fill) on pencil-drawn shapes — pixel gaps cause fill to leak.",
+    "draw_circle() handles canvas activation internally — no need to click canvas before calling it.",
+    "Default smoothDrag speed is 200. Keep it <= 300.",
+    "Plan the composition before drawing. Draw each element exactly once.",
+    "For FILLED shapes: use Paint's shape tools (Shapes → Ellipse/Rectangle + set_fill('Solid color') + drag). NEVER use draw_filled_rect/draw_filled_circle for large shapes — they take 30-60s each.",
+    "HARD TIME LIMIT: Scripts timeout at 300s. Keep drawings to 10-20 shapes max. Each draw_* call takes 2-5s."
   ],
   "versions": {},
   "feedback": [],

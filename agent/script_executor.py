@@ -2,6 +2,7 @@ import asyncio
 import ast
 import os
 import re
+import sys
 import json
 import tempfile
 import logging
@@ -26,7 +27,7 @@ KNOWN_APPS = ["paint", "notepad", "chrome", "word", "excel", "photoshop",
               "firefox", "edge", "explorer", "terminal", "powershell", "vscode"]
 
 class ScriptExecutor:
-    def __init__(self, llm: LLMClient):
+    def __init__(self, llm: LLMClient, config: dict = None):
         self.llm = llm
         self.kb = KnowledgeBase()
         self.app_db = AppDB()
@@ -38,6 +39,16 @@ class ScriptExecutor:
         self._last_kb_id: str | None = None
         self._run_log: list[dict] = []  # accumulated events for current run
         os.makedirs(LOG_DIR, exist_ok=True)
+
+        # Resolve task_runner.py path — lives in Helm's root directory
+        # task_runner.py is the orchestration layer that generated scripts import
+        helm_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self._task_runner_path = helm_root.replace("\\", "/")
+        tr_file = os.path.join(helm_root, "task_runner.py")
+        if not os.path.isfile(tr_file):
+            logger.warning(f"task_runner.py not found at {helm_root}")
+        else:
+            logger.info(f"task_runner.py path: {helm_root}")
 
     def _log_event(self, event_type: str, data: str | dict, attempt: int = 0):
         """Accumulate a structured log event for the current run."""
@@ -99,13 +110,19 @@ class ScriptExecutor:
                 detected.append("Paint")
         return detected
 
-    # Import preamble that MUST be at the top of every generated script
-    IMPORT_PREAMBLE = (
-        "import sys, time, requests, base64, os, math\n"
-        "sys.path.insert(0, r'C:/Users/sharp/.openclaw/workspace/clawmetheus')\n"
-        "from task_runner import *\n"
-        "from datetime import datetime\n"
-    )
+    @property
+    def IMPORT_PREAMBLE(self) -> str:
+        """Import preamble that MUST be at the top of every generated script."""
+        return (
+            "import sys, time, requests, base64, os, math, pyautogui\n"
+            f"sys.path.insert(0, r'{self._task_runner_path}')\n"
+            "from task_runner import *\n"
+            "from datetime import datetime\n"
+            "\n"
+            "# Screen size helper — never hardcode 1920x1080\n"
+            "def get_screen_size():\n"
+            "    return pyautogui.size()\n"
+        )
 
     def _extract_script(self, text: str) -> str:
         # Try regex first — handle both \n and \r\n line endings
@@ -291,7 +308,7 @@ Write a corrected script that fixes this specific failure."""
             tmp.write(script)
             tmp.close()
             proc = await asyncio.create_subprocess_exec(
-                'python', tmp.name,
+                sys.executable, tmp.name,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 env={**os.environ, 'PYTHONUTF8': '1'}
@@ -305,8 +322,17 @@ Write a corrected script that fixes this specific failure."""
             try:
                 stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=300)
             except asyncio.TimeoutError:
+                # Capture any partial output before killing
+                partial_out = ""
+                try:
+                    # Read whatever is available in the pipe
+                    if proc.stdout:
+                        partial_data = await asyncio.wait_for(proc.stdout.read(65536), timeout=2)
+                        partial_out = partial_data.decode('utf-8', errors='replace').strip()
+                except Exception:
+                    pass
                 proc.kill()
-                return {"success": False, "output": "", "error": "Script timed out after 300s"}
+                return {"success": False, "output": partial_out, "error": "Script timed out after 300s"}
             except asyncio.CancelledError:
                 proc.kill()
                 return {"success": False, "output": "", "error": "Task stopped by user"}
@@ -396,7 +422,8 @@ Write a corrected script that fixes this specific failure."""
         self._log_event("llm_request", {"prompt_length": len(context)})
 
         try:
-            raw = self.llm.complete(SCRIPT_SYSTEM, [{"role": "user", "content": context}])
+            system_prompt = SCRIPT_SYSTEM.replace("{task_runner_path}", self._task_runner_path)
+            raw = self.llm.complete(system_prompt, [{"role": "user", "content": context}])
         except Exception as e:
             self._log_event("error", f"LLM error: {e}")
             self._flush_log(task, "failed")

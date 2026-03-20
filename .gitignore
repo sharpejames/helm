@@ -14,3 +14,5 @@ kb/scripts.json
 v2/
 .vscode/
 .idea/
+_test_*.py
+!_test_full_flow.py

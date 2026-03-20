@@ -23,7 +23,7 @@ def create_app(config: dict, scheduler) -> FastAPI:
     # ScriptExecutor: generates complete Python scripts using task_runner.py
     # This is the proven approach — one LLM call generates a full script
     llm = LLMClient(config)
-    executor = ScriptExecutor(llm)
+    executor = ScriptExecutor(llm, config)
 
     # Store in app state
     app.state.config = config
