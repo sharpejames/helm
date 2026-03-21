@@ -64,6 +64,8 @@ AVAILABLE FUNCTIONS (from task_runner.py):
   select_color(name) | use_pencil() | get_canvas_bounds() | paint_save(filepath)
   use_fill() | fill_at(x, y)       # fill_at clamps to canvas — ALWAYS use after use_fill()
   set_outline(style) | set_fill(style)
+  ensure_tool(tool_name, app)       # VERIFY tool is active via vision — use after selecting any tool
+  check_screen(context_hint)        # take screenshot + describe what's on screen — use OFTEN
 
   # Validation
   validate_image(filepath, description="", min_bytes=5000)
@@ -82,6 +84,29 @@ Pattern: DO something → LOOK with vision → PROCEED or FIX.
   vision_check("Paint is open with a blank canvas", "Paint not ready")
   vision_check("Canvas shows my drawing", "Drawing failed")
   vision_check("Grok page with text input visible", "Grok not ready")
+
+## EXPECT THE UNEXPECTED:
+
+Like a self-driving car, Helm must handle anything that appears on screen.
+The vision model is LOCAL and FAST — use it freely. Don't be shy about screenshots.
+
+  # VERIFY TOOL SELECTION — wrong tool = wrong output
+  use_pencil(); wait_ms(300)
+  ensure_tool("Pencil")  # vision confirms pencil is active, re-selects if not
+
+  # CHECK SCREEN STATE frequently — catch problems early
+  state = check_screen("Drawing in Paint, checking canvas")
+  if "dialog" in state.lower() or "popup" in state.lower():
+      dismiss_modal()  # handle unexpected popup
+
+  # HANDLE UNEXPECTED POPUPS at any point:
+  # - Age verification → click Accept/Agree/OK
+  # - Cookie consent → click Accept
+  # - "Save changes?" → click Don't Save / No
+  # - Error dialog → click OK or press Escape
+  # - Any blocking modal → dismiss_modal() or key("escape")
+  # The background blocker monitor handles most of these automatically,
+  # but scripts should also check after critical transitions.
 
 ## MANDATORY PATTERNS:
 
@@ -165,6 +190,7 @@ PAINT DRAWING PATTERN:
     select_color("red"); wait_ms(300)
     ensure_foreground("Paint"); wait_ms(200)
     use_pencil(); wait_ms(300)
+    ensure_tool("Pencil")  # VERIFY pencil is active before drawing
     # draw shapes... group by color to minimize switches
 
     vision_check("Canvas shows the drawing", "Drawing may have failed")
@@ -252,6 +278,11 @@ RULES:
   20. FILE UPLOADS on ANY website: click the ATTACH/UPLOAD button first → wait for OS file
       picker dialog → type filepath in the OS dialog → Enter. The OS dialog is a native
       Windows dialog, not a web element. NEVER type a filepath into a web page text input.
+  21. VERIFY TOOL SELECTION: After selecting any drawing tool (pencil, fill, shape),
+      call ensure_tool("ToolName") to confirm it's active. Wrong tool = wrong output.
+  22. EXPECT THE UNEXPECTED: Check for popups/dialogs after every major action.
+      If something unexpected appears, dismiss it (dismiss_modal/key("escape")) and continue.
+      The vision model is local and fast — use check_screen() freely.
 
 FORBIDDEN:
   subprocess/ctypes/win32api/SendMessage/webbrowser.open()
@@ -293,6 +324,11 @@ RULES:
     Use ask() to find elements, parse coordinates, click them.
 15. If "not logged in" but user IS logged in: the vision model was wrong. Don't check login
     status — just proceed with the interaction. Only abort if there's literally no text input.
+16. VERIFY TOOLS: After selecting a drawing tool, use ensure_tool("ToolName") to confirm.
+    If the wrong tool was active (e.g. fill instead of pencil), that explains bad output.
+17. HANDLE POPUPS: If an unexpected popup appeared (age verification, cookie consent, etc.),
+    add dismiss_modal() or check_screen() + appropriate handling before the failing step.
+18. Use check_screen() and ensure_tool() — the vision model is LOCAL and FAST.
 
 Common fixes:
 - CSP/TimeoutError on web_find: Site blocks DevTools JS. Use ask() + click() instead.

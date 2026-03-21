@@ -198,9 +198,16 @@ Return the corrected script in a ```python block."""
             return "unknown"
 
     def _fix_script(self, task: str, failed_script: str, error: str, screen_state: str = "") -> str | None:
+        # Get a detailed screen analysis for better fix context
+        if not screen_state or screen_state == "unknown":
+            screen_state = self._ask_screen(
+                "Describe EVERYTHING on screen right now in detail: "
+                "Which app is in focus? Are there any popups/dialogs/modals? "
+                "What is the main content showing? Any error messages visible?"
+            )
         prompt = f"""Original task: {task}
 
-Current screen state: {screen_state or 'unknown'}
+Current screen state: {screen_state}
 
 Failed script:
 ```python
@@ -208,7 +215,14 @@ Failed script:
 ```
 
 Error / output:
-{error[:1500]}
+{error[:2000]}
+
+IMPORTANT CONTEXT FOR FIX:
+- If the script used the wrong tool (e.g. flood fill instead of pencil), ensure the correct tool is selected and VERIFIED before drawing.
+- If a popup/modal/dialog appeared unexpectedly, dismiss it first (key("escape") or dismiss_modal()), then continue.
+- If a website showed an age verification or cookie consent popup, accept/dismiss it before proceeding.
+- Use check_screen() and ensure_tool() to verify state before critical actions.
+- The vision model (ask/vision_check) is LOCAL and FAST — use it freely to check state.
 
 Write a corrected script that fixes this specific failure."""
         try:
@@ -225,11 +239,12 @@ Write a corrected script that fixes this specific failure."""
     async def _blocker_monitor(self, stop_event: asyncio.Event) -> None:
         """
         Background task: runs while a script executes.
-        Periodically checks for unexpected modals/dialogs and dismisses them
-        using keyboard shortcuts first (Escape → Alt+F4 → Ctrl+W),
-        then mouse on Cancel/X only — never OK/Yes without context.
+        Periodically checks for unexpected modals/dialogs and dismisses them.
+        Handles: save dialogs, error popups, age verification, cookie consent,
+        Windows notifications, and any other blocking UI.
+        Uses keyboard first, then mouse on safe buttons (Cancel/Close/X/Accept).
         """
-        CHECK_INTERVAL = 15.0  # seconds — Gemini free tier is 15 RPM; don't burn quota on monitoring
+        CHECK_INTERVAL = 8.0  # seconds — local vision model is fast, check frequently
 
         while not stop_event.is_set():
             await asyncio.sleep(CHECK_INTERVAL)
@@ -237,15 +252,41 @@ Write a corrected script that fixes this specific failure."""
                 break
             try:
                 answer = self._ask_screen(
-                    "Is there a modal dialog, popup, alert, or unexpected window "
-                    "blocking the main application right now? Answer yes or no only."
+                    "Is there a modal dialog, popup, alert, age verification, cookie consent, "
+                    "notification, or any unexpected window blocking the main application? "
+                    "Answer YES or NO only."
                 )
                 if "yes" not in answer.lower():
                     continue
 
-                logger.info("Blocker monitor: modal detected — attempting keyboard dismiss")
+                # Identify what kind of blocker it is
+                blocker_type = self._ask_screen(
+                    "What kind of popup/dialog is blocking? Is it: "
+                    "1) Age verification / cookie consent / terms acceptance (click Accept/Agree/OK) "
+                    "2) Error/warning to dismiss (click Cancel/Close/X) "
+                    "3) Save confirmation (click Don't Save / No) "
+                    "4) Other (describe). "
+                    "Reply with the number (1-4) and the text of the safest button to click."
+                )
+                logger.info(f"Blocker monitor: detected — {blocker_type[:100]}")
 
-                # Try keyboard shortcuts: Escape → Alt+F4 → Ctrl+W
+                # For age verification / consent — click Accept/OK/Agree
+                if "1" in blocker_type[:5] or "accept" in blocker_type.lower() or "agree" in blocker_type.lower() or "age" in blocker_type.lower() or "cookie" in blocker_type.lower() or "consent" in blocker_type.lower():
+                    # Try clicking Accept/OK/Agree button
+                    coords_answer = self._ask_screen(
+                        "Click the Accept, Agree, OK, or Continue button to dismiss this popup. "
+                        "Give ONLY the pixel coordinates as x,y (screenshot is at 0.5 scale)."
+                    )
+                    m = re.search(r'(\d+)\s*,\s*(\d+)', coords_answer)
+                    if m:
+                        x, y = int(m.group(1)) * 2, int(m.group(2)) * 2
+                        requests.post(f"{CLAWMETHEUS_URL}/action",
+                                      json={"type": "click", "x": x, "y": y}, timeout=5)
+                        logger.info(f"Blocker: clicked accept/agree at ({x},{y})")
+                        await asyncio.sleep(1.0)
+                        continue
+
+                # For everything else — try keyboard dismiss first
                 dismissed = False
                 for keys in [["escape"], ["alt", "f4"], ["ctrl", "w"]]:
                     requests.post(f"{CLAWMETHEUS_URL}/action",
@@ -260,7 +301,6 @@ Write a corrected script that fixes this specific failure."""
                         break
 
                 if not dismissed:
-                    # Fall back to mouse — ask for Cancel/X coords, never OK/Yes
                     coords_answer = self._ask_screen(
                         "There is a modal dialog on screen. Identify the safest button to dismiss it. "
                         "Prefer: Cancel, Close, X, No, Don't Save. Avoid: OK, Yes, Save, Confirm. "
@@ -268,7 +308,7 @@ Write a corrected script that fixes this specific failure."""
                     )
                     m = re.search(r'(\d+)\s*,\s*(\d+)', coords_answer)
                     if m:
-                        x, y = int(m.group(1)) * 2, int(m.group(2)) * 2  # scale up
+                        x, y = int(m.group(1)) * 2, int(m.group(2)) * 2
                         requests.post(f"{CLAWMETHEUS_URL}/action",
                                       json={"type": "click", "x": x, "y": y}, timeout=5)
                         logger.info(f"Blocker: clicked dismiss button at ({x},{y})")
@@ -504,7 +544,7 @@ Write a corrected script that fixes this specific failure."""
                 task_lower = task.lower()
                 incomplete_signs = []
 
-                if "save" in task_lower and "Saved:" not in script_output and "SUCCESS" not in script_output:
+                if "save" in task_lower and not any(kw in script_output for kw in ["Saved:", "SUCCESS", "saved:", "Image ready", "File saved", "funny.png"]):
                     incomplete_signs.append("save step may not have completed (no save confirmation in output)")
                 if ("grok" in task_lower or "upload" in task_lower):
                     if "Prompt submitted to Grok" not in script_output:

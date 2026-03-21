@@ -688,6 +688,54 @@ def use_pencil():
     """Activate Paint's pencil tool. Legacy — prefer find_tool('Pencil', app='Paint')."""
     find_tool("Pencil", app="Paint")
 
+
+def ensure_tool(tool_name, app_title="Paint"):
+    """Verify the correct tool is active by checking with vision after selecting it.
+    If the wrong tool is active, re-selects it. Returns True if tool is confirmed active.
+    
+    Usage:
+        use_pencil()
+        ensure_tool("Pencil")  # vision confirms pencil is selected
+        
+        use_fill()
+        ensure_tool("Fill")    # vision confirms fill bucket is selected
+    """
+    answer = ask(f"In {app_title}, which drawing tool is currently selected/active? "
+                 f"Is it the {tool_name} tool? Answer YES or NO only.")
+    if "yes" in answer.lower():
+        print(f"[ensure_tool] {tool_name} confirmed active", flush=True)
+        return True
+    # Tool not active — try selecting it again
+    print(f"[ensure_tool] {tool_name} NOT active, re-selecting...", flush=True)
+    find_tool(tool_name, app=app_title)
+    wait_ms(300)
+    # Verify again
+    answer2 = ask(f"Is the {tool_name} tool now selected in {app_title}? YES or NO only.")
+    ok = "yes" in answer2.lower()
+    if ok:
+        print(f"[ensure_tool] {tool_name} confirmed active after re-select", flush=True)
+    else:
+        print(f"[ensure_tool] WARNING: {tool_name} may not be active", flush=True)
+    return ok
+
+
+def check_screen(context_hint=""):
+    """Take a screenshot and describe what's on screen. Use frequently to stay aware.
+    Returns a description string. The context_hint helps focus the analysis.
+    
+    Usage:
+        state = check_screen("I'm drawing in Paint, checking canvas state")
+        state = check_screen("I'm on Grok, checking if file uploaded")
+    """
+    prompt = "Describe what is currently on screen. "
+    if context_hint:
+        prompt += f"Context: {context_hint}. "
+    prompt += ("What application is in focus? Are there any popups, dialogs, or "
+               "unexpected windows? What is the main content showing?")
+    answer = ask(prompt)
+    print(f"[check_screen] {answer[:200]}", flush=True)
+    return answer
+
 def use_fill():
     """Activate Paint's fill (bucket) tool.
     
