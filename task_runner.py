@@ -55,13 +55,25 @@ if _CLAWMETHEUS_PATH:
     if _CLAWMETHEUS_PATH not in _sys_init.path:
         _sys_init.path.insert(0, _CLAWMETHEUS_PATH)
 
-# ── Web/DOM helpers (CDP + DevTools dual mode) ────────────────────────────────
+# ── Web/DOM helpers (DevTools mode only — like a human using F12) ──────────────
+# Helm interacts with browsers using keyboard + mouse + vision.
+# DevTools Console (F12) is used to inspect the DOM — same as a developer would.
+# NO CDP (remote debugging protocol). NO invisible injection.
 try:
     from web_helpers import (
         web_eval, web_find, web_find_all, web_find_text, web_page_info,
-        cdp_available, detect_browser, BROWSERS,
         close_devtools, reset_mode, get_mode,
     )
+    # Force DevTools-only mode — never use CDP.
+    # Monkey-patch _detect_mode so it can never pick CDP even if port 9222 responds
+    # (port 9222 may be occupied by Lenovo Vantage or other Electron apps).
+    import web_helpers as _wh
+    _wh._mode = "devtools"
+    _original_detect = _wh._detect_mode
+    def _devtools_only():
+        _wh._mode = "devtools"
+        return "devtools"
+    _wh._detect_mode = _devtools_only
     _HAS_WEB = True
 except ImportError:
     _HAS_WEB = False
@@ -1459,50 +1471,36 @@ def open_app(app_name, wait_title=None, wait_secs=5):
 
 def open_browser(url=None):
     """
-    Open a URL in the browser. Supports two DOM inspection modes:
+    Open a URL in the default browser using keyboard — like a human.
+    Win+R → type URL → Enter. Then waits for the page to load.
 
-    1. CDP mode: If browser has --remote-debugging-port=9222, opens via CDP.
-       Fast, invisible, no clipboard interference.
-    2. DevTools mode: Works with ANY browser, no special flags needed.
-       DOM inspection uses F12 Console + fetch() to Clawmetheus.
+    After the page loads, DOM inspection is available via DevTools (F12 Console).
+    web_find(), web_page_info(), etc. use DevTools Console — same as a developer
+    pressing F12 and typing in the Console. No CDP, no remote debugging.
 
-    Uses the existing browser session — cookies, logins, everything intact.
-    Returns True if DOM inspection is available (either mode).
-
-    Example:
-        open_browser("https://grok.com")
-        info = web_page_info()  # works in both modes
+    For interacting with web pages:
+    - web_page_info() to inspect the DOM structure
+    - web_find(selector) / web_find_text(text) to locate elements with screen coords
+    - close_devtools() BEFORE typing in the page (DevTools steals keyboard focus)
+    - click(x, y) to click elements found via web_find
+    - type_text_keys(text) for input fields (clipboard-safe)
+    - ask(question) for visual questions about the page
+    - map_screen() as fallback if DOM inspection isn't working
     """
-    if not _HAS_WEB:
-        if url:
-            key("win", "r"); time.sleep(0.7)
-            type_text(url); time.sleep(0.3); key("enter")
-            time.sleep(6)
-        return False
-
-    # Try CDP first — open tab via CDP API if available
-    if cdp_available() and url:
-        try:
-            import requests as _req
-            _req.get(f"http://localhost:9222/json/new?{url}", timeout=5)
-            time.sleep(4)
-            print(f"[open_browser] Opened {url} via CDP", flush=True)
-            return True
-        except Exception:
-            pass
-
-    # Keyboard fallback — works for both CDP and DevTools modes
     if url:
         key("win", "r"); time.sleep(0.7)
         type_text(url); time.sleep(0.3); key("enter")
         time.sleep(6)
         print(f"[open_browser] Opened {url} via keyboard", flush=True)
 
-    # Reset mode detection so next web_find/etc picks the right path
-    reset_mode()
+    # Reset DevTools state for the new page
+    if _HAS_WEB:
+        reset_mode()
+        import web_helpers as _wh
+        _wh._mode = "devtools"  # always DevTools, never CDP
 
-    # DOM inspection is available in both modes
-    return True
+    return _HAS_WEB
+
 
 
 def kill_app(title_contains):
