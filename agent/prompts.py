@@ -6,15 +6,12 @@ sys.path.insert(0, r'{task_runner_path}')
 from task_runner import *
 from datetime import datetime
 
-def get_screen_size():
-    return pyautogui.size()
-
 BASE = "http://127.0.0.1:7331"
 def ss(path):
     r = requests.get(f"{BASE}/screenshot/base64?scale=0.5", timeout=10).json()
     with open(path, "wb") as f: f.write(base64.b64decode(r["image"]))
 
-# dismiss_modal() is available from task_runner — no need to redefine it.
+# get_screen_size() and dismiss_modal() are available from task_runner — no need to redefine.
 dismiss_system_popups()
 
 AVAILABLE FUNCTIONS (from task_runner.py):
@@ -173,7 +170,11 @@ RULES:
   6. Wait after transitions: open_app 2000ms+, URL 8000ms+, dialog 500ms+
   7. Respond with ONLY Python code in a ```python block
   8. Scripts MUST complete and exit. NO infinite loops.
-  9. FLOOD FILL IS BANNED: No use_fill(), no find_tool("Fill with color").
+  9. FLOOD FILL RULES: use_fill() is allowed but DANGEROUS on pencil-drawn shapes.
+     - SAFE: filling a blank canvas background, filling Paint shape-tool shapes (Rectangle, Ellipse)
+     - UNSAFE: filling pencil/freehand shapes (pixel gaps cause fill to leak and destroy canvas)
+     - ALWAYS select_color() BEFORE use_fill(). ALWAYS ensure_foreground("Paint") after.
+     - If unsure, use Paint shape tools with fill instead (safer).
   10. Max 3 map_screen() calls per script. Prefer web_find/find_tool.
   11. ALWAYS validate_image() before uploading.
   12. HARD TIME LIMIT: 300s. Budget: setup ~30s, drawing ~180s, save+validate ~30s, web ~60s.
@@ -189,7 +190,7 @@ FORBIDDEN:
   key() with keyword args | hardcoded 1920x1080
   Manual save logic (F12+type_text+Enter) | find_tool("Select") for drawing
   Redefining task_runner functions | Functions that don't exist
-  set_color_rgb() directly (use select_color) | use_fill() / flood fill
+  set_color_rgb() directly (use select_color)
   type_text() for web page input (use type_text_keys)
   x.com/i/grok URL (use grok.com) | Scripts over 120 lines
   draw_filled_rect/draw_filled_circle for shapes >50px
@@ -218,14 +219,14 @@ Common fixes:
 - ensure_foreground failed: App may be behind other windows. Try kill_app on blocking apps first, or use key("alt","tab") before ensure_foreground.
 - key() keyword arg error: key() only takes positional args.
 - Ellipse not found: find_tool("Shapes") first, wait_ms(300), THEN find_tool("Ellipse")
-- Flood fill destroyed canvas: REMOVE ALL use_fill().
+- Flood fill destroyed canvas: use_fill() leaked through pixel gaps in pencil shapes. Use Paint shape tools with fill for clean shapes, or only use_fill() on blank canvas / shape-tool shapes.
 - Color not set: After select_color(), ALWAYS ensure_foreground("Paint") + use_pencil().
 - Grok wrong page: Use grok.com NOT x.com/i/grok
 - App not in foreground: ensure_foreground() + dismiss_modal()
 
 FORBIDDEN:
   subprocess/ctypes/win32api | pip install | Making script LONGER
-  use_fill() / flood fill | key() with keyword args | hardcoded 1920x1080
+  key() with keyword args | hardcoded 1920x1080
   Redrawing when image file already exists | importing websocket/selenium/playwright
 
 Respond with ONLY the corrected Python code in a ```python block."""

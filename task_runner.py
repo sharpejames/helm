@@ -86,6 +86,11 @@ def _screen_size():
     import pyautogui
     return pyautogui.size()
 
+# Public alias so generated scripts can use get_screen_size() directly
+def get_screen_size():
+    """Get screen resolution as (width, height). Never hardcode 1920x1080."""
+    return _screen_size()
+
 # ── Core actions ──────────────────────────────────────────────────────────────
 
 def _action(data):
@@ -630,14 +635,12 @@ def use_pencil():
     find_tool("Pencil", app="Paint")
 
 def use_fill():
-    """Activate Paint's fill tool.
+    """Activate Paint's fill (bucket) tool.
     
-    ⚠️ WARNING: Flood fill on pencil-drawn shapes WILL leak and destroy the canvas.
-    Only safe on: blank canvas (background fill) or shapes made with Paint's shape tools.
-    Consider using Paint's shape tools (Rectangle, Ellipse) with fill instead.
+    SAFE on: blank canvas (background fill), Paint shape-tool shapes (Rectangle, Ellipse).
+    RISKY on: pencil/freehand shapes (pixel gaps cause fill to leak).
+    TIP: select_color() BEFORE use_fill(), then click the area to fill.
     """
-    print("[use_fill] ⚠️  WARNING: Flood fill is risky on pencil-drawn shapes (pixel gaps cause leaks).", flush=True)
-    print("[use_fill] Safe on: blank canvas, shape-tool shapes. Unsafe on: pencil/freehand shapes.", flush=True)
     find_tool("Fill with color", app="Paint")
 
 
@@ -1825,7 +1828,7 @@ def map_screen(task_hint=""):
 
     for attempt in range(3):
         try:
-            r = requests.get(url, timeout=45).json()
+            r = requests.get(url, timeout=90).json()
         except Exception as e:
             print(f"[map_screen] request failed: {e}", flush=True)
             if attempt < 2:
@@ -1902,7 +1905,7 @@ def click_element(element_map, name, blocked_labels=None):
     # Fallback: Moondream /point — finds element visually by description
     print(f"[click_element] '{name}' not in map — trying visual point...", flush=True)
     try:
-        r = requests.get(f"{BASE}/point", params={"target": name}, timeout=45).json()
+        r = requests.get(f"{BASE}/point", params={"target": name}, timeout=30).json()
         if r.get("ok") and r.get("x", 0) > 0:
             x, y = r["x"], r["y"]
             print(f"[click_element] visual point: '{name}' → ({x},{y})", flush=True)
@@ -1917,7 +1920,8 @@ def click_element(element_map, name, blocked_labels=None):
     )
 
 def get_element(element_map, name):
-    """Return element dict {x, y, type} without clicking. Falls back to Moondream /point."""
+    """Return element dict {x, y, type} without clicking. Falls back to vision /point.
+    Returns None if element not found (does NOT raise ValueError)."""
     name_lower = name.lower().strip()
     if name_lower in element_map:
         return element_map[name_lower]
@@ -1926,14 +1930,15 @@ def get_element(element_map, name):
             return el
     # Fallback: visual point
     try:
-        r = requests.get(f"{BASE}/point", params={"target": name}, timeout=45).json()
+        r = requests.get(f"{BASE}/point", params={"target": name}, timeout=30).json()
         if r.get("ok") and r.get("x", 0) > 0:
             el = {"x": r["x"], "y": r["y"], "type": "visual"}
             element_map[name_lower] = el
             return el
     except Exception:
         pass
-    raise ValueError(f"Element '{name}' not found. Available: {list(element_map.keys())}")
+    print(f"[get_element] '{name}' not found. Available: {list(element_map.keys())}", flush=True)
+    return None
 
 
 # ── Perception helpers ────────────────────────────────────────────────────────

@@ -118,10 +118,6 @@ class ScriptExecutor:
             f"sys.path.insert(0, r'{self._task_runner_path}')\n"
             "from task_runner import *\n"
             "from datetime import datetime\n"
-            "\n"
-            "# Screen size helper — never hardcode 1920x1080\n"
-            "def get_screen_size():\n"
-            "    return pyautogui.size()\n"
         )
 
     def _extract_script(self, text: str) -> str:
@@ -147,37 +143,12 @@ class ScriptExecutor:
         logger.warning("Script missing task_runner imports — prepending preamble")
         return self.IMPORT_PREAMBLE + "\n" + script
 
-    # Patterns that indicate flood fill usage — BANNED
-    _FLOOD_FILL_PATTERNS = [
-        r'\buse_fill\s*\(',
-        r'find_tool\s*\(\s*["\']Fill with color["\']',
-        r'find_tool\s*\(\s*["\']Fill["\'](?!\s*,)',  # "Fill" alone, not "Fill", "Solid color"
-        r'find_tool\s*\(\s*["\']Bucket["\']',
-        r'find_tool\s*\(\s*["\']Paint bucket["\']',
-        r'flood.?fill',
-        r'bucket.?tool',
-        r'\.fill\s*\(',  # e.g. canvas.fill()
-    ]
+    # Patterns that indicate flood fill usage — monitored but no longer stripped
+    # Flood fill is allowed when used correctly (on shape-tool shapes or blank canvas)
+    _FLOOD_FILL_PATTERNS = []
 
     def _strip_flood_fill(self, script: str) -> str:
-        """Remove flood fill calls from generated scripts. Returns cleaned script."""
-        import re as _re
-        original = script
-        for pattern in self._FLOOD_FILL_PATTERNS:
-            if _re.search(pattern, script, _re.IGNORECASE):
-                logger.warning(f"FLOOD FILL DETECTED in script — stripping: {pattern}")
-                # Comment out the offending lines instead of removing them
-                lines = script.split('\n')
-                new_lines = []
-                for line in lines:
-                    if _re.search(pattern, line, _re.IGNORECASE):
-                        new_lines.append(f"# STRIPPED (flood fill banned): {line.strip()}")
-                        new_lines.append(f"print('[WARNING] Flood fill call was stripped — use shape tools instead')")
-                    else:
-                        new_lines.append(line)
-                script = '\n'.join(new_lines)
-        if script != original:
-            logger.info("Flood fill calls were stripped from script")
+        """No-op: flood fill is now allowed. Kept for API compatibility."""
         return script
 
     def _check_syntax(self, script: str) -> str | None:
