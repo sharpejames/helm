@@ -138,7 +138,8 @@ class ScriptExecutor:
         return '\n'.join(lines).strip()
 
     def _ensure_imports(self, script: str) -> str:
-        """Ensure the script has the task_runner import preamble. Prepend if missing."""
+        """Ensure the script has the task_runner import preamble. Prepend if missing.
+        Also ensures dismiss_modal is available (it's now in task_runner.py)."""
         if not script.strip():
             return script
         if "from task_runner import" in script:
@@ -150,8 +151,12 @@ class ScriptExecutor:
     _FLOOD_FILL_PATTERNS = [
         r'\buse_fill\s*\(',
         r'find_tool\s*\(\s*["\']Fill with color["\']',
-        r'find_tool\s*\(\s*["\']Fill["\']',
+        r'find_tool\s*\(\s*["\']Fill["\'](?!\s*,)',  # "Fill" alone, not "Fill", "Solid color"
         r'find_tool\s*\(\s*["\']Bucket["\']',
+        r'find_tool\s*\(\s*["\']Paint bucket["\']',
+        r'flood.?fill',
+        r'bucket.?tool',
+        r'\.fill\s*\(',  # e.g. canvas.fill()
     ]
 
     def _strip_flood_fill(self, script: str) -> str:

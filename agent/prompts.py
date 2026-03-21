@@ -14,17 +14,7 @@ def ss(path):
     r = requests.get(f"{BASE}/screenshot/base64?scale=0.5", timeout=10).json()
     with open(path, "wb") as f: f.write(base64.b64decode(r["image"]))
 
-def dismiss_modal():
-    for _ in range(4):
-        answer = ask("Is there a modal dialog, popup, alert, or resize/properties window blocking the screen right now? yes or no")
-        if "yes" not in answer.lower():
-            break
-        modal_type = ask("What does the modal say? Is it asking to CONFIRM/YES/REPLACE/OVERWRITE/OK something, or is it an ERROR/WARNING to dismiss? Reply: confirm OR dismiss")
-        if "confirm" in modal_type.lower():
-            key("enter"); wait_ms(600)
-        else:
-            key("escape"); wait_ms(600)
-
+# dismiss_modal() is available from task_runner — no need to redefine it.
 dismiss_system_popups()
 
 AVAILABLE FUNCTIONS (from task_runner.py):
@@ -80,6 +70,7 @@ AVAILABLE FUNCTIONS (from task_runner.py):
 
   # File operations
   app_save(filepath, app_title) | new_canvas() | dismiss_system_popups()
+  dismiss_modal()  # dismiss any blocking modal/dialog/popup
 
   # Paint-specific
   select_color(name) | use_pencil() | get_canvas_bounds() | paint_save(filepath)

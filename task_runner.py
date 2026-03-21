@@ -668,6 +668,7 @@ def get_canvas_bounds(app_title="Paint"):
 
     The canvas in Paint is a white rectangle on a gray background.
     We take a full-res screenshot, scan for the white region, and return exact coords.
+    Also caches the result so draw functions can clamp coordinates automatically.
 
     Strategy:
     1. Pixel scan (primary): screenshot → find white rectangle via numpy
@@ -677,6 +678,14 @@ def get_canvas_bounds(app_title="Paint"):
 
     Returns (left, top, right, bottom) in screen coordinates.
     """
+    global _canvas_bounds_cache
+    result = _get_canvas_bounds_impl(app_title)
+    _canvas_bounds_cache = result
+    return result
+
+
+def _get_canvas_bounds_impl(app_title="Paint"):
+    """Internal implementation of get_canvas_bounds."""
     import re
 
     # --- Method 1: Pixel scan — deterministic, no vision model ---
@@ -1024,14 +1033,31 @@ def dismiss_system_popups():
 # Every draw function activates the canvas first so toolbar clicks don't interfere.
 # The LLM can compose any image by combining these primitives.
 
+_canvas_bounds_cache = None
+
+def _clamp_to_canvas(pts):
+    """Clamp all points to the cached canvas bounds. Prevents drawing outside the canvas."""
+    global _canvas_bounds_cache
+    if not _canvas_bounds_cache:
+        return pts  # no bounds known yet — pass through
+    cl, ct, cr, cb = _canvas_bounds_cache
+    margin = 5  # small inset to avoid drawing on the canvas edge
+    for p in pts:
+        p["x"] = max(cl + margin, min(cr - margin, int(p["x"])))
+        p["y"] = max(ct + margin, min(cb - margin, int(p["y"])))
+    return pts
+
+
 def _smooth_drag(pts, speed=200, activate_xy=None):
     """
     Core drawing primitive: send a smoothDrag through a list of {"x","y"} dicts.
     Optionally clicks activate_xy first to ensure the canvas has focus.
     All public draw_* functions delegate here.
+    Points are clamped to canvas bounds if known (set by get_canvas_bounds).
     """
     if not pts or len(pts) < 2:
         return {"ok": False, "error": "need >= 2 points"}
+    pts = _clamp_to_canvas(pts)
     if activate_xy:
         click(activate_xy[0], activate_xy[1])
         wait_ms(200)
@@ -1960,6 +1986,23 @@ def perceive(question, region=None):
 
 
 # ── Timing ────────────────────────────────────────────────────────────────────
+
+def dismiss_modal(max_attempts=4):
+    """
+    Dismiss any modal dialog, popup, alert, or blocking window.
+    Uses vision to detect modals and keyboard to dismiss them.
+    Safe to call anytime — no-op if no modal is present.
+    """
+    for _ in range(max_attempts):
+        answer = ask("Is there a modal dialog, popup, alert, or resize/properties window blocking the screen right now? yes or no")
+        if "yes" not in answer.lower():
+            break
+        modal_type = ask("What does the modal say? Is it asking to CONFIRM/YES/REPLACE/OVERWRITE/OK something, or is it an ERROR/WARNING to dismiss? Reply: confirm OR dismiss")
+        if "confirm" in modal_type.lower():
+            key("enter"); wait_ms(600)
+        else:
+            key("escape"); wait_ms(600)
+
 
 class Timer:
     def __init__(self, name="Task"):
