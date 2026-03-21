@@ -59,14 +59,18 @@ if _CLAWMETHEUS_PATH:
 # Helm interacts with browsers using keyboard + mouse + vision.
 # DevTools Console (F12) is used to inspect the DOM — same as a developer would.
 # NO CDP (remote debugging protocol). NO invisible injection.
+# IMPORTANT: Many sites (Grok, etc.) block DevTools JS via CSP.
+# All web_* functions are wrapped to return None on failure instead of crashing.
+# Scripts should ALWAYS have a vision+keyboard fallback.
 try:
     from web_helpers import (
-        web_eval, web_find, web_find_all, web_find_text, web_page_info,
+        web_eval as _raw_web_eval,
+        web_find as _raw_web_find,
+        web_find_all as _raw_web_find_all,
+        web_find_text as _raw_web_find_text,
+        web_page_info as _raw_web_page_info,
         close_devtools, reset_mode, get_mode,
     )
-    # Force DevTools-only mode — never use CDP.
-    # Monkey-patch _detect_mode so it can never pick CDP even if port 9222 responds
-    # (port 9222 may be occupied by Lenovo Vantage or other Electron apps).
     import web_helpers as _wh
     _wh._mode = "devtools"
     _original_detect = _wh._detect_mode
@@ -77,6 +81,56 @@ try:
     _HAS_WEB = True
 except ImportError:
     _HAS_WEB = False
+
+# Safe wrappers — return None instead of crashing on CSP/timeout errors
+def web_find(selector):
+    """Find element by CSS selector via DevTools. Returns dict or None. Never throws."""
+    if not _HAS_WEB:
+        return None
+    try:
+        return _raw_web_find(selector)
+    except Exception as e:
+        print(f"[web_find] Failed (CSP or timeout): {e}", flush=True)
+        return None
+
+def web_find_all(selector):
+    """Find multiple elements by CSS selector. Returns list or empty list. Never throws."""
+    if not _HAS_WEB:
+        return []
+    try:
+        return _raw_web_find_all(selector)
+    except Exception:
+        return []
+
+def web_find_text(text, tag=None):
+    """Find element containing text. Returns dict or None. Never throws."""
+    if not _HAS_WEB:
+        return None
+    try:
+        return _raw_web_find_text(text, tag=tag)
+    except Exception as e:
+        print(f"[web_find_text] Failed (CSP or timeout): {e}", flush=True)
+        return None
+
+def web_page_info():
+    """Get page info via DevTools. Returns dict or None. Never throws."""
+    if not _HAS_WEB:
+        return None
+    try:
+        return _raw_web_page_info()
+    except Exception as e:
+        print(f"[web_page_info] Failed (CSP or timeout): {e}", flush=True)
+        return None
+
+def web_eval(js_code):
+    """Evaluate JS in DevTools Console. Returns result or None. Never throws."""
+    if not _HAS_WEB:
+        return None
+    try:
+        return _raw_web_eval(js_code)
+    except Exception as e:
+        print(f"[web_eval] Failed: {e}", flush=True)
+        return None
 
 BASE = "http://127.0.0.1:7331"
 
