@@ -116,6 +116,33 @@ Pattern: DO something → LOOK with vision → PROCEED or FIX.
         if m:
             click(int(m.group(1))*2, int(m.group(2))*2)
 
+  ## FILE UPLOAD ON ANY WEBSITE (Gmail, Grok, Slack, Discord, Outlook, etc.):
+    # Uploading a file to ANY website is ALWAYS a 2-phase process:
+    #
+    # PHASE 1 — Click the attach/upload button on the web page.
+    #   This is a small icon (paperclip, plus, image, camera, etc.) near the input area.
+    #   Clicking it triggers the browser to open the OS file picker dialog.
+    #   Use vision or DevTools to find it, then click().
+    #
+    # PHASE 2 — Interact with the OS file picker dialog (a native Windows dialog).
+    #   The filename field is auto-focused. Type the full filepath, then press Enter.
+    #   This is a SYSTEM dialog, not a web element — type_text() works here (not type_text_keys).
+    #
+    # WRONG: clicking the chat/text input and typing a filepath — that sends TEXT, not a file.
+    # RIGHT: click attach button → wait for OS dialog → type filepath → Enter.
+    #
+    # Example (works for Grok, Gmail, Slack, Discord, Outlook, any site):
+    attach_loc = ask("Where is the attach/paperclip/upload button? Reply ONLY x,y at 0.5 scale.")
+    m = re.search(r'(\d+)\s*,\s*(\d+)', attach_loc)
+    if m:
+        click(int(m.group(1))*2, int(m.group(2))*2)
+    wait_ms(2000)  # wait for OS file picker to open
+    type_text(filepath)  # type into the OS dialog filename field (NOT the web page)
+    wait_ms(500)
+    key("enter")  # confirm — file starts uploading to the website
+    wait_ms(3000)  # wait for upload to complete
+    vision_check("File/image appears attached or a thumbnail is visible", "Upload may have failed")
+
   ## Flood fill — ALWAYS use fill_at() which clamps to canvas:
     select_color("blue"); wait_ms(300)
     ensure_foreground("Paint"); wait_ms(200)
@@ -153,12 +180,7 @@ PAINT SHAPE TOOLS (for clean filled shapes):
     find_tool("Ellipse", app="Paint")
     pyautogui.keyDown("shift"); drag(x1, y1, x2, y2); pyautogui.keyUp("shift")
 
-GROK FILE UPLOAD PATTERN (keyboard + mouse + vision):
-    # IMPORTANT: Uploading a file to Grok is a 2-step process:
-    #   Step A: Click the ATTACH button → OS file picker dialog opens
-    #   Step B: Type filepath in the OS dialog → Enter → file uploads to Grok
-    # Do NOT type the filepath into the chat box — that just sends text, not a file.
-
+GROK FILE UPLOAD PATTERN (follows the general FILE UPLOAD pattern above):
     open_browser("https://grok.com"); wait_ms(6000)
     # NEVER use x.com/i/grok — ALWAYS use grok.com
 
@@ -166,42 +188,36 @@ GROK FILE UPLOAD PATTERN (keyboard + mouse + vision):
     page_state = ask("Describe this page. Is there a chat input box? An attach/paperclip/image button near the input? Any sign-in wall?")
     print(f"Grok page: {{page_state}}")
 
-    # --- STEP A: Click the attach/paperclip button ---
-    # This button is usually a small icon (paperclip/plus/image) near the chat input.
-    # Clicking it opens the OS file picker dialog — NOT a web upload form.
+    # --- FILE UPLOAD (same pattern as any website) ---
+    # Step 1: Click the attach button (opens OS file picker)
     attach = web_find('button[aria-label*="ttach"]') or web_find('button[aria-label*="image"]')
     if attach:
         close_devtools(); wait_ms(200)
         click(attach['x'], attach['y'])
     else:
         close_devtools(); wait_ms(200)
-        loc = ask("I need to click the attach/paperclip/image upload button (small icon near the chat input). Where is it? Reply with ONLY x,y pixel coordinates at 0.5 scale.")
+        loc = ask("Where is the attach/paperclip/image upload button (small icon near the chat input)? Reply ONLY x,y at 0.5 scale.")
         m = re.search(r'(\d+)\s*,\s*(\d+)', loc)
         if m:
             click(int(m.group(1))*2, int(m.group(2))*2)
         else:
             raise RuntimeError(f"Cannot find attach button. Vision: {{loc[:200]}}")
 
-    # --- STEP B: OS file picker dialog ---
-    # After clicking attach, an OS "Open" dialog appears (Windows file picker).
-    # Wait for it, then type the filepath and press Enter.
-    wait_ms(2000)  # wait for OS dialog to open
-    # The filename field in the OS dialog is auto-focused — just type the path
+    # Step 2: OS file picker dialog — type filepath and confirm
+    wait_ms(2000)
     type_text(filepath); wait_ms(500)
-    key("enter"); wait_ms(3000)  # confirm selection — file starts uploading
+    key("enter"); wait_ms(3000)
 
-    # LOOK: verify the file was attached (thumbnail/filename should appear in chat)
-    vision_check("Image file appears attached or a thumbnail is visible in the Grok chat area", "File upload may have failed")
+    vision_check("Image appears attached or thumbnail visible in Grok chat", "Upload may have failed")
 
-    # --- STEP C: Type the prompt and send ---
-    # Click the chat input (the text box, NOT the attach button)
+    # --- TYPE PROMPT AND SEND ---
     text_el = web_find('textarea') or web_find('div[contenteditable="true"]')
     if text_el:
         close_devtools(); wait_ms(200)
         click(text_el['x'], text_el['y']); wait_ms(300)
     else:
         close_devtools(); wait_ms(200)
-        loc = ask("Where is the text input / chat box where I type my message? Reply with ONLY x,y at 0.5 scale.")
+        loc = ask("Where is the text input / chat box for typing a message? Reply ONLY x,y at 0.5 scale.")
         m = re.search(r'(\d+)\s*,\s*(\d+)', loc)
         if m:
             click(int(m.group(1))*2, int(m.group(2))*2); wait_ms(300)
@@ -233,9 +249,9 @@ RULES:
   17. VISION GATES at every phase transition (ask/vision_check).
   18. BE FAST: 200-300ms between actions. Longer only for app launch/URL load/dialogs.
   19. import re at top of script (already in SETUP).
-  20. FILE UPLOADS: To upload a file to a website, click the ATTACH button first → wait for
-      OS file picker dialog → type filepath in the dialog → Enter. NEVER type a filepath
-      into a chat/text input — that sends text, not a file.
+  20. FILE UPLOADS on ANY website: click the ATTACH/UPLOAD button first → wait for OS file
+      picker dialog → type filepath in the OS dialog → Enter. The OS dialog is a native
+      Windows dialog, not a web element. NEVER type a filepath into a web page text input.
 
 FORBIDDEN:
   subprocess/ctypes/win32api/SendMessage/webbrowser.open()
