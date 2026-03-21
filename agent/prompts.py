@@ -153,54 +153,62 @@ PAINT SHAPE TOOLS (for clean filled shapes):
     find_tool("Ellipse", app="Paint")
     pyautogui.keyDown("shift"); drag(x1, y1, x2, y2); pyautogui.keyUp("shift")
 
-GROK PATTERN (keyboard + mouse + vision — like a human):
-    open_browser("https://grok.com"); wait_ms(6000)
+GROK FILE UPLOAD PATTERN (keyboard + mouse + vision):
+    # IMPORTANT: Uploading a file to Grok is a 2-step process:
+    #   Step A: Click the ATTACH button → OS file picker dialog opens
+    #   Step B: Type filepath in the OS dialog → Enter → file uploads to Grok
+    # Do NOT type the filepath into the chat box — that just sends text, not a file.
 
-    # LOOK at the page — what do we see?
-    page_state = ask("Describe this page. Is there a chat input box? An attach/paperclip button? Any sign-in prompts?")
+    open_browser("https://grok.com"); wait_ms(6000)
+    # NEVER use x.com/i/grok — ALWAYS use grok.com
+
+    # LOOK at the page
+    page_state = ask("Describe this page. Is there a chat input box? An attach/paperclip/image button near the input? Any sign-in wall?")
     print(f"Grok page: {{page_state}}")
 
-    # If there's a sign-in wall blocking the chat input, abort
-    if "sign in" in page_state.lower() and "input" not in page_state.lower() and "text" not in page_state.lower():
-        raise RuntimeError("Grok requires login — please log in manually first")
-
-    # Find attach button — try DevTools first (may fail silently), then vision
+    # --- STEP A: Click the attach/paperclip button ---
+    # This button is usually a small icon (paperclip/plus/image) near the chat input.
+    # Clicking it opens the OS file picker dialog — NOT a web upload form.
     attach = web_find('button[aria-label*="ttach"]') or web_find('button[aria-label*="image"]')
     if attach:
         close_devtools(); wait_ms(200)
-        click(attach['x'], attach['y']); wait_ms(1500)
+        click(attach['x'], attach['y'])
     else:
-        # DevTools blocked or button not found — use vision
         close_devtools(); wait_ms(200)
-        loc = ask("I need to attach a file. Where is the attach/paperclip/upload button? Reply with ONLY the x,y pixel coordinates at 0.5 scale.")
+        loc = ask("I need to click the attach/paperclip/image upload button (small icon near the chat input). Where is it? Reply with ONLY x,y pixel coordinates at 0.5 scale.")
         m = re.search(r'(\d+)\s*,\s*(\d+)', loc)
         if m:
-            click(int(m.group(1))*2, int(m.group(2))*2); wait_ms(1500)
+            click(int(m.group(1))*2, int(m.group(2))*2)
         else:
             raise RuntimeError(f"Cannot find attach button. Vision: {{loc[:200]}}")
 
-    # Handle file upload dialog (system dialog — type path + Enter)
-    wait_ms(1500); dismiss_modal()
-    type_text(filepath); wait_ms(500); key("enter"); wait_ms(3000)
-    dismiss_modal()
+    # --- STEP B: OS file picker dialog ---
+    # After clicking attach, an OS "Open" dialog appears (Windows file picker).
+    # Wait for it, then type the filepath and press Enter.
+    wait_ms(2000)  # wait for OS dialog to open
+    # The filename field in the OS dialog is auto-focused — just type the path
+    type_text(filepath); wait_ms(500)
+    key("enter"); wait_ms(3000)  # confirm selection — file starts uploading
 
-    # LOOK: verify attachment
-    vision_check("Image appears attached in the Grok chat", "Attachment may have failed")
+    # LOOK: verify the file was attached (thumbnail/filename should appear in chat)
+    vision_check("Image file appears attached or a thumbnail is visible in the Grok chat area", "File upload may have failed")
 
-    # Click the text input — try DevTools, fall back to vision
+    # --- STEP C: Type the prompt and send ---
+    # Click the chat input (the text box, NOT the attach button)
     text_el = web_find('textarea') or web_find('div[contenteditable="true"]')
     if text_el:
         close_devtools(); wait_ms(200)
         click(text_el['x'], text_el['y']); wait_ms(300)
     else:
         close_devtools(); wait_ms(200)
-        loc = ask("Where is the text input / chat box? Reply with ONLY x,y at 0.5 scale.")
+        loc = ask("Where is the text input / chat box where I type my message? Reply with ONLY x,y at 0.5 scale.")
         m = re.search(r'(\d+)\s*,\s*(\d+)', loc)
         if m:
             click(int(m.group(1))*2, int(m.group(2))*2); wait_ms(300)
 
     type_text_keys("your prompt here"); wait_ms(300)
     key("enter"); wait_ms(8000)
+    print("Prompt submitted to Grok")
 
     vision_check("Grok is showing a response", "Grok may not have responded")
 
@@ -225,6 +233,9 @@ RULES:
   17. VISION GATES at every phase transition (ask/vision_check).
   18. BE FAST: 200-300ms between actions. Longer only for app launch/URL load/dialogs.
   19. import re at top of script (already in SETUP).
+  20. FILE UPLOADS: To upload a file to a website, click the ATTACH button first → wait for
+      OS file picker dialog → type filepath in the dialog → Enter. NEVER type a filepath
+      into a chat/text input — that sends text, not a file.
 
 FORBIDDEN:
   subprocess/ctypes/win32api/SendMessage/webbrowser.open()
@@ -233,7 +244,7 @@ FORBIDDEN:
   Redefining task_runner functions | Functions that don't exist
   set_color_rgb() directly (use select_color)
   type_text() for web page input (use type_text_keys — clipboard-safe)
-  x.com/i/grok URL (use grok.com) | Scripts over 120 lines
+  x.com/i/grok URL (ALWAYS use grok.com, NEVER x.com/i/grok) | Scripts over 120 lines
   draw_filled_rect/draw_filled_circle for shapes >50px
   pip install in scripts | importing websocket/selenium/playwright
   click() directly after use_fill() — use fill_at()
