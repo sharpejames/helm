@@ -640,8 +640,26 @@ def use_fill():
     SAFE on: blank canvas (background fill), Paint shape-tool shapes (Rectangle, Ellipse).
     RISKY on: pencil/freehand shapes (pixel gaps cause fill to leak).
     TIP: select_color() BEFORE use_fill(), then click the area to fill.
+    After use_fill(), call fill_at(x, y) to click inside the canvas safely.
     """
     find_tool("Fill with color", app="Paint")
+
+
+def fill_at(x, y):
+    """Click at (x, y) to flood fill, clamped to canvas bounds.
+    Prevents accidental fills in toolbar/background areas.
+    Must call use_fill() first to activate the fill tool.
+    """
+    global _canvas_bounds_cache
+    if _canvas_bounds_cache:
+        cl, ct, cr, cb = _canvas_bounds_cache
+        margin = 10
+        x = max(cl + margin, min(cr - margin, int(x)))
+        y = max(ct + margin, min(cb - margin, int(y)))
+    click(int(x), int(y))
+    wait_ms(300)
+    print(f"[fill_at] Clicked ({x},{y})", flush=True)
+    return x, y
 
 
 def set_outline(style="Solid color"):
@@ -1262,6 +1280,24 @@ def ask(question, scale=0.5, timeout=120):
     q = urllib.parse.quote(question)
     r = requests.get(f"{BASE}/ask?q={q}&scale={scale}", timeout=timeout).json()
     return r.get("answer", "")
+
+
+def vision_check(expected_state, fail_msg=None):
+    """Quick vision gate — verifies the screen matches expected_state before proceeding.
+    Returns True if screen looks right, False otherwise.
+    If fail_msg is provided and check fails, prints it as a warning.
+    
+    Usage:
+        vision_check("Paint canvas with a red circle drawn on it")
+        vision_check("Grok chat page with text input visible")
+    """
+    answer = ask(f"Does the screen currently show: {expected_state}? Answer YES or NO only.")
+    ok = "yes" in answer.lower()
+    if not ok and fail_msg:
+        print(f"[vision_check] FAIL: {fail_msg} (vision said: {answer[:100]})", flush=True)
+    elif ok:
+        print(f"[vision_check] OK: {expected_state[:80]}", flush=True)
+    return ok
 
 
 def validate_image(filepath, description="", min_bytes=5000):
@@ -1914,10 +1950,8 @@ def click_element(element_map, name, blocked_labels=None):
             return x, y
     except Exception as e:
         print(f"[click_element] visual point failed: {e}", flush=True)
-    raise ValueError(
-        f"Element '{name}' not found in screen map or visually.\n"
-        f"Available: {list(element_map.keys())}"
-    )
+    print(f"[click_element] '{name}' not found. Available: {list(element_map.keys())}", flush=True)
+    return None
 
 def get_element(element_map, name):
     """Return element dict {x, y, type} without clicking. Falls back to vision /point.

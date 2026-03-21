@@ -11,7 +11,6 @@ def ss(path):
     r = requests.get(f"{BASE}/screenshot/base64?scale=0.5", timeout=10).json()
     with open(path, "wb") as f: f.write(base64.b64decode(r["image"]))
 
-# get_screen_size() and dismiss_modal() are available from task_runner — no need to redefine.
 dismiss_system_popups()
 
 AVAILABLE FUNCTIONS (from task_runner.py):
@@ -22,35 +21,32 @@ AVAILABLE FUNCTIONS (from task_runner.py):
   screenshot(path=None) | ask(question) | get_screen_size()
   type_text_keys(text)  # type via keyboard events, clipboard-safe
   # key() takes ONLY positional args: key("enter"), key("ctrl","s"). NO keyword args.
-  # To hold modifier while dragging: pyautogui.keyDown("shift"); drag(...); pyautogui.keyUp("shift")
+
+  # Vision — YOUR EYES. Use these to see and verify.
+  ask(question)                     # ask vision model about current screen — use OFTEN
+  vision_check(expected, fail_msg)  # quick yes/no screen state check — returns True/False
+  map_screen(task_hint="")          # screenshot + vision -> dict of clickable elements
+  click_element(element_map, name)  # click element from map_screen (returns None if not found)
+  get_element(element_map, name)    # get coords without clicking (returns None if not found)
+  screenshot(path)                  # save screenshot to file
 
   # Window management
   open_app(name, wait_title=None) | kill_app(name) | focus_window(title)
   get_window_rect(title) | ensure_foreground(app_title) | ensure_maximized(app_title)
   get_active_window() | wait_for_clear(app_title)
 
-  # UI discovery (works for ANY app — native and web)
+  # UI discovery (works for ANY app)
   discover_ui(app_title) | find_tool(name, app=None) | find_element(name, app=None)
   find_content_area(app_title) | is_visible(name) | wait_for(name, timeout=5.0)
 
-  # Vision — your EYES. Use to see the screen and find elements.
-  map_screen(task_hint="")          # screenshot + vision model -> dict of clickable elements with coords
-  click_element(element_map, name)  # click element from map_screen result
-  get_element(element_map, name)    # get coords without clicking
-  ask(question)                     # ask vision model about current screen
-  screenshot(path)                  # save screenshot to file
-
   # Browser — keyboard + mouse + DevTools, like a human developer
-  open_browser(url)                 # Win+R -> type URL -> Enter
-  # DOM inspection via DevTools Console (F12) — like a developer inspecting a page:
-  web_page_info()                   # get page title, URL, and summary of interactive elements
-  web_find(css_selector)            # find element by CSS selector, returns {x, y, tag, text, ...}
+  open_browser(url)
+  web_page_info()                   # DOM summary via DevTools Console (F12)
+  web_find(css_selector)            # find element by CSS, returns {{x, y, tag, text}}
   web_find_all(css_selector)        # find multiple elements
   web_find_text(text, tag=None)     # find element containing text
-  close_devtools()                  # MUST call before typing in page (F12 steals keyboard)
-  # After close_devtools(), use click(x,y) and type_text_keys(text) to interact.
+  close_devtools()                  # MUST call before typing/clicking in page
   # web_find returns SCREEN coordinates — click them directly.
-  # For file upload dialogs: click the upload button, wait_ms(2000), type_text(filepath), key("enter")
 
   # Drawing (mouse-based, works in any drawing app)
   draw_line(x1,y1,x2,y2) | draw_rect(x1,y1,x2,y2) | draw_circle(cx,cy,r)
@@ -58,60 +54,81 @@ AVAILABLE FUNCTIONS (from task_runner.py):
   draw_polygon([(x,y),...]) | draw_star(cx,cy,r_outer,r_inner,points_count=5)
   draw_path([(x,y),...]) | draw_curve([(x,y),...]) | drag(x1,y1,x2,y2)
   draw_rays(cx,cy,r_inner,r_outer,count) | activate_canvas(app_title)
-  # Fills — SLOW (~30-60s each), use Paint shape tools for large shapes:
-  draw_filled_rect(x1,y1,x2,y2) | draw_filled_circle(cx,cy,r)
 
-  # Validation (MANDATORY)
+  # Paint-specific
+  select_color(name) | use_pencil() | get_canvas_bounds() | paint_save(filepath)
+  use_fill() | fill_at(x, y)       # fill_at clamps to canvas bounds — ALWAYS use instead of click() after use_fill()
+  set_outline(style) | set_fill(style)
+
+  # Validation
   validate_image(filepath, description="", min_bytes=5000)
   verify_result(expected, filepath=None, strict=False)
 
   # File operations
   app_save(filepath, app_title) | new_canvas() | dismiss_system_popups()
-  dismiss_modal()  # dismiss any blocking modal/dialog/popup
-
-  # Paint-specific
-  select_color(name) | use_pencil() | get_canvas_bounds() | paint_save(filepath)
-  set_outline(style) | set_fill(style)
+  dismiss_modal()
 
 SCREEN: Use get_screen_size() for actual resolution. NEVER hardcode 1920x1080.
 
-MANDATORY PATTERNS:
+## VISION-FIRST APPROACH (CRITICAL — follow this pattern):
+
+Scripts MUST use vision to verify state at every phase transition.
+Pattern: DO something → CHECK with vision → PROCEED or FIX.
+
+  # After opening an app:
+  vision_check("Paint is open and maximized with a blank canvas", "Paint not ready")
+
+  # After drawing:
+  vision_check("Canvas shows the drawing I just made", "Drawing may have failed")
+
+  # After saving:
+  vision_check("File save completed, Paint is showing the canvas again", "Save may have failed")
+
+  # Before interacting with a web page — use ask() to understand what's on screen:
+  screen_desc = ask("What is on this web page? List all visible buttons, inputs, and interactive elements.")
+  print(f"Page state: {{screen_desc}}")
+  # Then decide what to do based on the answer.
+
+  # After uploading to a website:
+  vision_check("The image was uploaded and a response is visible", "Upload may have failed")
+
+## MANDATORY PATTERNS:
 
   ## Opening any app:
     open_app("<exe>", wait_title="<Title>", wait_secs=5)
     ensure_foreground("<Title>"); ensure_maximized("<Title>"); wait_for_clear("<Title>")
 
-  ## Before any action: verify foreground with get_active_window()
-  ## Selecting tools: find_tool("<name>", app="<Title>") then dismiss_modal()
-
-  ## Saving files: ALWAYS use app_save(filepath, app_title). NEVER manual F12/type_text/Enter.
+  ## Saving files: ALWAYS use app_save(filepath, app_title).
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filepath = rf"C:\\Users\\sharp\\Pictures\\output_{ts}.png"
+    filepath = rf"C:\\Users\\sharp\\Pictures\\output_{{ts}}.png"
     app_save(filepath, "<Title>")
 
-  ## Verification (MANDATORY after save and before upload):
+  ## Verification (MANDATORY after save):
     ok, reason = validate_image(filepath, "description")
-    if not ok: raise RuntimeError(f"Image validation failed: {reason}")
+    if not ok: raise RuntimeError(f"Image validation failed: {{reason}}")
 
-  ## Web interaction pattern:
-    open_browser("https://example.com"); wait_ms(8000)
-    # Inspect the page DOM via DevTools (like pressing F12):
+  ## Web interaction — VISION-FIRST, DOM as backup:
+    open_browser("https://example.com"); wait_ms(6000)
+    # STEP 1: Use vision to understand the page
+    page_state = ask("What is on this web page? Describe all buttons, inputs, links I can see.")
+    print(f"Vision sees: {{page_state}}")
+    # STEP 2: Try DOM for precise element location
     info = web_page_info()
-    print(f"Page: {info}")
-    # Find specific elements:
     el = web_find("button.submit") or web_find_text("Submit")
-    if not el: raise RuntimeError("Submit button not found")
-    # MUST close DevTools before typing/clicking in the page:
-    close_devtools(); wait_ms(300)
-    click(el['x'], el['y']); wait_ms(500)
-    # For text input — use type_text_keys (clipboard-safe):
-    type_text_keys("hello world"); wait_ms(300)
-    # For file uploads — click upload button, type path in system dialog:
-    click(upload_btn['x'], upload_btn['y']); wait_ms(2000)
-    type_text(filepath); wait_ms(500); key("enter"); wait_ms(3000)
-    # If DevTools fails, fall back to vision:
-    elem_map = map_screen("find the submit button")
-    click_element(elem_map, "submit")
+    if el:
+        close_devtools(); wait_ms(200)
+        click(el['x'], el['y']); wait_ms(400)
+    else:
+        # STEP 3: Fall back to vision-guided clicking
+        close_devtools(); wait_ms(200)
+        coords = ask("Where is the Submit button? Give x,y pixel coordinates at 0.5 scale.")
+        # Parse and click...
+
+  ## Flood fill — ALWAYS use fill_at() which clamps to canvas:
+    select_color("blue"); wait_ms(300)
+    ensure_foreground("Paint"); wait_ms(200)
+    use_fill(); wait_ms(300)
+    fill_at(cx, cy)  # NEVER use click() directly after use_fill() — fill_at clamps to canvas
 
 PAINT DRAWING PATTERN (follow this exactly):
     open_app("mspaint", wait_title="Paint", wait_secs=8)
@@ -121,69 +138,117 @@ PAINT DRAWING PATTERN (follow this exactly):
     cl, ct, cr, cb = get_canvas_bounds()
     canvas_w, canvas_h = cr - cl, cb - ct
     cx, cy = (cl + cr) // 2, (ct + cb) // 2
-    _sw, _sh = get_screen_size()
     if canvas_w < 50 or canvas_h < 50:
-        raise RuntimeError(f"Bad canvas bounds: {canvas_w}x{canvas_h}")
+        raise RuntimeError(f"Bad canvas bounds: {{canvas_w}}x{{canvas_h}}")
 
-    # For each color: select_color -> ensure_foreground -> use_pencil -> draw
-    select_color("red"); wait_ms(500)
-    ensure_foreground("Paint"); wait_ms(300)
-    use_pencil(); wait_ms(500)
-    # Draw shapes... group by color to minimize switches.
+    # VISION GATE: verify canvas is ready
+    vision_check("Paint with a blank white canvas visible", "Canvas not ready")
 
-    # Save and validate:
+    # Draw grouped by color to minimize tool switches
+    select_color("red"); wait_ms(300)
+    ensure_foreground("Paint"); wait_ms(200)
+    use_pencil(); wait_ms(300)
+    # draw shapes...
+
+    # VISION GATE: verify drawing before saving
+    vision_check("Canvas shows the drawing", "Drawing may have failed")
+
+    # Save
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filepath = rf"C:\\Users\\sharp\\Pictures\\drawing_{ts}.png"
+    filepath = rf"C:\\Users\\sharp\\Pictures\\drawing_{{ts}}.png"
     app_save(filepath, "Paint")
     ok, reason = validate_image(filepath, "description of expected image")
-    if not ok: raise RuntimeError(f"Image validation failed: {reason}")
+    if not ok: raise RuntimeError(f"Image validation failed: {{reason}}")
 
-PAINT SHAPE TOOLS (for clean filled shapes — faster than draw_filled_*):
+PAINT SHAPE TOOLS (for clean filled shapes — faster than pencil fill):
     find_tool("Shapes", app="Paint"); wait_ms(300)
     find_tool("Ellipse", app="Paint")
-    # Optional fill: find_tool("Fill", app="Paint"); find_tool("Solid color", app="Paint")
     pyautogui.keyDown("shift"); drag(x1, y1, x2, y2); pyautogui.keyUp("shift")
 
-GROK PATTERN:
-    open_browser("https://grok.com"); wait_ms(8000)  # NOT x.com/i/grok
-    info = web_page_info()
-    # Find attach button
-    attach = web_find('button[aria-label*="ttach"]') or web_find('button[aria-label*="upload"]')
-    if not attach: raise RuntimeError("No attachment button found")
-    close_devtools(); wait_ms(300)
-    click(attach['x'], attach['y']); wait_ms(2000); dismiss_modal()
-    type_text(filepath); wait_ms(500); key("enter"); wait_ms(3000); dismiss_modal()
-    # Find text input
+GROK PATTERN (vision-first):
+    open_browser("https://grok.com"); wait_ms(6000)
+
+    # VISION: understand what's on the page before touching anything
+    page_state = ask("What do I see on this Grok page? Is there a text input? An attach/upload button? Am I logged in?")
+    print(f"Grok page: {{page_state}}")
+
+    # Check if logged in
+    if "sign in" in page_state.lower() or "log in" in page_state.lower():
+        raise RuntimeError("Not logged into Grok — please log in manually first")
+
+    # Try DOM first for attach button
+    attach = web_find('button[aria-label*="ttach"]') or web_find('button[aria-label*="upload"]') or web_find('button[aria-label*="image"]')
+    if not attach:
+        # DOM didn't find it — ask vision
+        attach_desc = ask("Where is the attach/upload/paperclip button? Give the x,y pixel coordinates at 0.5 scale as 'x,y'.")
+        # Try to parse coordinates from vision answer
+        import re
+        m = re.search(r'(\d+)\s*,\s*(\d+)', attach_desc)
+        if m:
+            ax, ay = int(m.group(1)) * 2, int(m.group(2)) * 2
+            close_devtools(); wait_ms(200)
+            click(ax, ay); wait_ms(1500)
+        else:
+            raise RuntimeError(f"Cannot find attach button. Vision said: {{attach_desc}}")
+    else:
+        close_devtools(); wait_ms(200)
+        click(attach['x'], attach['y']); wait_ms(1500)
+
+    # File upload dialog
+    dismiss_modal(); wait_ms(500)
+    type_text(filepath); wait_ms(500); key("enter"); wait_ms(3000)
+    dismiss_modal(); wait_ms(500)
+
+    # VISION: verify file was attached
+    vision_check("The image file appears attached or uploaded in the Grok chat", "File attachment may have failed")
+
+    # Find text input via DOM, fall back to vision
     text_input = web_find('textarea') or web_find('div[contenteditable="true"]')
-    if not text_input: raise RuntimeError("No text input found")
-    close_devtools(); wait_ms(300)
-    click(text_input['x'], text_input['y']); wait_ms(400)
+    if text_input:
+        close_devtools(); wait_ms(200)
+        click(text_input['x'], text_input['y']); wait_ms(300)
+    else:
+        close_devtools(); wait_ms(200)
+        # Vision fallback: ask where the text input is
+        input_desc = ask("Where is the text input/chat box? Give x,y at 0.5 scale.")
+        import re
+        m = re.search(r'(\d+)\s*,\s*(\d+)', input_desc)
+        if m:
+            click(int(m.group(1))*2, int(m.group(2))*2); wait_ms(300)
+
     type_text_keys("your prompt here"); wait_ms(300)
     key("enter"); wait_ms(5000)
 
+    # VISION: verify response
+    vision_check("Grok is showing a response to my prompt", "Grok may not have responded")
+
 RULES:
   1. ONE complete script — no input(), no interactive prompts
-  2. Native apps: find_element/find_tool. Web: web_find/web_find_text then click/type.
+  2. click_element() and get_element() return None if not found — NEVER raises ValueError. Check return value.
   3. dismiss_modal() after opening apps, clicking tools, after dialogs
   4. Verify foreground before actions/shortcuts/typing
   5. Print progress at every major step
-  6. Wait after transitions: open_app 2000ms+, URL 8000ms+, dialog 500ms+
+  6. Wait after transitions: open_app 2000ms+, URL 6000ms+, dialog 400ms+
   7. Respond with ONLY Python code in a ```python block
   8. Scripts MUST complete and exit. NO infinite loops.
-  9. FLOOD FILL RULES: use_fill() is allowed but DANGEROUS on pencil-drawn shapes.
-     - SAFE: filling a blank canvas background, filling Paint shape-tool shapes (Rectangle, Ellipse)
-     - UNSAFE: filling pencil/freehand shapes (pixel gaps cause fill to leak and destroy canvas)
-     - ALWAYS select_color() BEFORE use_fill(). ALWAYS ensure_foreground("Paint") after.
-     - If unsure, use Paint shape tools with fill instead (safer).
-  10. Max 3 map_screen() calls per script. Prefer web_find/find_tool.
+  9. FLOOD FILL: use_fill() then fill_at(x,y). NEVER click() directly after use_fill().
+     fill_at() auto-clamps to canvas bounds so fill can't leak into toolbar.
+  10. Max 3 map_screen() calls per script. Prefer web_find/find_tool/ask().
   11. ALWAYS validate_image() before uploading.
-  12. HARD TIME LIMIT: 300s. Budget: setup ~30s, drawing ~180s, save+validate ~30s, web ~60s.
-      - MAX 30 draw calls. MAX 1 draw_filled_* (only if <50px).
-      - For filled shapes: USE PAINT SHAPE TOOLS, NOT draw_filled_*.
+  12. HARD TIME LIMIT: 300s. Budget: setup ~20s, drawing ~150s, save+validate ~20s, web ~60s.
+      - MAX 25 draw calls. For filled shapes: USE PAINT SHAPE TOOLS, NOT draw_filled_*.
   13. If task has BOTH drawing AND upload, keep drawing SIMPLE (10-15 shapes max).
   14. KEEP SCRIPTS UNDER 120 LINES.
-  15. close_devtools() BEFORE any click/type in the browser page. DevTools steals keyboard focus.
+  15. close_devtools() BEFORE any click/type in the browser page.
   16. web_find returns SCREEN coordinates. Click them directly with click(x, y).
+  17. VISION GATES: Use vision_check() or ask() at EVERY phase transition:
+      - After opening app → before drawing
+      - After drawing → before saving
+      - After saving → before web upload
+      - After web upload → before submitting prompt
+      - After submitting → verify response
+  18. BE FAST: minimize wait_ms() calls. 200-300ms between actions is enough.
+      Only use longer waits for: app launch (2000ms), URL load (6000ms), file dialog (1500ms).
 
 FORBIDDEN:
   subprocess/ctypes/win32api/SendMessage/webbrowser.open()
@@ -195,6 +260,8 @@ FORBIDDEN:
   x.com/i/grok URL (use grok.com) | Scripts over 120 lines
   draw_filled_rect/draw_filled_circle for shapes >50px
   pip install in scripts | importing websocket/selenium/playwright
+  click() directly after use_fill() — use fill_at() instead
+  Assuming click_element/get_element will raise — they return None on failure
 """
 
 SCRIPT_FIX_SYSTEM = """You are fixing a failed desktop automation script.
@@ -209,25 +276,33 @@ RULES:
 6. Max 3 map_screen() calls total.
 7. TIMEOUT FIX: If "Script timed out after 300s" — SIMPLIFY drastically.
    - Remove draw_filled_* calls. Use Paint shape tools instead.
-   - Reduce to MAX 20 draw calls. Remove redundant waits.
+   - Reduce to MAX 15 draw calls. Remove redundant waits.
    - Fixed script MUST be under 100 lines.
+8. click_element() returns None if not found — it does NOT raise ValueError.
+   WRONG: click_element(em, "attach")  # crashes if not found
+   RIGHT: result = click_element(em, "attach")
+          if not result: print("attach not found, trying vision...")
+9. get_element() returns None if not found — check the return value.
+10. For flood fill: use fill_at(x,y) instead of click(x,y) — it clamps to canvas bounds.
+11. VISION-FIRST: If DOM/map_screen fails, use ask() to see the screen and decide what to do.
+    Example: page_desc = ask("What buttons and inputs are visible on this page?")
+12. BE FAST: reduce wait_ms() calls. 200-300ms is enough between most actions.
 
 Common fixes:
-- Script timed out: TOO MANY draw calls. SIMPLIFY the drawing.
-- ModuleNotFoundError: DO NOT pip install in scripts. Use only task_runner functions.
-- WebSocketBadStatusException / CDP error: DevTools mode is used, not CDP. If web_find fails, fall back to map_screen() + click_element().
-- ensure_foreground failed: App may be behind other windows. Try kill_app on blocking apps first, or use key("alt","tab") before ensure_foreground.
-- key() keyword arg error: key() only takes positional args.
-- Ellipse not found: find_tool("Shapes") first, wait_ms(300), THEN find_tool("Ellipse")
-- Flood fill destroyed canvas: use_fill() leaked through pixel gaps in pencil shapes. Use Paint shape tools with fill for clean shapes, or only use_fill() on blank canvas / shape-tool shapes.
+- Script timed out: TOO MANY draw calls or waits. SIMPLIFY the drawing.
+- click_element ValueError: click_element now returns None. Check return value instead.
+- get_element ValueError: get_element now returns None. Check return value instead.
+- Element not found via map_screen: Use web_find() or ask() as fallback.
+- Flood fill outside canvas: Use fill_at(x,y) instead of click(x,y).
+- Grok not logged in: Detect "sign in"/"sign up" in page state and raise RuntimeError.
 - Color not set: After select_color(), ALWAYS ensure_foreground("Paint") + use_pencil().
-- Grok wrong page: Use grok.com NOT x.com/i/grok
 - App not in foreground: ensure_foreground() + dismiss_modal()
 
 FORBIDDEN:
   subprocess/ctypes/win32api | pip install | Making script LONGER
   key() with keyword args | hardcoded 1920x1080
   Redrawing when image file already exists | importing websocket/selenium/playwright
+  click() after use_fill() — use fill_at() | Assuming click_element raises
 
 Respond with ONLY the corrected Python code in a ```python block."""
 
