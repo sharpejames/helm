@@ -298,9 +298,10 @@ RULES:
   12. ALWAYS validate_image() before uploading.
   13. HARD TIME LIMIT: 300s. Budget: setup ~20s, drawing ~150s, save+validate ~20s, web ~60s.
       MAX 25 draw calls. For filled shapes: USE PAINT SHAPE TOOLS.
-  14. If task has BOTH drawing AND upload, keep drawing under 20 draw calls but make it
-      COLORFUL and IMPRESSIVE — use multiple colors, varied shapes, and creative composition.
-      A simple drawing with 5 colors is better than a complex one in black and white.
+  14. If task has BOTH drawing AND upload, keep drawing under 20 draw calls.
+      Match the user's intent: if they ask for "technically impressive" or "colorful", use
+      multiple colors and creative composition. If they ask for "simple" or "quick sketch",
+      keep it minimal. Default to colorful and visually interesting when not specified.
   15. KEEP SCRIPTS UNDER 120 LINES.
   16. close_devtools() BEFORE any click/type in the browser page.
   17. VISION GATES at every phase transition (ask/vision_check).
