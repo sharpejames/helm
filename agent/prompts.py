@@ -142,30 +142,45 @@ The vision model is LOCAL and FAST — use it freely. Don't be shy about screens
             click(int(m.group(1))*2, int(m.group(2))*2)
 
   ## FILE UPLOAD ON ANY WEBSITE (Gmail, Grok, Slack, Discord, Outlook, etc.):
-    # Uploading a file to ANY website is ALWAYS a 2-phase process:
+    # Uploading a file is ALWAYS: click attach → OS file picker opens → type path → Enter.
     #
-    # PHASE 1 — Click the attach/upload button on the web page.
-    #   This is a small icon (paperclip, plus, image, camera, etc.) near the input area.
-    #   Clicking it triggers the browser to open the OS file picker dialog.
-    #   Use vision or DevTools to find it, then click().
+    # CRITICAL: After clicking the attach button, you MUST verify the OS file picker
+    # dialog actually opened before typing the filepath. Use get_active_window() to check.
+    # The OS dialog title is usually "Open" or "File Upload" or similar.
     #
-    # PHASE 2 — Interact with the OS file picker dialog (a native Windows dialog).
-    #   The filename field is auto-focused. Type the full filepath, then press Enter.
-    #   This is a SYSTEM dialog, not a web element — type_text() works here (not type_text_keys).
-    #
-    # WRONG: clicking the chat/text input and typing a filepath — that sends TEXT, not a file.
-    # RIGHT: click attach button → wait for OS dialog → type filepath → Enter.
+    # WRONG: type filepath into the chat/text input — that sends TEXT, not a file.
+    # WRONG: type filepath without verifying the file picker opened.
+    # RIGHT: click attach → verify file picker opened → type filepath → Enter.
     #
     # Example (works for Grok, Gmail, Slack, Discord, Outlook, any site):
-    attach_loc = ask("Where is the attach/paperclip/upload button? Reply ONLY x,y at 0.5 scale.")
-    m = re.search(r'(\d+)\s*,\s*(\d+)', attach_loc)
-    if m:
-        click(int(m.group(1))*2, int(m.group(2))*2)
-    wait_ms(2000)  # wait for OS file picker to open
-    type_text(filepath)  # type into the OS dialog filename field (NOT the web page)
-    wait_ms(500)
-    key("enter")  # confirm — file starts uploading to the website
-    wait_ms(3000)  # wait for upload to complete
+    # Find and click the attach button
+    attach = web_find('button[aria-label*="ttach"]') or web_find('input[type="file"]')
+    if attach:
+        close_devtools(); wait_ms(200)
+        click(attach['x'], attach['y'])
+    else:
+        close_devtools(); wait_ms(200)
+        # Use vision — but be SPECIFIC about what the button looks like
+        loc = ask("Look at the chat input area at the bottom of the page. There should be a small paperclip or plus icon for attaching files. What are its x,y coordinates at 0.5 scale? Reply ONLY as x,y numbers.")
+        m = re.search(r'(\d+)\s*,\s*(\d+)', loc)
+        if m:
+            click(int(m.group(1))*2, int(m.group(2))*2)
+    wait_ms(2000)
+    # VERIFY the OS file picker dialog opened
+    active = get_active_window()
+    if "open" not in active.lower() and "upload" not in active.lower() and "file" not in active.lower():
+        # File picker didn't open — the click missed. Try again or look harder.
+        print(f"File picker not detected (active window: {{active}}), retrying...")
+        dismiss_modal()  # dismiss any popup that appeared instead
+        # Try clicking again with fresh vision
+        loc2 = ask("The file picker did not open. Look more carefully at the bottom of the chat area. Where EXACTLY is the attach/paperclip button? Reply ONLY x,y at 0.5 scale.")
+        m2 = re.search(r'(\d+)\s*,\s*(\d+)', loc2)
+        if m2:
+            click(int(m2.group(1))*2, int(m2.group(2))*2)
+            wait_ms(2000)
+    # Now type the filepath in the OS file picker dialog
+    type_text(filepath); wait_ms(500)
+    key("enter"); wait_ms(3000)
     vision_check("File/image appears attached or a thumbnail is visible", "Upload may have failed")
 
   ## Flood fill — ALWAYS use fill_at() which clamps to canvas:
@@ -210,11 +225,13 @@ GROK FILE UPLOAD PATTERN (follows the general FILE UPLOAD pattern above):
     open_browser("https://grok.com"); wait_ms(6000)
     # NEVER use x.com/i/grok — ALWAYS use grok.com
 
-    # LOOK at the page
-    page_state = ask("Describe this page. Is there a chat input box? An attach/paperclip/image button near the input? Any sign-in wall?")
+    # LOOK at the page — handle any popups first
+    page_state = ask("Describe this page. Is there a chat input box? An attach/paperclip/image button near the input? Any popups, age verification, or cookie consent dialogs?")
     print(f"Grok page: {{page_state}}")
+    if "age" in page_state.lower() or "verify" in page_state.lower() or "consent" in page_state.lower() or "cookie" in page_state.lower():
+        dismiss_modal(); wait_ms(1000)
 
-    # --- FILE UPLOAD (same pattern as any website) ---
+    # --- FILE UPLOAD ---
     # Step 1: Click the attach button (opens OS file picker)
     attach = web_find('button[aria-label*="ttach"]') or web_find('button[aria-label*="image"]')
     if attach:
@@ -222,28 +239,40 @@ GROK FILE UPLOAD PATTERN (follows the general FILE UPLOAD pattern above):
         click(attach['x'], attach['y'])
     else:
         close_devtools(); wait_ms(200)
-        loc = ask("Where is the attach/paperclip/image upload button (small icon near the chat input)? Reply ONLY x,y at 0.5 scale.")
+        loc = ask("Look at the chat input area at the bottom. There should be a small paperclip or plus or image icon for attaching files. What are its x,y coordinates at 0.5 scale? Reply ONLY as x,y.")
         m = re.search(r'(\d+)\s*,\s*(\d+)', loc)
         if m:
             click(int(m.group(1))*2, int(m.group(2))*2)
         else:
             raise RuntimeError(f"Cannot find attach button. Vision: {{loc[:200]}}")
 
-    # Step 2: OS file picker dialog — type filepath and confirm
+    # Step 2: VERIFY the OS file picker dialog opened
     wait_ms(2000)
+    active = get_active_window()
+    if "open" not in active.lower() and "upload" not in active.lower() and "file" not in active.lower():
+        print(f"File picker not detected (active: {{active}}), retrying...")
+        dismiss_modal(); wait_ms(500)
+        loc2 = ask("The file picker did not open. Look at the bottom of the Grok chat. Where EXACTLY is the attach/paperclip button? Reply ONLY x,y at 0.5 scale.")
+        m2 = re.search(r'(\d+)\s*,\s*(\d+)', loc2)
+        if m2:
+            click(int(m2.group(1))*2, int(m2.group(2))*2)
+            wait_ms(2000)
+
+    # Step 3: Type filepath in OS dialog and confirm
     type_text(filepath); wait_ms(500)
     key("enter"); wait_ms(3000)
 
     vision_check("Image appears attached or thumbnail visible in Grok chat", "Upload may have failed")
 
     # --- TYPE PROMPT AND SEND ---
+    # Click the chat text input (NOT the attach button)
     text_el = web_find('textarea') or web_find('div[contenteditable="true"]')
     if text_el:
         close_devtools(); wait_ms(200)
         click(text_el['x'], text_el['y']); wait_ms(300)
     else:
         close_devtools(); wait_ms(200)
-        loc = ask("Where is the text input / chat box for typing a message? Reply ONLY x,y at 0.5 scale.")
+        loc = ask("Where is the text input / chat box for typing a message (NOT the attach button)? Reply ONLY x,y at 0.5 scale.")
         m = re.search(r'(\d+)\s*,\s*(\d+)', loc)
         if m:
             click(int(m.group(1))*2, int(m.group(2))*2); wait_ms(300)
@@ -269,15 +298,18 @@ RULES:
   12. ALWAYS validate_image() before uploading.
   13. HARD TIME LIMIT: 300s. Budget: setup ~20s, drawing ~150s, save+validate ~20s, web ~60s.
       MAX 25 draw calls. For filled shapes: USE PAINT SHAPE TOOLS.
-  14. If task has BOTH drawing AND upload, keep drawing SIMPLE (10-15 shapes max).
+  14. If task has BOTH drawing AND upload, keep drawing under 20 draw calls but make it
+      COLORFUL and IMPRESSIVE — use multiple colors, varied shapes, and creative composition.
+      A simple drawing with 5 colors is better than a complex one in black and white.
   15. KEEP SCRIPTS UNDER 120 LINES.
   16. close_devtools() BEFORE any click/type in the browser page.
   17. VISION GATES at every phase transition (ask/vision_check).
   18. BE FAST: 200-300ms between actions. Longer only for app launch/URL load/dialogs.
   19. import re at top of script (already in SETUP).
-  20. FILE UPLOADS on ANY website: click the ATTACH/UPLOAD button first → wait for OS file
-      picker dialog → type filepath in the OS dialog → Enter. The OS dialog is a native
-      Windows dialog, not a web element. NEVER type a filepath into a web page text input.
+  20. FILE UPLOADS on ANY website: click the ATTACH/UPLOAD button → VERIFY the OS file
+      picker dialog opened (get_active_window should show "Open" or "File Upload") →
+      type filepath in the OS dialog → Enter. If the file picker didn't open, the click
+      missed — retry. NEVER type a filepath into a web page text input.
   21. VERIFY TOOL SELECTION: After selecting any drawing tool (pencil, fill, shape),
       call ensure_tool("ToolName") to confirm it's active. Wrong tool = wrong output.
   22. EXPECT THE UNEXPECTED: Check for popups/dialogs after every major action.

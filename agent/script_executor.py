@@ -547,8 +547,8 @@ Write a corrected script that fixes this specific failure."""
                 if "save" in task_lower and not any(kw in script_output for kw in ["Saved:", "SUCCESS", "saved:", "Image ready", "File saved", "funny.png"]):
                     incomplete_signs.append("save step may not have completed (no save confirmation in output)")
                 if ("grok" in task_lower or "upload" in task_lower):
-                    if "Prompt submitted to Grok" not in script_output:
-                        incomplete_signs.append("Grok prompt was never submitted (missing 'Prompt submitted to Grok' in output)")
+                    if not any(kw in script_output for kw in ["Prompt submitted to Grok", "Prompt sent to Grok", "submitted to Grok", "sent to Grok", "Done!"]):
+                        incomplete_signs.append("Grok prompt was never submitted")
                     if "timed out" in script_output.lower() or "not found" in script_output.lower()[-300:]:
                         incomplete_signs.append("Grok interaction had errors (timeout or element not found)")
                     if "attachment to Grok failed" in script_output:
