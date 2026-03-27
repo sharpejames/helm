@@ -34,11 +34,15 @@ def analyze_recording(recording: Recording, app_db: AppDB = None) -> dict:
     # Build a summary of the recording for the LLM
     events_summary = _summarize_events(recording)
     screenshot_descriptions = _describe_screenshots(recording)
+    transcript = recording._build_transcript()
 
     prompt = f"""Analyze this recording of a human using a computer. Extract reusable knowledge.
 
 RECORDING CONTEXT: {recording.prompt}
 DURATION: {recording.duration_secs():.0f} seconds
+
+{f"USER NARRATION (voice transcript — the user described what they were doing):{chr(10)}{transcript}" if transcript else ""}
+
 EVENTS ({len(recording.events)} total):
 {events_summary}
 
@@ -133,6 +137,8 @@ def _summarize_events(recording: Recording, max_events: int = 100) -> str:
             lines.append(f"  [{elapsed:.1f}s] WINDOW → {e.data.get('window', '?')}")
         elif e.type == "scroll":
             lines.append(f"  [{elapsed:.1f}s] SCROLL {e.data.get('direction', '?')}")
+        elif e.type == "speech":
+            lines.append(f"  [{elapsed:.1f}s] 🎤 \"{e.data.get('text', '')}\"")
 
         prev_ts = e.ts
 

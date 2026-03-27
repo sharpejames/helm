@@ -28,12 +28,13 @@ async def learn_status():
 
 @router.post("/learn/watch/start")
 async def watch_start(body: dict):
-    """Start watch & learn mode. Records human activity."""
+    """Start watch & learn mode. Records human activity. Optional audio narration."""
     prompt = body.get("prompt", "")
     interval = body.get("screenshot_interval", 3.0)
+    audio = body.get("audio", False)
 
     obs = get_observer()
-    result = obs.start(prompt=prompt, screenshot_interval=interval)
+    result = obs.start(prompt=prompt, screenshot_interval=interval, audio=audio)
     return result
 
 
@@ -63,6 +64,8 @@ async def watch_stop():
             "duration_secs": recording.duration_secs(),
             "events": len(recording.events),
             "screenshots": len(recording.screenshots),
+            "speech_events": sum(1 for e in recording.events if e.type == "speech"),
+            "transcript": recording._build_transcript(),
             "filepath": filepath,
         },
         "analysis": analysis,

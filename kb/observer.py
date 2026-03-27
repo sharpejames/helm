@@ -34,7 +34,7 @@ RECORDINGS_DIR = Path(__file__).parent.parent / "recordings"
 @dataclass
 class InputEvent:
     ts: float
-    type: str          # "click", "key", "scroll", "window_change"
+    type: str          # "click", "key", "scroll", "window_change", "speech"
     data: dict = field(default_factory=dict)
 
 
@@ -65,10 +65,25 @@ class Recording:
             "duration_secs": self.duration_secs(),
             "event_count": len(self.events),
             "screenshot_count": len(self.screenshots),
+            "speech_count": sum(1 for e in self.events if e.type == "speech"),
             "events": [{"ts": e.ts, "type": e.type, "data": e.data} for e in self.events],
             "screenshots": [{"ts": s.ts, "window": s.window} for s in self.screenshots],
-            # Don't include image_b64 in the dict — too large. Save separately.
+            "transcript": self._build_transcript(),
         }
+
+    def _build_transcript(self) -> str:
+        """Build a timestamped transcript from speech events."""
+        speech_events = [e for e in self.events if e.type == "speech"]
+        if not speech_events:
+            return ""
+        t0 = self.started
+        lines = []
+        for e in speech_events:
+            elapsed = e.ts - t0
+            text = e.data.get("text", "")
+            if text:
+                lines.append(f"[{elapsed:.0f}s] {text}")
+        return "\n".join(lines)
 
     def save(self) -> str:
         """Save recording to disk. Returns filepath."""
@@ -99,6 +114,7 @@ class Observer:
     def __init__(self):
         self._recording: Recording | None = None
         self._running = False
+        self._audio_enabled = False
         self._threads: list[threading.Thread] = []
         self._mouse_listener = None
         self._key_listener = None
@@ -111,13 +127,15 @@ class Observer:
     def current_prompt(self) -> str:
         return self._recording.prompt if self._recording else ""
 
-    def start(self, prompt: str = "", screenshot_interval: float = 3.0):
-        """Start recording. Takes periodic screenshots and logs input events."""
+    def start(self, prompt: str = "", screenshot_interval: float = 3.0, audio: bool = False):
+        """Start recording. Takes periodic screenshots and logs input events.
+        If audio=True, also records microphone and transcribes speech."""
         if self._running:
             return {"error": "Already recording"}
 
         self._recording = Recording(prompt=prompt, started=time.time())
         self._running = True
+        self._audio_enabled = audio
 
         # Start screenshot thread
         ss_thread = threading.Thread(target=self._screenshot_loop,
@@ -135,8 +153,14 @@ class Observer:
         win_thread.start()
         self._threads.append(win_thread)
 
-        logger.info(f"Observer started: '{prompt}'")
-        return {"status": "recording", "prompt": prompt}
+        # Start audio listener thread (if enabled)
+        if audio:
+            audio_thread = threading.Thread(target=self._audio_listener, daemon=True)
+            audio_thread.start()
+            self._threads.append(audio_thread)
+
+        logger.info(f"Observer started: '{prompt}' (audio={'on' if audio else 'off'})")
+        return {"status": "recording", "prompt": prompt, "audio": audio}
 
     def stop(self) -> Recording | None:
         """Stop recording and return the Recording."""
@@ -253,6 +277,67 @@ class Observer:
             except Exception:
                 pass
             time.sleep(0.5)
+
+    def _audio_listener(self):
+        """Record microphone audio in chunks and transcribe to text.
+        Uses speech_recognition with Google's free API for transcription.
+        Each recognized phrase becomes a timestamped 'speech' event."""
+        try:
+            import speech_recognition as sr
+
+            recognizer = sr.Recognizer()
+            recognizer.energy_threshold = 300  # Sensitivity — lower = more sensitive
+            recognizer.dynamic_energy_threshold = True
+            recognizer.pause_threshold = 1.5   # Seconds of silence before phrase is considered complete
+
+            mic = sr.Microphone()
+
+            # Calibrate for ambient noise
+            with mic as source:
+                logger.info("Audio: calibrating for ambient noise (2s)...")
+                recognizer.adjust_for_ambient_noise(source, duration=2)
+                logger.info(f"Audio: calibrated, energy_threshold={recognizer.energy_threshold:.0f}")
+
+            def _transcribe_callback(recognizer, audio):
+                """Called in a background thread when speech is detected."""
+                if not self._running:
+                    return
+                speech_ts = time.time()
+                try:
+                    text = recognizer.recognize_google(audio)
+                    if text and text.strip():
+                        self._recording.events.append(InputEvent(
+                            ts=speech_ts, type="speech",
+                            data={"text": text.strip()}
+                        ))
+                        logger.debug(f"Speech: '{text.strip()}'")
+                except sr.UnknownValueError:
+                    pass  # No speech detected in this chunk
+                except sr.RequestError as e:
+                    logger.debug(f"Speech API error: {e}")
+                except Exception as e:
+                    logger.debug(f"Transcription error: {e}")
+
+            # Start listening in background — calls _transcribe_callback for each phrase
+            stop_listening = recognizer.listen_in_background(mic, _transcribe_callback,
+                                                              phrase_time_limit=10)
+            logger.info("Audio: listening for speech...")
+
+            # Keep thread alive while recording
+            while self._running:
+                time.sleep(0.5)
+
+            # Stop the background listener
+            stop_listening(wait_for_stop=False)
+            logger.info("Audio: stopped listening")
+
+        except ImportError:
+            logger.warning("speech_recognition not installed — audio disabled. "
+                           "Install with: pip install SpeechRecognition")
+        except OSError as e:
+            logger.warning(f"No microphone available: {e}")
+        except Exception as e:
+            logger.error(f"Audio listener error: {e}")
 
 
 # Global singleton

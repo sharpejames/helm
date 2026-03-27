@@ -87,6 +87,13 @@
         <p class="text-xs text-gray-400 mb-3">Record your screen while you use an app. Helm watches your mouse, keyboard, and screen to learn how you do things.</p>
         <input id="learn-prompt" type="text" placeholder="What should Helm learn? e.g. 'Watch me use Google Maps to get directions'"
           class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:border-blue-500 placeholder-gray-600">
+        <div class="flex items-center gap-3 mb-3">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input id="learn-audio" type="checkbox" class="w-4 h-4 rounded bg-gray-800 border-gray-600 text-blue-600 focus:ring-blue-500">
+            <span class="text-xs text-gray-400">🎤 Record voice narration</span>
+          </label>
+          <span class="text-xs text-gray-600">(describe what you're doing as you do it)</span>
+        </div>
         <div class="flex gap-2">
           <button id="learn-start-btn" onclick="startWatching()"
             class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-medium">▶ Start Recording</button>
@@ -618,8 +625,10 @@ async function testConnection() {
 async function startWatching() {
   const prompt = document.getElementById('learn-prompt').value.trim();
   if (!prompt) return alert('Enter what Helm should learn');
+  const audio = document.getElementById('learn-audio').checked;
   const res = document.getElementById('learn-watch-result');
-  res.textContent = '🔴 Recording... Use your computer normally. Click "Stop & Analyze" when done.';
+  const audioLabel = audio ? ' + 🎤 voice' : '';
+  res.textContent = `🔴 Recording${audioLabel}... Use your computer normally. ${audio ? 'Narrate what you\'re doing. ' : ''}Click "Stop & Analyze" when done.`;
   res.className = 'mt-3 text-xs text-red-400 font-medium';
   document.getElementById('learn-start-btn').classList.add('hidden');
   document.getElementById('learn-stop-btn').classList.remove('hidden');
@@ -628,7 +637,7 @@ async function startWatching() {
   try {
     await fetch('/api/learn/watch/start', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({prompt})
+      body: JSON.stringify({prompt, audio})
     });
   } catch(e) { res.textContent = 'Error: ' + e.message; }
 }
@@ -652,6 +661,9 @@ async function stopWatching() {
       let html = `<div class="text-green-400 mb-2">✓ Recorded ${rec.duration_secs?.toFixed(0)}s, ${rec.events} events, ${rec.screenshots} screenshots</div>`;
       if (analysis.app_name) html += `<div>App: <strong>${esc(analysis.app_name)}</strong></div>`;
       if (analysis.task_description) html += `<div>${esc(analysis.task_description)}</div>`;
+      if (data.recording?.transcript) {
+        html += `<div class="mt-2 bg-gray-800 rounded p-2"><div class="text-gray-500 text-xs mb-1">🎤 Voice transcript:</div><pre class="text-gray-300 text-xs">${esc(data.recording.transcript)}</pre></div>`;
+      }
       if (analysis.action_sequence) {
         html += '<div class="mt-1">Steps learned:</div><ol class="list-decimal ml-4">';
         analysis.action_sequence.forEach(s => html += `<li>${esc(s)}</li>`);
