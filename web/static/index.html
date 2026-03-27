@@ -27,6 +27,7 @@
   <div class="flex-shrink-0 w-14 bg-gray-900 border-r border-gray-800 flex flex-col items-center py-4 gap-2">
     <div class="text-2xl mb-3" title="Helm">⚓</div>
     <button class="nav-btn active" id="nav-chat" onclick="showView('chat')" title="Chat">💬</button>
+    <button class="nav-btn" id="nav-learn" onclick="showView('learn')" title="Learn">🧠</button>
     <button class="nav-btn" id="nav-tasks" onclick="showView('tasks')" title="Tasks">📋</button>
     <button class="nav-btn" id="nav-settings" onclick="showView('settings')" title="Settings">⚙️</button>
   </div>
@@ -69,8 +70,76 @@
       </div>
   </div>
 
+  <!-- Learn View -->
+  <div id="view-learn" class="view">
+    <div class="px-4 py-3 border-b border-gray-800 flex items-center gap-3 flex-shrink-0">
+      <span class="font-semibold text-sm">Learn Mode</span>
+      <span id="learn-status" class="text-xs text-gray-500">idle</span>
+    </div>
+    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+
+      <!-- Watch & Learn -->
+      <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-lg">👁️</span>
+          <span class="font-medium text-sm">Watch & Learn</span>
+        </div>
+        <p class="text-xs text-gray-400 mb-3">Record your screen while you use an app. Helm watches your mouse, keyboard, and screen to learn how you do things.</p>
+        <input id="learn-prompt" type="text" placeholder="What should Helm learn? e.g. 'Watch me use Google Maps to get directions'"
+          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:border-blue-500 placeholder-gray-600">
+        <div class="flex gap-2">
+          <button id="learn-start-btn" onclick="startWatching()"
+            class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-medium">▶ Start Recording</button>
+          <button id="learn-stop-btn" onclick="stopWatching()"
+            class="hidden bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium">■ Stop & Analyze</button>
+        </div>
+        <div id="learn-watch-result" class="mt-3 text-xs text-gray-400"></div>
+      </div>
+
+      <!-- Auto Discover -->
+      <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-lg">🔍</span>
+          <span class="font-medium text-sm">Auto Discover</span>
+        </div>
+        <p class="text-xs text-gray-400 mb-3">Helm opens an app and explores its UI automatically — menus, buttons, shortcuts.</p>
+        <div class="flex gap-2 mb-3">
+          <input id="discover-app" type="text" placeholder="App name (e.g. Notepad, Solitaire, Paint)"
+            class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 placeholder-gray-600">
+          <button onclick="autoDiscover()"
+            class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium">Discover</button>
+        </div>
+        <div id="discover-result" class="text-xs text-gray-400"></div>
+      </div>
+
+      <!-- Learn from Logs -->
+      <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-lg">📚</span>
+          <span class="font-medium text-sm">Learn from Task History</span>
+        </div>
+        <p class="text-xs text-gray-400 mb-3">Process all past task logs to extract patterns, tips, and known issues.</p>
+        <button onclick="learnFromLogs()"
+          class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium">Process Logs</button>
+        <div id="logs-result" class="mt-3 text-xs text-gray-400"></div>
+      </div>
+
+      <!-- Knowledge Base -->
+      <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-lg">📖</span>
+          <span class="font-medium text-sm">Knowledge Base</span>
+        </div>
+        <div id="knowledge-list" class="text-xs text-gray-400">Loading...</div>
+        <button onclick="loadKnowledge()" class="mt-2 text-xs text-blue-400 hover:text-blue-300">↻ Refresh</button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Tasks View -->
   <div id="view-tasks" class="view">
+
     <div class="px-4 py-3 border-b border-gray-800 flex items-center justify-between flex-shrink-0">
       <span class="font-semibold text-sm">Scheduled Tasks</span>
       <button onclick="showModal('modal-new-task')"
@@ -189,7 +258,7 @@ function setStatus(text, cls='text-gray-500') {
 
 // ── Views ─────────────────────────────────────────────────────────────────────
 function showView(name) {
-  ['chat','tasks','settings'].forEach(v => {
+  ['chat','learn','tasks','settings'].forEach(v => {
     document.getElementById('view-'+v).classList.remove('active');
     document.getElementById('nav-'+v).classList.remove('active');
   });
@@ -197,6 +266,7 @@ function showView(name) {
   document.getElementById('nav-'+name).classList.add('active');
   if (name === 'tasks') loadTasks();
   if (name === 'settings') loadSettings();
+  if (name === 'learn') loadKnowledge();
 }
 
 // ── Chat ──────────────────────────────────────────────────────────────────────
@@ -542,6 +612,123 @@ async function testConnection() {
     msg.textContent = 'Connection failed: ' + e.message;
     msg.className = 'text-sm text-red-400';
   }
+}
+
+// ── Learn Mode ────────────────────────────────────────────────────────────────
+async function startWatching() {
+  const prompt = document.getElementById('learn-prompt').value.trim();
+  if (!prompt) return alert('Enter what Helm should learn');
+  const res = document.getElementById('learn-watch-result');
+  res.textContent = '🔴 Recording... Use your computer normally. Click "Stop & Analyze" when done.';
+  res.className = 'mt-3 text-xs text-red-400 font-medium';
+  document.getElementById('learn-start-btn').classList.add('hidden');
+  document.getElementById('learn-stop-btn').classList.remove('hidden');
+  document.getElementById('learn-status').textContent = 'recording...';
+  document.getElementById('learn-status').className = 'text-xs text-red-400';
+  try {
+    await fetch('/api/learn/watch/start', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({prompt})
+    });
+  } catch(e) { res.textContent = 'Error: ' + e.message; }
+}
+
+async function stopWatching() {
+  const res = document.getElementById('learn-watch-result');
+  res.textContent = '⏳ Stopping and analyzing...';
+  res.className = 'mt-3 text-xs text-yellow-400';
+  document.getElementById('learn-stop-btn').classList.add('hidden');
+  document.getElementById('learn-start-btn').classList.remove('hidden');
+  document.getElementById('learn-status').textContent = 'analyzing...';
+  try {
+    const r = await fetch('/api/learn/watch/stop', {method: 'POST'});
+    const data = await r.json();
+    if (data.error) {
+      res.textContent = '✗ ' + data.error;
+      res.className = 'mt-3 text-xs text-red-400';
+    } else {
+      const rec = data.recording || {};
+      const analysis = data.analysis || {};
+      let html = `<div class="text-green-400 mb-2">✓ Recorded ${rec.duration_secs?.toFixed(0)}s, ${rec.events} events, ${rec.screenshots} screenshots</div>`;
+      if (analysis.app_name) html += `<div>App: <strong>${esc(analysis.app_name)}</strong></div>`;
+      if (analysis.task_description) html += `<div>${esc(analysis.task_description)}</div>`;
+      if (analysis.action_sequence) {
+        html += '<div class="mt-1">Steps learned:</div><ol class="list-decimal ml-4">';
+        analysis.action_sequence.forEach(s => html += `<li>${esc(s)}</li>`);
+        html += '</ol>';
+      }
+      if (analysis.tips) {
+        html += '<div class="mt-1 text-blue-400">Tips: ' + analysis.tips.map(t => esc(t)).join(', ') + '</div>';
+      }
+      if (analysis.knowledge_saved) html += '<div class="text-green-400 mt-1">✓ Saved to knowledge base</div>';
+      res.innerHTML = html;
+      res.className = 'mt-3 text-xs text-gray-300';
+    }
+  } catch(e) {
+    res.textContent = 'Error: ' + e.message;
+    res.className = 'mt-3 text-xs text-red-400';
+  }
+  document.getElementById('learn-status').textContent = 'idle';
+  document.getElementById('learn-status').className = 'text-xs text-gray-500';
+}
+
+async function autoDiscover() {
+  const app = document.getElementById('discover-app').value.trim();
+  if (!app) return alert('Enter an app name');
+  const res = document.getElementById('discover-result');
+  res.textContent = '⏳ Discovering UI...';
+  res.className = 'text-xs text-yellow-400';
+  try {
+    const r = await fetch('/api/learn/discover', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({app_exe: app, window_title: app})
+    });
+    const data = await r.json();
+    if (data.error) {
+      res.textContent = '✗ ' + data.error;
+      res.className = 'text-xs text-red-400';
+    } else {
+      res.innerHTML = `<div class="text-green-400">✓ Discovered ${esc(data.name || app)}</div>
+        <div class="mt-1">${esc((data.ui_description || '').substring(0, 300))}</div>`;
+      res.className = 'text-xs text-gray-300';
+    }
+  } catch(e) { res.textContent = 'Error: ' + e.message; res.className = 'text-xs text-red-400'; }
+}
+
+async function learnFromLogs() {
+  const res = document.getElementById('logs-result');
+  res.textContent = '⏳ Processing logs...';
+  try {
+    const r = await fetch('/api/learn/from-logs', {method: 'POST'});
+    const data = await r.json();
+    let html = `<div class="text-green-400">✓ Learned ${data.total_learned} facts</div>`;
+    for (const [app, count] of Object.entries(data.apps || {})) {
+      html += `<div>  ${esc(app)}: ${count} facts</div>`;
+    }
+    res.innerHTML = html;
+    res.className = 'mt-3 text-xs text-gray-300';
+  } catch(e) { res.textContent = 'Error: ' + e.message; res.className = 'mt-3 text-xs text-red-400'; }
+}
+
+async function loadKnowledge() {
+  const el = document.getElementById('knowledge-list');
+  try {
+    const r = await fetch('/api/learn/knowledge');
+    const data = await r.json();
+    const apps = data.apps || {};
+    if (!Object.keys(apps).length) {
+      el.textContent = 'No app knowledge yet. Run tasks or use Learn mode to build knowledge.';
+      return;
+    }
+    let html = '';
+    for (const [name, info] of Object.entries(apps)) {
+      html += `<div class="flex items-center justify-between py-1.5 border-b border-gray-800">
+        <span class="text-gray-300">${esc(info.name || name)}</span>
+        <span class="text-gray-600">${info.tips_count} tips, ${info.issues_count} issues</span>
+      </div>`;
+    }
+    el.innerHTML = html;
+  } catch(e) { el.textContent = 'Error loading knowledge'; }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
