@@ -1,0 +1,839 @@
+"""
+agent/step_executor.py — Hybrid step-based task executor for Helm.
+
+Architecture (Option C — Hybrid local/remote):
+  1. Remote Claude receives task + screen state → returns structured drawing plan
+  2. Local Qwen2.5-3B follows the plan, emitting one JSON action per step (~2-3s each)
+  3. On error/unexpected: escalate back to Claude for replanning
+  4. Fallback: if local LLM unavailable, use remote-only mode (original behavior)
+
+This replaces the monolithic remote-only approach. ~70% of LLM time is eliminated
+by using the local model for routine step execution.
+"""
+
+import asyncio
+import json
+import os
+import re
+import logging
+import hashlib
+import requests
+import time as _time
+from datetime import datetime, timezone
+from typing import AsyncIterator
+
+from agent.models import LLMClient, LocalLLMClient, get_local_llm
+from agent.actions import (
+    ACTION_REGISTRY, ActionResult, execute_action, get_action_catalog,
+    _ask_screen, _screenshot_b64, _get_active_window,
+)
+
+logger = logging.getLogger(__name__)
+
+CLAWMETHEUS_URL = "http://127.0.0.1:7331"
+MAX_STEPS = 80
+LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
+
+# Performance tuning
+STEP_MAX_TOKENS = 1024
+STEP_LLM_TIMEOUT = 60.0        # Remote LLM timeout
+LOCAL_LLM_TIMEOUT = 15.0       # Local LLM timeout — should be fast
+ACTION_TIMEOUT_SECS = 45
+HEALTH_CHECK_INTERVAL = 8
+NO_CHANGE_THRESHOLD = 5
+CONVERSATION_MAX = 24
+CONVERSATION_KEEP = 14
+
+# ── System prompts ──────────────────────────────────────────────────────────
+
+PLANNER_SYSTEM = """You are Helm, a desktop automation planner. Given a task, canvas bounds, and screen state,
+create a STRUCTURED DRAWING PLAN as JSON.
+
+## ACTIONS AVAILABLE:
+{action_catalog}
+
+## PLAN FORMAT:
+Return a JSON object with a list of steps. Each step is an action with params.
+```json
+{{
+  "plan_summary": "Brief description of what we'll draw",
+  "steps": [
+    {{"action": "paint_color", "params": {{"color_name": "orange"}}}},
+    {{"action": "paint_shape_tool", "params": {{"shape_name": "Oval"}}}},
+    {{"action": "paint_fill_style", "params": {{"style": "Solid color"}}}},
+    {{"action": "paint_draw_shape", "params": {{"x1": 1100, "y1": 500, "x2": 1450, "y2": 850}}}},
+    ...
+    {{"action": "save_file", "params": {{"filepath": "C:\\\\Users\\\\sharp\\\\Pictures\\\\drawing.png", "app_title": "Paint"}}}}
+  ]
+}}
+```
+
+## CANVAS BOUNDS — CRITICAL:
+The canvas area is: left={canvas_left}, top={canvas_top}, right={canvas_right}, bottom={canvas_bottom}.
+Center: cx={canvas_cx}, cy={canvas_cy}. Size: {canvas_w}x{canvas_h}.
+ALL coordinates MUST be within these bounds. Coordinates outside will be clamped to the edge.
+Center your drawing around (cx, cy). Use the FULL canvas area.
+
+## PAINT RULES:
+1. Do NOT include setup_paint — it's already done before planning.
+2. ONLY toolbar colors: red, blue, yellow, green, orange, purple, pink, brown, black, white, gray.
+3. paint_color auto-restores the previous tool. No need to re-select tool after color change.
+4. For FILLED shapes: set shape tool + fill style ONCE, then draw multiple shapes. Do NOT repeat paint_shape_tool/paint_fill_style/paint_outline_style if they haven't changed.
+5. For outlines/details: paint_color → paint_draw (pencil auto-selected if needed).
+6. NEVER use paint_fill_at on pencil shapes — gaps cause fill to leak.
+7. Canvas starts WHITE. NEVER draw white on white or black on black.
+8. Group by color to minimize switches.
+
+## STEP BUDGET — CRITICAL:
+9. Maximum {max_steps} steps. Your plan MUST be under {plan_limit} steps to leave room for save.
+10. ALWAYS end with: save_file(filepath="C:\\\\Users\\\\sharp\\\\Pictures\\\\drawing.png", app_title="Paint")
+11. Be EFFICIENT: don't repeat tool/style selections. Set once, draw many.
+12. For a portrait: use large shapes for face/body, small shapes for eyes, pencil lines for details.
+"""
+
+LOCAL_EXECUTOR_SYSTEM = """You are Helm's step executor. You follow a drawing plan step by step.
+
+Given the PLAN and current STEP INDEX, output the next action as JSON:
+{{"action": "action_name", "params": {{...}}}}
+
+Rules:
+- Output ONLY the JSON object. No explanation, no markdown.
+- Follow the plan exactly. If the plan says paint_color("red"), output that.
+- If an action failed, adapt: skip it or try an alternative, then continue the plan.
+- If you're done with all steps: {{"action": "DONE", "params": {{"summary": "..."}}}}
+- If stuck after 3 failures: {{"action": "FAIL", "params": {{"reason": "..."}}}}
+"""
+
+# Remote-only fallback prompt (same as before)
+STEP_SYSTEM_PROMPT = """You are Helm, a desktop automation agent. You control a computer step by step.
+
+Each turn: pick ONE action, provide params as JSON. I execute it and show the result.
+
+## ACTIONS:
+{action_catalog}
+
+## RESPONSE FORMAT:
+{{"thinking": "1-2 sentences", "action": "name", "params": {{...}}}}
+When done: {{"thinking": "...", "action": "DONE", "params": {{"summary": "..."}}}}
+If stuck: {{"thinking": "...", "action": "FAIL", "params": {{"reason": "..."}}}}
+
+## CORE RULES:
+1. ONE action per turn.
+2. Trust action results — paint actions self-validate. Don't waste steps on "look".
+3. If an action FAILS, try a DIFFERENT approach. Never retry the same failing action 3 times.
+4. Use EXACT parameter names from the catalog.
+5. press_key with multiple keys: press_key(keys=["ctrl", "s"]).
+
+## PAINT DRAWING RULES:
+6. Start with setup_paint. Parse canvas_bounds from state_hint.
+7. ONLY use toolbar colors: red, blue, yellow, green, orange, purple, pink, brown, black, white, gray.
+8. paint_color auto-restores the previous tool.
+9. For FILLED shapes: paint_shape_tool → paint_fill_style("Solid color") → paint_color → paint_draw_shape.
+10. For outlines/details: paint_color → paint_draw (pencil).
+11. NEVER use paint_fill_at on pencil shapes.
+12. NEVER undo more than once. NEVER call setup_paint twice.
+13. NEVER call setup_paint more than once unless the app crashed.
+
+## COLOR CONTRAST — CRITICAL:
+14. Canvas starts WHITE. NEVER draw white on white or black on black.
+15. Before drawing, think: "what color is the area I'm drawing on?"
+
+## STEP BUDGET:
+18. You have {max_steps} steps. Budget: setup=1, filled shapes=15-20, details=10-15, save=3.
+19. At step {save_threshold}+, STOP drawing and SAVE immediately.
+20. save_file(filepath="C:\\\\Users\\\\sharp\\\\Pictures\\\\drawing.png", app_title="Paint").
+"""
+
+
+def _screenshot_hash() -> str | None:
+    """Take a screenshot and return a perceptual hash for change detection."""
+    try:
+        r = requests.get(f"{CLAWMETHEUS_URL}/screenshot/base64?scale=0.25", timeout=8).json()
+        img_data = r.get("image", "")
+        if img_data:
+            n = len(img_data)
+            sample = img_data[:2000] + img_data[n//3:n//3+2000] + img_data[2*n//3:2*n//3+2000]
+            return hashlib.md5(sample.encode()).hexdigest()
+    except Exception:
+        pass
+    return None
+
+
+class StepExecutor:
+    """Hybrid step-based task executor. Claude plans, local LLM executes."""
+
+    def __init__(self, llm: LLMClient, config: dict = None):
+        self.llm = llm
+        self.local_llm: LocalLLMClient | None = get_local_llm()
+        self._stopped = False
+        self._run_log: list[dict] = []
+        self._last_task: str | None = None
+        os.makedirs(LOG_DIR, exist_ok=True)
+
+    def _log_event(self, event_type: str, data, step: int = 0):
+        entry = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "type": event_type,
+            "step": step,
+            "data": data if isinstance(data, str) else json.dumps(data, default=str),
+        }
+        self._run_log.append(entry)
+        logger.info(f"[step {step}] {event_type}: {str(data)[:200]}")
+
+    def _flush_log(self, task: str, status: str):
+        if not self._run_log:
+            return
+        try:
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            slug = re.sub(r'[^a-z0-9]+', '_', task.lower()[:40]).strip('_')
+            filename = f"{ts}_{slug}_{status}.json"
+            filepath = os.path.join(LOG_DIR, filename)
+            log_data = {
+                "task": task, "status": status, "executor": "hybrid",
+                "started": self._run_log[0]["ts"] if self._run_log else None,
+                "finished": datetime.now(timezone.utc).isoformat(),
+                "events": self._run_log,
+            }
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(log_data, f, indent=2, ensure_ascii=False)
+            logger.info(f"Step log saved: {filepath}")
+        except Exception as e:
+            logger.error(f"Failed to save step log: {e}")
+        finally:
+            self._run_log = []
+
+    def _clawmetheus_running(self) -> bool:
+        try:
+            return requests.get(f"{CLAWMETHEUS_URL}/status", timeout=3).status_code == 200
+        except Exception:
+            return False
+
+    def _parse_llm_response(self, text: str) -> dict | None:
+        """Parse JSON from LLM output. Handles markdown fences and messy output."""
+        text = re.sub(r'```(?:json)?\s*', '', text).strip().rstrip('`').strip()
+        # Strip <think> blocks from reasoning models
+        text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+        m = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', text, re.DOTALL)
+        if m:
+            try:
+                return json.loads(m.group())
+            except json.JSONDecodeError:
+                pass
+        action_m = re.search(r'"action"\s*:\s*"(\w+)"', text)
+        if action_m:
+            return {"action": action_m.group(1), "params": {}, "thinking": "parse fallback"}
+        return None
+
+    def stop(self):
+        self._stopped = True
+        return True
+
+    def _detect_target_app(self, task: str) -> tuple[str | None, str | None]:
+        task_lower = task.lower()
+        for keywords, (title, exe) in [
+            (["paint", "draw", "sketch"], ("Paint", "mspaint")),
+            (["notepad"], ("Notepad", "notepad")),
+            (["chrome", "browser", "web"], ("Chrome", "chrome")),
+        ]:
+            if any(kw in task_lower for kw in keywords):
+                return title, exe
+        return None, None
+
+    async def _execute_with_timeout(self, action_name: str, params: dict,
+                                     timeout: int = ACTION_TIMEOUT_SECS) -> ActionResult:
+        try:
+            return await asyncio.wait_for(
+                asyncio.to_thread(execute_action, action_name, params), timeout=timeout)
+        except asyncio.TimeoutError:
+            return ActionResult(False, error=f"{action_name} timed out after {timeout}s",
+                                state_hint="TIMEOUT")
+
+    async def _check_health_and_recover(self, app_title: str, app_exe: str,
+                                         step: int) -> tuple[bool, list[dict]]:
+        from agent.actions import check_app_health, recover_app
+        events = []
+        health = await asyncio.wait_for(
+            asyncio.to_thread(check_app_health, app_title), timeout=10)
+        if health.ok:
+            return False, events
+        self._log_event("app_frozen", {"app": app_title}, step)
+        events.append({"type": "warning", "data": f"⚠ {app_title} not responding"})
+        events.append({"type": "status", "data": f"Recovering {app_title}..."})
+        try:
+            recovery = await asyncio.wait_for(
+                asyncio.to_thread(recover_app, app_exe, app_title, 8), timeout=30)
+        except asyncio.TimeoutError:
+            recovery = ActionResult(False, error="Recovery timed out")
+        self._log_event("app_recovery", {"ok": recovery.ok}, step)
+        if recovery.ok:
+            events.append({"type": "step", "data": f"✓ {recovery.output}"})
+            return True, events
+        events.append({"type": "warning", "data": f"✗ Recovery failed: {recovery.error}"})
+        return False, events
+
+    async def stream_task(self, task: str) -> AsyncIterator[dict]:
+        """Execute a task step by step. Yields SSE event dicts."""
+        self._stopped = False
+        self._last_task = task
+        self._run_log = []
+        try:
+            async for event in self._stream_task_inner(task):
+                yield event
+        except Exception as e:
+            logger.error(f"stream_task crashed: {e}", exc_info=True)
+            self._log_event("crash", f"Unhandled exception: {e}")
+            self._flush_log(task, "failed")
+            yield {"type": "error", "data": f"Internal error: {e}"}
+
+    def _call_remote_llm(self, system: str, messages: list, max_tokens: int = None,
+                          timeout: float = None) -> str | None:
+        """Call remote LLM with retry logic for transient errors."""
+        for attempt in range(3):
+            try:
+                return self.llm.complete(system, messages,
+                                          max_tokens=max_tokens or STEP_MAX_TOKENS,
+                                          timeout=timeout or STEP_LLM_TIMEOUT)
+            except Exception as e:
+                err_str = str(e).lower()
+                retryable = any(kw in err_str for kw in [
+                    "timeout", "timed out", "502", "503", "504",
+                    "connection", "connect", "getaddrinfo", "network",
+                    "temporarily", "overloaded", "rate_limit",
+                ])
+                if retryable and attempt < 2:
+                    wait = (attempt + 1) * 5
+                    self._log_event("llm_retry", f"Attempt {attempt+1}: {e}")
+                    _time.sleep(wait)
+                    continue
+                raise
+        return None
+
+    def _call_local_llm(self, system: str, messages: list) -> str | None:
+        """Call local LLM. Returns None if unavailable."""
+        if not self.local_llm:
+            return None
+        try:
+            return self.local_llm.complete(system, messages,
+                                            max_tokens=512, timeout=LOCAL_LLM_TIMEOUT)
+        except Exception as e:
+            self._log_event("local_llm_error", str(e))
+            return None
+
+    async def _stream_task_inner(self, task: str) -> AsyncIterator[dict]:
+        self._log_event("task_start", task)
+
+        if not self._clawmetheus_running():
+            self._log_event("error", "Clawmetheus not running")
+            self._flush_log(task, "error")
+            yield {"type": "error", "data": "Clawmetheus not running."}
+            return
+
+        # Initial screen state
+        yield {"type": "status", "data": "Looking at screen..."}
+        screen_state = _ask_screen("What application is in focus? List all visible windows briefly.")
+        self._log_event("screen_state", screen_state)
+        yield {"type": "step", "data": f"Screen: {screen_state[:200]}"}
+
+        action_catalog = get_action_catalog()
+        target_app, target_exe = self._detect_target_app(task)
+
+        # ── Decide mode: hybrid (plan+local) or remote-only ──
+        use_hybrid = self.local_llm is not None
+        plan = None
+
+        if use_hybrid and target_app == "Paint":
+            # Step 0: Run setup_paint FIRST to get canvas bounds
+            yield {"type": "status", "data": "Setting up Paint canvas..."}
+            setup_result = await self._execute_with_timeout("setup_paint", {})
+            if not setup_result.ok:
+                yield {"type": "warning", "data": f"Setup failed: {setup_result.error}. Falling back to remote-only."}
+                use_hybrid = False
+            else:
+                self._log_event("setup_paint", setup_result.output, 0)
+                yield {"type": "step", "data": f"✓ {setup_result.output}"}
+
+                # Extract canvas bounds from setup result
+                canvas_bounds = self._parse_canvas_bounds(setup_result.output)
+
+                # Now plan WITH canvas bounds
+                yield {"type": "status", "data": "🧠 Claude planning (1 remote call)..."}
+                plan = await self._get_plan(task, screen_state, action_catalog, canvas_bounds)
+                if plan:
+                    self._log_event("plan", {"summary": plan.get("plan_summary", ""),
+                                              "steps": len(plan.get("steps", []))})
+                    yield {"type": "step", "data":
+                        f"📋 Plan: {plan.get('plan_summary', '?')} ({len(plan.get('steps', []))} steps)"}
+                    async for event in self._execute_plan(plan, task, target_app, target_exe):
+                        yield event
+                    return
+                else:
+                    yield {"type": "warning", "data": "Plan failed, falling back to remote-only mode"}
+                    use_hybrid = False
+        elif use_hybrid:
+            # Non-paint tasks: plan without canvas bounds
+            yield {"type": "status", "data": "🧠 Claude planning (1 remote call)..."}
+            plan = await self._get_plan(task, screen_state, action_catalog, None)
+            if plan:
+                self._log_event("plan", {"summary": plan.get("plan_summary", ""),
+                                          "steps": len(plan.get("steps", []))})
+                yield {"type": "step", "data":
+                    f"📋 Plan: {plan.get('plan_summary', '?')} ({len(plan.get('steps', []))} steps)"}
+                async for event in self._execute_plan(plan, task, target_app, target_exe):
+                    yield event
+                return
+            else:
+                yield {"type": "warning", "data": "Plan failed, falling back to remote-only mode"}
+                use_hybrid = False
+
+        # ── Remote-only fallback ──
+        async for event in self._execute_remote_only(task, screen_state, action_catalog,
+                                                       target_app, target_exe):
+            yield event
+
+    def _parse_canvas_bounds(self, setup_output: str) -> dict:
+        """Extract canvas bounds from setup_paint output like 'Canvas ready: (512,385)->(2048,1345) = 1536x960'"""
+        import re
+        m = re.search(r'\((\d+),(\d+)\)->\((\d+),(\d+)\)', setup_output)
+        if m:
+            left, top, right, bottom = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
+            return {"left": left, "top": top, "right": right, "bottom": bottom,
+                    "cx": (left + right) // 2, "cy": (top + bottom) // 2,
+                    "w": right - left, "h": bottom - top}
+        return {"left": 512, "top": 385, "right": 2048, "bottom": 1345,
+                "cx": 1280, "cy": 865, "w": 1536, "h": 960}
+
+    async def _get_plan(self, task: str, screen_state: str, action_catalog: str,
+                         canvas_bounds: dict | None = None) -> dict | None:
+        """Ask remote Claude to create a structured drawing plan."""
+        plan_limit = MAX_STEPS - 5  # Leave room for save + buffer
+        system = (PLANNER_SYSTEM
+                  .replace("{action_catalog}", action_catalog)
+                  .replace("{max_steps}", str(MAX_STEPS))
+                  .replace("{plan_limit}", str(plan_limit)))
+
+        # Inject canvas bounds into the system prompt
+        if canvas_bounds:
+            system = (system
+                      .replace("{canvas_left}", str(canvas_bounds["left"]))
+                      .replace("{canvas_top}", str(canvas_bounds["top"]))
+                      .replace("{canvas_right}", str(canvas_bounds["right"]))
+                      .replace("{canvas_bottom}", str(canvas_bounds["bottom"]))
+                      .replace("{canvas_cx}", str(canvas_bounds["cx"]))
+                      .replace("{canvas_cy}", str(canvas_bounds["cy"]))
+                      .replace("{canvas_w}", str(canvas_bounds["w"]))
+                      .replace("{canvas_h}", str(canvas_bounds["h"])))
+        else:
+            # Remove canvas bounds section if not available
+            system = re.sub(r'## CANVAS BOUNDS.*?Use the FULL canvas area\.', '', system, flags=re.DOTALL)
+
+        messages = [{"role": "user", "content": (
+            f"TASK: {task}\n\n"
+            f"SCREEN: {screen_state}\n"
+            f"ACTIVE WINDOW: {_get_active_window()}\n\n"
+            f"Canvas is already set up. Bounds: {canvas_bounds}\n\n"
+            f"Create a drawing plan. MUST be under {plan_limit} steps. "
+            f"MUST end with save_file. Return ONLY the JSON plan object."
+        )}]
+        try:
+            raw = await asyncio.to_thread(
+                self._call_remote_llm, system, messages,
+                max_tokens=4096, timeout=90.0)
+            if not raw:
+                return None
+            self._log_event("plan_raw", raw[:500])
+            parsed = self._parse_llm_response(raw)
+            if parsed and "steps" in parsed:
+                steps = parsed["steps"]
+                # Validate: ensure plan ends with save_file
+                if steps and steps[-1].get("action") != "save_file":
+                    steps.append({"action": "save_file",
+                                  "params": {"filepath": "C:\\Users\\sharp\\Pictures\\drawing.png",
+                                             "app_title": "Paint"}})
+                # Truncate if over limit
+                if len(steps) > plan_limit:
+                    self._log_event("plan_truncated", f"{len(steps)} -> {plan_limit}")
+                    steps = steps[:plan_limit - 1]
+                    steps.append({"action": "save_file",
+                                  "params": {"filepath": "C:\\Users\\sharp\\Pictures\\drawing.png",
+                                             "app_title": "Paint"}})
+                parsed["steps"] = steps
+                return parsed
+            if parsed and isinstance(parsed.get("plan"), list):
+                return {"plan_summary": "extracted", "steps": parsed["plan"]}
+        except Exception as e:
+            self._log_event("plan_error", str(e))
+        return None
+
+    async def _execute_plan(self, plan: dict, task: str,
+                             target_app: str | None, target_exe: str | None) -> AsyncIterator[dict]:
+        """Execute a plan using the local LLM for step-by-step decisions."""
+        steps = plan.get("steps", [])
+        if not steps:
+            yield {"type": "warning", "data": "Empty plan"}
+            return
+
+        step_num = 0
+        plan_idx = 0
+        consecutive_fails = 0
+        action_fail_streak = 0
+        no_change_streak = 0
+        last_screen_hash = _screenshot_hash()
+        replan_count = 0
+
+        while step_num < MAX_STEPS and plan_idx <= len(steps):
+            if self._stopped:
+                self._log_event("stopped", "User requested stop", step_num)
+                self._flush_log(task, "stopped")
+                yield {"type": "warning", "data": "Stopped by user."}
+                yield {"type": "done", "data": "Task stopped."}
+                return
+
+            step_num += 1
+
+            # ── Get next action from local LLM ──
+            if plan_idx < len(steps):
+                planned_step = steps[plan_idx]
+                yield {"type": "status", "data":
+                    f"Step {step_num}/{MAX_STEPS} — Local LLM (step {plan_idx+1}/{len(steps)})..."}
+            else:
+                planned_step = {"action": "DONE", "params": {"summary": "Plan complete"}}
+
+            # Ask local LLM to confirm/adapt the next step
+            llm_start = _time.time()
+            decision = await self._get_local_decision(plan, plan_idx, step_num)
+            llm_elapsed = _time.time() - llm_start
+
+            if not decision:
+                # Local LLM failed — use the planned step directly
+                decision = planned_step
+                self._log_event("local_fallback", "Using planned step directly", step_num)
+
+            action_name = decision.get("action", "")
+            params = decision.get("params", {})
+            thinking = decision.get("thinking", "")
+
+            if thinking:
+                yield {"type": "step", "data": f"💭 {thinking[:100]}"}
+            self._log_event("decision", {"action": action_name, "params": params,
+                                          "llm_ms": int(llm_elapsed*1000),
+                                          "source": "local"}, step_num)
+
+            # Handle DONE
+            if action_name == "DONE":
+                summary = params.get("summary", "Task completed")
+                self._log_event("task_done", summary, step_num)
+                img = _screenshot_b64()
+                if img:
+                    yield {"type": "artifact", "data": {"type": "screenshot", "value": img,
+                                                         "label": "Final result"}}
+                self._flush_log(task, "completed")
+                yield {"type": "done", "data": f"Done: {summary}"}
+                return
+
+            # Handle FAIL
+            if action_name == "FAIL":
+                reason = params.get("reason", "Unknown")
+                # Escalate to Claude for replanning
+                if replan_count < 2:
+                    replan_count += 1
+                    yield {"type": "warning", "data": f"Local LLM stuck: {reason}. Replanning..."}
+                    new_plan = await self._replan(task, plan, plan_idx, reason)
+                    if new_plan and new_plan.get("steps"):
+                        plan = new_plan
+                        steps = plan["steps"]
+                        plan_idx = 0
+                        self._log_event("replan", {"steps": len(steps)}, step_num)
+                        yield {"type": "step", "data": f"📋 New plan: {len(steps)} steps"}
+                        continue
+                self._log_event("task_fail", reason, step_num)
+                self._flush_log(task, "failed")
+                yield {"type": "error", "data": f"Agent gave up: {reason}"}
+                return
+
+            # Execute the action
+            yield {"type": "status", "data": f"Step {step_num}/{MAX_STEPS} — {action_name}..."}
+            result = await self._execute_with_timeout(action_name, params)
+
+            self._log_event("action_result", {
+                "action": action_name, "ok": result.ok,
+                "output": result.output[:200], "error": (result.error or "")[:200],
+            }, step_num)
+
+            if result.ok:
+                yield {"type": "step", "data": f"✓ {result.output[:150]}"}
+                action_fail_streak = 0
+                plan_idx += 1
+            else:
+                yield {"type": "warning", "data": f"✗ {action_name}: {result.error[:150]}"}
+                action_fail_streak += 1
+                # After 3 consecutive failures, escalate to Claude
+                if action_fail_streak >= 3 and replan_count < 2:
+                    replan_count += 1
+                    yield {"type": "status", "data": "Escalating to Claude..."}
+                    new_plan = await self._replan(task, plan, plan_idx,
+                                                   f"3 consecutive failures at step {plan_idx}")
+                    if new_plan and new_plan.get("steps"):
+                        plan = new_plan
+                        steps = plan["steps"]
+                        plan_idx = 0
+                        action_fail_streak = 0
+                        yield {"type": "step", "data": f"📋 Replanned: {len(steps)} steps"}
+                        continue
+                    plan_idx += 1  # Skip failed step
+                else:
+                    plan_idx += 1  # Skip failed step
+
+            # Health check on timeout or sustained failures
+            timed_out = result.state_hint == "TIMEOUT" if result else False
+            if target_app and (timed_out or action_fail_streak >= 3):
+                try:
+                    recovered, events = await self._check_health_and_recover(
+                        target_app, target_exe, step_num)
+                    for evt in events:
+                        yield evt
+                    if recovered:
+                        action_fail_streak = 0
+                except Exception as e:
+                    self._log_event("health_check_error", str(e), step_num)
+
+            # Screenshot after non-trivial actions
+            SKIP_SCREENSHOT = {"paint_pencil", "paint_fill_tool", "paint_color",
+                                "paint_fill_style", "paint_outline_style", "wait",
+                                "press_key", "focus_app", "paint_shape_tool"}
+            if action_name not in SKIP_SCREENSHOT or not result.ok:
+                img = result.screenshot if result else None
+                if not img:
+                    img = _screenshot_b64()
+                if img:
+                    yield {"type": "artifact", "data": {
+                        "type": "screenshot", "value": img,
+                        "label": f"Step {step_num}: {action_name}"
+                    }}
+
+            # Progress check every 15 drawing steps
+            DRAWING_ACTIONS = {"paint_draw", "paint_fill_at", "paint_draw_shape"}
+            if action_name in DRAWING_ACTIONS and step_num % 15 == 0 and step_num > 5:
+                progress = _ask_screen(
+                    "Briefly describe what has been drawn on the canvas so far. "
+                    "What colors are visible? Is anything wrong?")
+                self._log_event("progress_check", progress[:300], step_num)
+
+            # Urgent save reminder
+            remaining = MAX_STEPS - step_num
+            if remaining <= 5 and action_name != "save_file":
+                yield {"type": "warning", "data": f"⚠ ONLY {remaining} STEPS LEFT — SAVE NOW"}
+
+        # Max steps reached
+        self._log_event("max_steps", f"Reached {MAX_STEPS} steps", step_num)
+        self._flush_log(task, "partial")
+        yield {"type": "warning", "data": f"Reached {MAX_STEPS} step limit."}
+        yield {"type": "done", "data": f"Task incomplete after {MAX_STEPS} steps."}
+
+    async def _get_local_decision(self, plan: dict, plan_idx: int,
+                                    step_num: int) -> dict | None:
+        """Ask local LLM for the next action based on the plan."""
+        steps = plan.get("steps", [])
+        if plan_idx >= len(steps):
+            return {"action": "DONE", "params": {"summary": "All plan steps completed"}}
+
+        current_step = steps[plan_idx]
+        # For simple plan steps, just return them directly — no LLM call needed
+        # This saves ~2-3s per step for straightforward actions
+        action = current_step.get("action", "")
+        params = current_step.get("params", {})
+
+        # Direct execution for unambiguous plan steps (skip local LLM entirely)
+        if action in ACTION_REGISTRY or action in ("DONE", "FAIL"):
+            return current_step
+
+        # Only call local LLM if the step needs interpretation
+        context = (
+            f"PLAN: {json.dumps(steps[max(0,plan_idx-1):plan_idx+3], default=str)}\n"
+            f"CURRENT STEP INDEX: {plan_idx} (of {len(steps)})\n"
+            f"STEP TO EXECUTE: {json.dumps(current_step, default=str)}\n"
+            f"Output the action JSON."
+        )
+        messages = [{"role": "user", "content": context}]
+        raw = await asyncio.to_thread(self._call_local_llm, LOCAL_EXECUTOR_SYSTEM, messages)
+        if raw:
+            return self._parse_llm_response(raw)
+        return current_step  # Fallback to plan step
+
+    async def _replan(self, task: str, old_plan: dict, failed_at: int,
+                       reason: str) -> dict | None:
+        """Ask remote Claude to create a new plan after failure."""
+        action_catalog = get_action_catalog()
+        system = (PLANNER_SYSTEM
+                  .replace("{action_catalog}", action_catalog)
+                  .replace("{max_steps}", str(MAX_STEPS)))
+
+        screen_state = _ask_screen("What is currently on screen? Describe the canvas state.")
+        completed = old_plan.get("steps", [])[:failed_at]
+
+        messages = [{"role": "user", "content": (
+            f"TASK: {task}\n\n"
+            f"SCREEN NOW: {screen_state}\n"
+            f"COMPLETED STEPS: {json.dumps(completed[:10], default=str)}\n"
+            f"FAILED AT STEP {failed_at}: {reason}\n\n"
+            "Create a NEW plan to finish the task from the current state. "
+            "Do NOT repeat already-completed steps. Return ONLY the JSON plan."
+        )}]
+        try:
+            raw = await asyncio.to_thread(
+                self._call_remote_llm, system, messages,
+                max_tokens=4096, timeout=90.0)
+            if raw:
+                parsed = self._parse_llm_response(raw)
+                if parsed and "steps" in parsed:
+                    return parsed
+        except Exception as e:
+            self._log_event("replan_error", str(e))
+        return None
+
+    async def _execute_remote_only(self, task: str, screen_state: str, action_catalog: str,
+                                     target_app: str | None, target_exe: str | None) -> AsyncIterator[dict]:
+        """Original remote-only execution mode (fallback when local LLM unavailable)."""
+        save_threshold = MAX_STEPS - 5
+        system = (STEP_SYSTEM_PROMPT
+                  .replace("{action_catalog}", action_catalog)
+                  .replace("{max_steps}", str(MAX_STEPS))
+                  .replace("{save_threshold}", str(save_threshold)))
+
+        messages = [{"role": "user", "content": (
+            f"TASK: {task}\n\nCURRENT SCREEN: {screen_state}\n\n"
+            f"ACTIVE WINDOW: {_get_active_window()}\n\nWhat is your first action?"
+        )}]
+
+        step = 0
+        consecutive_fails = 0
+        action_fail_streak = 0
+        last_screen_hash = _screenshot_hash()
+
+        while step < MAX_STEPS:
+            if self._stopped:
+                self._flush_log(task, "stopped")
+                yield {"type": "done", "data": "Task stopped."}
+                return
+
+            step += 1
+            yield {"type": "status", "data": f"Step {step}/{MAX_STEPS} — Thinking (remote)..."}
+
+            llm_start = _time.time()
+            try:
+                raw = await asyncio.to_thread(
+                    self._call_remote_llm, system, messages)
+            except Exception as e:
+                self._log_event("error", f"LLM error: {e}", step)
+                self._flush_log(task, "failed")
+                yield {"type": "error", "data": f"LLM error: {e}"}
+                return
+            llm_elapsed = _time.time() - llm_start
+
+            if raw is None:
+                self._flush_log(task, "failed")
+                yield {"type": "error", "data": "LLM failed after retries."}
+                return
+
+            self._log_event("llm_response", raw[:500], step)
+            decision = self._parse_llm_response(raw)
+            if not decision:
+                messages.append({"role": "assistant", "content": raw})
+                messages.append({"role": "user", "content":
+                    'Reply with ONLY JSON: {"thinking": "...", "action": "name", "params": {...}}'})
+                consecutive_fails += 1
+                if consecutive_fails >= 3:
+                    self._flush_log(task, "failed")
+                    yield {"type": "error", "data": "LLM not returning valid JSON."}
+                    return
+                continue
+
+            consecutive_fails = 0
+            action_name = decision.get("action", "")
+            params = decision.get("params", {})
+            thinking = decision.get("thinking", "")
+
+            if thinking:
+                yield {"type": "step", "data": f"💭 {thinking[:150]}"}
+            self._log_event("decision", {"action": action_name, "params": params}, step)
+
+            if action_name == "DONE":
+                summary = params.get("summary", "Task completed")
+                img = _screenshot_b64()
+                if img:
+                    yield {"type": "artifact", "data": {"type": "screenshot", "value": img,
+                                                         "label": "Final result"}}
+                self._flush_log(task, "completed")
+                yield {"type": "done", "data": f"Done: {summary}"}
+                return
+
+            if action_name == "FAIL":
+                self._flush_log(task, "failed")
+                yield {"type": "error", "data": f"Agent gave up: {params.get('reason', '?')}"}
+                return
+
+            yield {"type": "status", "data": f"Step {step}/{MAX_STEPS} — {action_name}..."}
+            result = await self._execute_with_timeout(action_name, params)
+
+            self._log_event("action_result", {
+                "action": action_name, "ok": result.ok,
+                "output": result.output[:200],
+            }, step)
+
+            if result.ok:
+                yield {"type": "step", "data": f"✓ {result.output[:150]}"}
+                action_fail_streak = 0
+            else:
+                yield {"type": "warning", "data": f"✗ {action_name}: {result.error[:150]}"}
+                action_fail_streak += 1
+
+            # Health check
+            if target_app and (result.state_hint == "TIMEOUT" or action_fail_streak >= 3):
+                try:
+                    recovered, events = await self._check_health_and_recover(
+                        target_app, target_exe, step)
+                    for evt in events:
+                        yield evt
+                    if recovered:
+                        action_fail_streak = 0
+                except Exception:
+                    pass
+
+            # Screenshot
+            SKIP = {"paint_pencil", "paint_fill_tool", "paint_color",
+                     "paint_fill_style", "paint_outline_style", "wait", "press_key", "focus_app"}
+            if action_name not in SKIP or not result.ok:
+                img = result.screenshot or _screenshot_b64()
+                if img:
+                    yield {"type": "artifact", "data": {
+                        "type": "screenshot", "value": img,
+                        "label": f"Step {step}: {action_name}"
+                    }}
+
+            # Build feedback
+            active_win = _get_active_window()
+            feedback = f"{'OK' if result.ok else 'FAIL'}: {(result.output if result.ok else result.error)[:200]}"
+            if result.state_hint:
+                feedback += f" | {result.state_hint[:100]}"
+            feedback += f" | window={active_win}"
+
+            remaining = MAX_STEPS - step
+            if remaining <= 10:
+                feedback += f"\n⚠ ONLY {remaining} STEPS LEFT — SAVE NOW."
+
+            feedback += "\nNext?"
+            messages.append({"role": "assistant", "content": raw})
+            messages.append({"role": "user", "content": feedback})
+
+            # Trim conversation
+            if llm_elapsed > 20 and len(messages) > 8:
+                messages = messages[:1] + messages[-6:]
+            elif len(messages) > CONVERSATION_MAX:
+                messages = messages[:1] + messages[-CONVERSATION_KEEP:]
+
+        self._flush_log(task, "partial")
+        yield {"type": "warning", "data": f"Reached {MAX_STEPS} step limit."}
+        yield {"type": "done", "data": f"Task incomplete after {MAX_STEPS} steps."}

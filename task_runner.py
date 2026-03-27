@@ -560,6 +560,10 @@ def set_color_rgb(r, g, b=0):
         dlg.child_window(auto_id="708", control_type="Edit").set_edit_text(str(b))
         dlg.child_window(auto_id="1", control_type="Button").click()
         wait_ms(500)
+        # Verify dialog closed
+        active = _get_active_window_title()
+        if "edit" in active.lower() and "color" in active.lower():
+            key("enter"); wait_ms(300)
         print(f"[set_color_rgb] RGB({r},{g},{b}) set via pywinauto", flush=True)
         return
     except Exception as e:
@@ -574,6 +578,16 @@ def set_color_rgb(r, g, b=0):
         key("tab"); wait_ms(150)
     key("enter"); wait_ms(500)
     print(f"[set_color_rgb] RGB({r},{g},{b}) set via Tab fallback", flush=True)
+
+    # Safety: ensure the Edit Colors dialog is closed
+    active = _get_active_window_title()
+    if "edit" in active.lower() and "color" in active.lower():
+        print("[set_color_rgb] Edit Colors dialog still open — closing with Enter", flush=True)
+        key("enter"); wait_ms(300)
+        active = _get_active_window_title()
+        if "edit" in active.lower() and "color" in active.lower():
+            key("escape"); wait_ms(300)
+            print("[set_color_rgb] Closed Edit Colors with Escape", flush=True)
 
 
 def _find_color_swatch(color_name):
@@ -1005,7 +1019,15 @@ def _find_white_run(img, y, min_length=100):
     """
     Scan a single row of pixels and find the longest contiguous run of canvas pixels.
     Canvas pixels are bright and uniform — either white (light mode) or warm-toned (dark mode).
-    Detects: R>200 AND (G>200 AND B>200) OR (R>230 AND G>150) — covers white and dark-mode canvas.
+    
+    Detects:
+    - White canvas: R>240, G>240, B>240
+    - Dark mode canvas: warm tone like ~RGB(254,184,112) or similar — R>180, G>120, B>50
+    - Also handles other canvas backgrounds: any bright uniform region that's NOT the dark UI
+    
+    The dark UI in Windows 11 Paint is very dark (~RGB(38,28,18) or ~RGB(50,50,50)).
+    Anything significantly brighter than that in a contiguous run is likely canvas.
+    
     Returns (x_start, x_end) of the longest canvas run, or None if none >= min_length.
     """
     width = img.width
@@ -1014,13 +1036,17 @@ def _find_white_run(img, y, min_length=100):
 
     for x in range(width):
         r, g, b = img.getpixel((x, y))
-        # White canvas: R>250, G>250, B>250
-        # Dark mode canvas: ~RGB(254,184,112) — bright warm tone
-        # Also handle other possible dark mode canvas colors
-        # Both are significantly brighter than the dark UI (~RGB(38,28,18) or ~RGB(50,50,50))
-        is_white = (r > 250 and g > 250 and b > 250)
-        is_dark_mode_canvas = (r > 200 and g > 140 and b > 60 and r - b > 80)
-        is_canvas = is_white or is_dark_mode_canvas
+        # White canvas: R>240, G>240, B>240
+        is_white = (r > 240 and g > 240 and b > 240)
+        # Dark mode canvas: warm/bright tone — significantly brighter than dark UI
+        # Dark UI is ~RGB(30-60, 20-50, 10-40). Canvas is much brighter.
+        # Detect: brightness > 150 AND not gray toolbar (~RGB(200,200,200))
+        brightness = (r + g + b) / 3
+        is_dark_mode_canvas = (brightness > 120 and r > 150 and 
+                               not (abs(r - g) < 15 and abs(g - b) < 15 and brightness < 220))
+        # The gray toolbar check: if R≈G≈B and brightness 180-220, it's toolbar not canvas
+        is_toolbar_gray = (abs(r - g) < 20 and abs(g - b) < 20 and 170 < brightness < 230)
+        is_canvas = is_white or (is_dark_mode_canvas and not is_toolbar_gray)
         if is_canvas:
             if run_start is None:
                 run_start = x
@@ -1425,9 +1451,19 @@ def validate_image(filepath, description="", min_bytes=5000):
         img = PILImage.open(filepath).convert("RGB")
         w, h = img.size
         pixels = []
-        for sy in range(0, h, max(1, h // 20)):
-            for sx in range(0, w, max(1, w // 20)):
+        # Sample more densely — 30x30 grid instead of 20x20
+        for sy in range(0, h, max(1, h // 30)):
+            for sx in range(0, w, max(1, w // 30)):
                 pixels.append(img.getpixel((sx, sy)))
+        
+        # Also sample along diagonals and center cross for better coverage
+        for i in range(0, min(w, h), max(1, min(w, h) // 40)):
+            pixels.append(img.getpixel((i, i)))  # diagonal
+            pixels.append(img.getpixel((w - 1 - i, i)))  # anti-diagonal
+        for sx in range(0, w, max(1, w // 40)):
+            pixels.append(img.getpixel((sx, h // 2)))  # horizontal center
+        for sy in range(0, h, max(1, h // 40)):
+            pixels.append(img.getpixel((w // 2, sy)))  # vertical center
         
         unique_colors = set()
         for r, g, b in pixels:
@@ -2234,29 +2270,48 @@ def ensure_foreground(app_title, max_attempts=5):
     """
     Bring an app window to the foreground using keyboard and mouse only.
     Uses multiple strategies: taskbar click, title bar click, Alt+Tab.
+    Also recognizes known child dialogs (e.g. "Edit colors" for Paint).
     RAISES RuntimeError if it cannot confirm the app is in foreground.
     """
     import pyautogui
+
+    # Known child dialog titles that belong to parent apps
+    _CHILD_DIALOGS = {
+        "paint": ["edit colors", "edit colour", "resize and skew", "save as", "open",
+                   "colors", "colour", "text toolbar", "image properties"],
+        "notepad": ["save as", "open", "find", "replace", "go to", "font"],
+        "chrome": ["save as", "open", "file upload", "print"],
+    }
+
+    def _is_app_or_child(active_title, app):
+        """Check if active window is the app itself or one of its known child dialogs."""
+        active_lower = active_title.lower()
+        app_lower = app.lower()
+        if app_lower in active_lower:
+            return True
+        # Check known child dialogs
+        for parent, children in _CHILD_DIALOGS.items():
+            if parent in app_lower:
+                for child in children:
+                    if child in active_lower:
+                        return True
+        return False
 
     rect = get_window_rect(app_title)
     if not rect:
         raise RuntimeError(f"Window '{app_title}' not found -- is the app open?")
 
     for attempt in range(max_attempts):
-        # Check if already in foreground
+        # Check if already in foreground (including child dialogs)
         active = _get_active_window_title()
-        if app_title.lower() in active.lower():
+        if _is_app_or_child(active, app_title):
             print(f"[focus] '{app_title}' confirmed in foreground (attempt {attempt+1})", flush=True)
             return rect
 
         print(f"[focus] '{app_title}' not in foreground (active: '{active}'), attempt {attempt+1}/{max_attempts}", flush=True)
 
         if attempt == 0:
-            # Strategy 1: Click the taskbar button — most reliable when another app covers the window
-            _sw, _sh = _screen_size()
-            # Taskbar is at the bottom of the screen. Click roughly in the middle area.
-            # Use pyautogui to find the taskbar icon by clicking the taskbar area
-            # First try clicking the title bar if window is visible
+            # Strategy 1: Click the title bar
             title_x = (rect["left"] + rect["right"]) // 2
             title_y = max(rect["top"] + 15, 10)
             click(title_x, title_y)
@@ -2267,10 +2322,8 @@ def ensure_foreground(app_title, max_attempts=5):
             wait_ms(600)
         elif attempt == 2:
             # Strategy 3: Win+D to show desktop, then click title bar
-            # This clears any overlapping windows
             key("win", "d")
             wait_ms(800)
-            # Re-get rect since windows may have changed
             rect = get_window_rect(app_title)
             if rect:
                 title_x = (rect["left"] + rect["right"]) // 2
@@ -2278,15 +2331,14 @@ def ensure_foreground(app_title, max_attempts=5):
                 click(title_x, title_y)
                 wait_ms(500)
         elif attempt == 3:
-            # Strategy 4: Use Win+R to search for the app via taskbar search
-            # Actually, just try clicking the window rect center
+            # Strategy 4: Click the window center
             if rect:
                 cx = (rect["left"] + rect["right"]) // 2
                 cy = (rect["top"] + rect["bottom"]) // 2
                 click(cx, cy)
                 wait_ms(500)
         else:
-            # Strategy 5: Multiple Alt+Tab presses to cycle through windows
+            # Strategy 5: Multiple Alt+Tab presses
             key("alt", "tab")
             wait_ms(400)
             key("alt", "tab")
@@ -2294,7 +2346,7 @@ def ensure_foreground(app_title, max_attempts=5):
 
     # Final check
     active = _get_active_window_title()
-    if app_title.lower() in active.lower():
+    if _is_app_or_child(active, app_title):
         print(f"[focus] '{app_title}' confirmed in foreground (final check)", flush=True)
         return rect
 

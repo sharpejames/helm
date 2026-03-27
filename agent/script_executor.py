@@ -223,6 +223,13 @@ IMPORTANT CONTEXT FOR FIX:
 - If a website showed an age verification or cookie consent popup, accept/dismiss it before proceeding.
 - Use check_screen() and ensure_tool() to verify state before critical actions.
 - The vision model (ask/vision_check) is LOCAL and FAST — use it freely to check state.
+- If the script printed "Done!" or "Prompt sent" but the task is INCOMPLETE, the script LIED.
+  The fix must ACTUALLY complete the missing steps (upload file, type prompt, etc.).
+- If "File already exists, skipping draw" but the task is incomplete, the file may be INVALID.
+  Use validate_image() to check. If invalid, delete it and re-draw.
+- For Grok uploads: click attach button → verify OS file picker opened → type filepath → Enter.
+  NEVER type a filepath into the chat text input. NEVER describe the image — just type the user's request.
+- DRAWING QUALITY: Use the FULL canvas with multiple colors. Don't draw tiny shapes in one corner.
 
 Write a corrected script that fixes this specific failure."""
         try:
@@ -544,11 +551,14 @@ Write a corrected script that fixes this specific failure."""
                 task_lower = task.lower()
                 incomplete_signs = []
 
-                if "save" in task_lower and not any(kw in script_output for kw in ["Saved:", "SUCCESS", "saved:", "Image ready", "File saved", "funny.png"]):
+                if "save" in task_lower and not any(kw in script_output for kw in ["Saved:", "SUCCESS", "saved:", "Image ready", "File saved", "funny.png", "validate_image] PASSED", "app_save] SUCCESS"]):
                     incomplete_signs.append("save step may not have completed (no save confirmation in output)")
                 if ("grok" in task_lower or "upload" in task_lower):
-                    if not any(kw in script_output for kw in ["Prompt submitted to Grok", "Prompt sent to Grok", "submitted to Grok", "sent to Grok", "Done!"]):
+                    if not any(kw in script_output for kw in ["Prompt submitted to Grok", "Prompt sent to Grok", "submitted to Grok", "sent to Grok"]):
                         incomplete_signs.append("Grok prompt was never submitted")
+                    # Check that file was actually uploaded (not just described)
+                    if "File picker not detected" in script_output or "Upload may have failed" in script_output:
+                        incomplete_signs.append("File upload to Grok likely failed")
                     if "timed out" in script_output.lower() or "not found" in script_output.lower()[-300:]:
                         incomplete_signs.append("Grok interaction had errors (timeout or element not found)")
                     if "attachment to Grok failed" in script_output:
@@ -600,13 +610,29 @@ Write a corrected script that fixes this specific failure."""
                         yield {"type": "warning", "data": "No retries left — task did NOT complete successfully"}
 
                 # Vision verification (secondary — only if code checks passed)
+                # Build a focused verification prompt based on what the task actually requires
                 verify_prompt = f"The task was: '{task[:200]}'. "
-                verify_prompt += "Check these specific things:\n"
-                verify_prompt += "1. What is currently on screen?\n"
-                verify_prompt += "2. If the task involved SAVING a file — was a file actually saved? (look for save confirmation or the file path in the script output)\n"
-                verify_prompt += "3. If the task involved uploading to a WEBSITE (like Grok) — is that website showing a response or the uploaded content?\n"
-                verify_prompt += "4. Did ALL parts of the task complete, or did it stop partway through?\n"
-                verify_prompt += "Answer ONLY: COMPLETE or INCOMPLETE. If INCOMPLETE, say what's missing. Do NOT say COMPLETE if any part is missing."
+                verify_prompt += "Look at the screen right now. "
+                
+                # Only ask about things the task actually involves
+                task_involves_save = any(w in task_lower for w in ["save", "export"])
+                task_involves_upload = any(w in task_lower for w in ["upload", "grok", "send", "email", "attach"])
+                task_involves_draw = any(w in task_lower for w in ["draw", "paint", "sketch", "picture", "portrait"])
+                
+                if task_involves_draw and not task_involves_save and not task_involves_upload:
+                    # Drawing-only task — just check if there's a drawing on screen
+                    verify_prompt += "Is there a drawing/picture visible on the canvas in Paint? "
+                    verify_prompt += "Answer COMPLETE if yes, INCOMPLETE if the canvas is blank or Paint is not showing."
+                elif task_involves_save and task_involves_upload:
+                    verify_prompt += "Did the task complete ALL parts: drawing, saving, AND uploading? "
+                    verify_prompt += "Answer COMPLETE or INCOMPLETE. If INCOMPLETE, say what's missing."
+                elif task_involves_save:
+                    verify_prompt += "Is there a drawing visible AND was it saved? "
+                    verify_prompt += "Answer COMPLETE or INCOMPLETE."
+                else:
+                    verify_prompt += "Did the task complete successfully based on what you see? "
+                    verify_prompt += "Answer COMPLETE or INCOMPLETE. If INCOMPLETE, say what's missing."
+                
                 verify = self._ask_screen(verify_prompt)
                 self._log_event("verification", verify, attempt=attempt)
                 yield {"type": "step", "data": f"Verification: {verify}"}

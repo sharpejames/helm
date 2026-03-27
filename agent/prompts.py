@@ -200,7 +200,7 @@ PAINT DRAWING PATTERN:
     if canvas_w < 50 or canvas_h < 50:
         raise RuntimeError(f"Bad canvas bounds: {{canvas_w}}x{{canvas_h}}")
 
-    vision_check("Paint with a blank white canvas visible", "Canvas not ready")
+    vision_check("Paint with a blank canvas visible", "Canvas not ready")
 
     select_color("red"); wait_ms(300)
     ensure_foreground("Paint"); wait_ms(200)
@@ -220,6 +220,45 @@ PAINT SHAPE TOOLS (for clean filled shapes):
     find_tool("Shapes", app="Paint"); wait_ms(300)
     find_tool("Ellipse", app="Paint")
     pyautogui.keyDown("shift"); drag(x1, y1, x2, y2); pyautogui.keyUp("shift")
+
+DRAWING QUALITY GUIDE:
+    The drawing should USE THE FULL CANVAS. Don't draw tiny shapes in one corner.
+    Use cx, cy (canvas center) as the anchor. Scale shapes relative to canvas_w, canvas_h.
+    
+    For "technically impressive" or "colorful" drawings:
+    - Use 5+ colors (select_color switches are cheap)
+    - Fill the canvas: shapes should span 60-80% of canvas width/height
+    - Layer elements: background fill → large shapes → medium details → small accents
+    - Use draw_circle, draw_star, draw_polygon for interesting shapes
+    - Use fill_at() for solid color regions (after use_fill())
+    
+    For "simple" or "quick" drawings:
+    - 2-3 colors, basic shapes, still use at least 30% of canvas
+    
+    EXAMPLE — colorful sun scene (15 draw calls, fills canvas):
+    # Background: fill canvas with light blue sky
+    select_color("lightblue"); use_fill(); fill_at(cx, cy)
+    # Green ground
+    select_color("green"); use_fill(); fill_at(cx, cb - 50)
+    # Sun
+    select_color("yellow"); use_pencil(); ensure_tool("Pencil")
+    draw_circle(cl + canvas_w*3//4, ct + canvas_h//5, canvas_h//6)
+    select_color("yellow"); use_fill(); fill_at(cl + canvas_w*3//4, ct + canvas_h//5)
+    select_color("orange"); use_pencil(); ensure_tool("Pencil")
+    draw_rays(cl + canvas_w*3//4, ct + canvas_h//5, canvas_h//6, canvas_h//4, count=12)
+    # Tree
+    select_color("brown"); use_pencil(); ensure_tool("Pencil")
+    draw_filled_rect(cx - 15, cy + canvas_h//6, cx + 15, cb - canvas_h//5)
+    select_color("green"); use_pencil(); ensure_tool("Pencil")
+    draw_circle(cx, cy, canvas_h//5)
+    select_color("green"); use_fill(); fill_at(cx, cy)
+    # Flowers
+    select_color("red"); use_pencil(); ensure_tool("Pencil")
+    draw_circle(cl + canvas_w//5, cb - canvas_h//4, 20)
+    select_color("pink"); use_pencil(); ensure_tool("Pencil")
+    draw_circle(cl + canvas_w//3, cb - canvas_h//5, 15)
+    
+    KEY: fill_at() for large areas, pencil for outlines/details. ALWAYS ensure_tool after switching.
 
 GROK FILE UPLOAD PATTERN (follows the general FILE UPLOAD pattern above):
     open_browser("https://grok.com"); wait_ms(6000)
@@ -277,11 +316,16 @@ GROK FILE UPLOAD PATTERN (follows the general FILE UPLOAD pattern above):
         if m:
             click(int(m.group(1))*2, int(m.group(2))*2); wait_ms(300)
 
-    type_text_keys("your prompt here"); wait_ms(300)
+    # TYPE THE USER'S ACTUAL REQUEST — do NOT describe the image.
+    # If the user said "make it a 3d cgi type image", type EXACTLY that.
+    # Do NOT add your own description of what the image contains.
+    # The image speaks for itself — Grok can see it.
+    type_text_keys("the user's actual request goes here — copy from the task"); wait_ms(300)
     key("enter"); wait_ms(8000)
     print("Prompt submitted to Grok")
 
-    vision_check("Grok is showing a response", "Grok may not have responded")
+    # VERIFY Grok actually received the message and is responding
+    vision_check("Grok is showing a response or processing indicator", "Grok may not have responded")
 
 RULES:
   1. ONE complete script — no input(), no interactive prompts
@@ -302,6 +346,7 @@ RULES:
       Match the user's intent: if they ask for "technically impressive" or "colorful", use
       multiple colors and creative composition. If they ask for "simple" or "quick sketch",
       keep it minimal. Default to colorful and visually interesting when not specified.
+      USE THE FULL CANVAS — shapes should span 60-80% of canvas dimensions.
   15. KEEP SCRIPTS UNDER 120 LINES.
   16. close_devtools() BEFORE any click/type in the browser page.
   17. VISION GATES at every phase transition (ask/vision_check).
@@ -316,6 +361,15 @@ RULES:
   22. EXPECT THE UNEXPECTED: Check for popups/dialogs after every major action.
       If something unexpected appears, dismiss it (dismiss_modal/key("escape")) and continue.
       The vision model is local and fast — use check_screen() freely.
+  23. GROK / WEB UPLOAD: When uploading an image to Grok or any AI chat, do NOT describe
+      the image in the prompt. The AI can SEE the image. Just type the user's actual request
+      verbatim. If the user said "make it a 3d cgi type image", type exactly that.
+      NEVER add "This is a picture of..." or "I drew a..." — just the user's words.
+  24. NEVER print "Done!" or "Prompt sent to Grok" unless you ACTUALLY completed the upload
+      and typed the prompt. Faking completion is worse than failing honestly.
+  25. SKIP LOGIC: If a file already exists from a previous attempt, VALIDATE it first
+      (validate_image). If validation fails, re-draw. Don't skip drawing just because
+      the file exists — it might be garbage from a failed attempt.
 
 FORBIDDEN:
   subprocess/ctypes/win32api/SendMessage/webbrowser.open()
@@ -330,6 +384,10 @@ FORBIDDEN:
   click() directly after use_fill() — use fill_at()
   Assuming click_element/get_element/web_find will raise — they return None
   Assuming web_find will work — ALWAYS have a vision fallback
+  Printing "Done!" or "Prompt sent" without actually completing the action
+  Describing the uploaded image to Grok/AI — just type the user's actual request
+  Skipping drawing because file exists without validating the file first
+  Drawing tiny shapes in one corner — USE THE FULL CANVAS
 """
 
 SCRIPT_FIX_SYSTEM = """You are fixing a failed desktop automation script.
@@ -342,7 +400,9 @@ RULES:
 1. Preserve ALL steps from the original. Only fix the broken part.
 2. SIMPLIFY, don't add complexity. Fix the ONE thing that failed.
 3. Fixed script must be SHORTER or SAME LENGTH as original. Never longer.
-4. SKIP COMPLETED STEPS: If file already saved (check output for app_save SUCCESS or os.path.exists), skip drawing+save.
+4. SKIP COMPLETED STEPS: If file already saved AND validate_image passes, skip drawing+save.
+   But if the file exists and is INVALID (too small, uniform color), RE-DRAW.
+   NEVER skip drawing just because the file exists — validate it first.
 5. close_devtools() BEFORE clicking/typing in browser.
 6. Max 3 map_screen() calls total.
 7. TIMEOUT FIX: If "Script timed out after 300s" — SIMPLIFY drastically.
@@ -362,6 +422,14 @@ RULES:
 17. HANDLE POPUPS: If an unexpected popup appeared (age verification, cookie consent, etc.),
     add dismiss_modal() or check_screen() + appropriate handling before the failing step.
 18. Use check_screen() and ensure_tool() — the vision model is LOCAL and FAST.
+19. GROK UPLOAD: Do NOT describe the image to Grok. Just type the user's actual request.
+    The AI can see the uploaded image — it doesn't need a description.
+20. NEVER print "Done!" or "Prompt sent to Grok" unless you ACTUALLY uploaded the file
+    and typed the prompt. Faking completion is the worst possible outcome.
+21. FILE UPLOAD: click attach button → verify OS file picker opened (get_active_window) →
+    type filepath → Enter. NEVER type a filepath into a web text input.
+22. DRAWING QUALITY: Use the FULL canvas. Shapes should span 60-80% of canvas dimensions.
+    Use fill_at() for backgrounds, multiple colors, and creative composition.
 
 Common fixes:
 - CSP/TimeoutError on web_find: Site blocks DevTools JS. Use ask() + click() instead.
@@ -373,7 +441,7 @@ Common fixes:
 FORBIDDEN:
   subprocess/ctypes/win32api | pip install | Making script LONGER
   key() with keyword args | hardcoded 1920x1080
-  Redrawing when image file already exists | importing websocket/selenium/playwright
+  Redrawing when image file exists AND validate_image passes | importing websocket/selenium/playwright
   click() after use_fill() — use fill_at() | Assuming click_element/web_find raises
 
 Respond with ONLY the corrected Python code in a ```python block."""
