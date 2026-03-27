@@ -266,7 +266,14 @@ def focus_application(window_title: str) -> ActionResult:
 
 
 def close_application(window_title: str) -> ActionResult:
-    """Close an application."""
+    """Close an application. REFUSES to close browsers (Helm runs in a browser)."""
+    # Protect browser windows — Helm's UI runs in a browser tab
+    PROTECTED = ["chrome", "firefox", "edge", "brave", "opera", "browser", "kiro"]
+    title_lower = window_title.lower()
+    if any(p in title_lower for p in PROTECTED):
+        return ActionResult(False,
+            error=f"REFUSED: Cannot close '{window_title}' — Helm runs in a browser. "
+                  f"Use focus_app to switch away instead.")
     tr = _tr()
     try:
         tr.kill_app(window_title)
@@ -999,7 +1006,8 @@ def wait(ms: int = 1000) -> ActionResult:
 # ── Popup / Dialog Handling ───────────────────────────────────────────────────
 
 def _smart_dismiss_popup() -> str:
-    """Internal: intelligently dismiss any popup/dialog by reading it and clicking the right button."""
+    """Internal: intelligently dismiss any popup/dialog by reading it and clicking the right button.
+    NEVER closes browser windows (Helm runs in a browser). Prefers Escape and button clicks."""
     import pyautogui, time
 
     # Ask vision what the popup says and what buttons are available
@@ -1010,44 +1018,46 @@ def _smart_dismiss_popup() -> str:
         "Give the button name and approximate x,y coordinates."
     )
 
-    # Try to find coordinates of a dismiss button from the vision response
     import re
-    # Look for coordinate patterns like (x, y) or x,y
     coord_match = re.search(r'(\d{3,4})\s*[,]\s*(\d{3,4})', description)
 
-    # Determine the right action based on what the popup says
     desc_lower = description.lower()
+    is_browser_ad = any(kw in desc_lower for kw in ["ad", "advertisement", "browser", "tab",
+                                                       "chrome", "edge", "firefox", "webpage"])
     is_error = any(kw in desc_lower for kw in ["error", "failed", "cannot", "unable", "no internet",
                                                   "connection", "offline", "problem"])
     is_confirm = any(kw in desc_lower for kw in ["save", "overwrite", "replace", "are you sure",
                                                     "do you want", "confirm"])
-    wants_cancel = any(kw in desc_lower for kw in ["cancel", "not now", "skip", "dismiss",
-                                                      "close", "no thanks", "later", "maybe later"])
 
     result = ""
-    if coord_match:
-        # Vision gave us coordinates — click them
+
+    if is_browser_ad:
+        # A browser window/ad stole focus — DON'T close it (might kill Helm).
+        # Just minimize it or switch away with Alt+Tab
+        pyautogui.hotkey('alt', 'tab')
+        time.sleep(0.5)
+        result = f"Browser/ad stole focus — switched away with Alt+Tab"
+    elif coord_match:
         x, y = int(coord_match.group(1)), int(coord_match.group(2))
         pyautogui.click(x, y)
         time.sleep(0.5)
         result = f"Clicked dismiss button at ({x},{y})"
-    elif wants_cancel or is_error:
-        # Try Escape first (works for most dialogs)
+    elif is_error:
         pyautogui.press('escape')
         time.sleep(0.5)
-        # Check if it's gone
         check = _ask_screen("Is the popup/dialog still visible? YES or NO.")
         if "yes" in check.lower():
-            # Escape didn't work — try clicking Cancel/Close/X
-            pyautogui.hotkey('alt', 'F4')
+            # Try Tab to Cancel button, then Enter
+            pyautogui.press('tab')
+            time.sleep(0.1)
+            pyautogui.press('enter')
             time.sleep(0.3)
-        result = f"Dismissed error/cancel dialog"
+        result = f"Dismissed error dialog"
     elif is_confirm:
         pyautogui.press('enter')
         time.sleep(0.5)
         result = f"Confirmed dialog"
     else:
-        # Generic: try Escape, then Enter
         pyautogui.press('escape')
         time.sleep(0.5)
         result = f"Pressed Escape on dialog"

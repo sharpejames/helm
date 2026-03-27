@@ -148,9 +148,16 @@ If stuck: {{"thinking": "...", "action": "FAIL", "params": {{"reason": "..."}}}}
 19. NEVER get stuck on a popup. Dismiss it and move on. If dismiss_popup doesn't work, try press_key(keys=["escape"]) or click the X button.
 20. After dismissing a popup, continue with your task — don't restart from scratch.
 
+## FOCUS STEALING — CRITICAL:
+21. Apps sometimes open browser tabs, ads, or other windows that steal focus.
+22. NEVER close a browser window — Helm runs in a browser tab. Closing it kills Helm.
+23. If a browser/ad steals focus, use focus_app(window_title="YourTargetApp") to switch back.
+24. If you can't find the app, try press_key(keys=["alt", "tab"]) to cycle windows.
+25. The system auto-detects focus theft and refocuses, but if you notice it, use focus_app.
+
 ## DRAGGING (cards, files, windows):
-21. Use drag(x1=start_x, y1=start_y, x2=end_x, y2=end_y) to drag items.
-22. For card games: drag cards between columns, or double_click to auto-move to foundations.
+26. Use drag(x1=start_x, y1=start_y, x2=end_x, y2=end_y) to drag items.
+27. For card games: drag cards between columns, or double_click to auto-move to foundations.
 
 ## PAINT DRAWING RULES:
 23. Start with setup_paint. Parse canvas_bounds from state_hint.
@@ -625,6 +632,24 @@ class StepExecutor:
                 except Exception as e:
                     self._log_event("health_check_error", str(e), step_num)
 
+            # Focus recovery: if target app lost focus, switch back
+            if target_app and action_name not in ("open_app", "open_website", "close_app"):
+                active_win = _get_active_window()
+                target_lower = target_app.lower()
+                active_lower = active_win.lower()
+                if target_lower not in active_lower and active_lower not in target_lower:
+                    self._log_event("focus_stolen", f"'{active_win}' stole focus from '{target_app}'", step_num)
+                    yield {"type": "warning", "data": f"⚡ Focus stolen by '{active_win}' — switching back"}
+                    try:
+                        refocus = await asyncio.to_thread(
+                            execute_action, "focus_app", {"window_title": target_app})
+                        if not refocus.ok:
+                            import pyautogui
+                            pyautogui.hotkey('alt', 'tab')
+                            await asyncio.sleep(0.5)
+                    except Exception:
+                        pass
+
             # Screenshot after non-trivial actions
             SKIP_SCREENSHOT = {"paint_pencil", "paint_fill_tool", "paint_color",
                                 "paint_fill_style", "paint_outline_style", "wait",
@@ -843,6 +868,28 @@ class StepExecutor:
                 if popup_result.ok and "handled" in popup_result.output.lower():
                     self._log_event("auto_popup", popup_result.output[:200], step)
                     yield {"type": "step", "data": f"🔔 {popup_result.output[:100]}"}
+
+            # Focus recovery: if target app lost focus, switch back
+            if target_app and action_name not in ("open_app", "open_website", "close_app"):
+                active_win = _get_active_window()
+                target_lower = target_app.lower()
+                active_lower = active_win.lower()
+                if target_lower not in active_lower and active_lower not in target_lower:
+                    # Something stole focus — switch back
+                    self._log_event("focus_stolen", f"Expected '{target_app}', got '{active_win}'", step)
+                    yield {"type": "warning", "data": f"⚡ Focus stolen by '{active_win}' — switching back to {target_app}"}
+                    try:
+                        refocus = await asyncio.to_thread(
+                            execute_action, "focus_app", {"window_title": target_app})
+                        if refocus.ok:
+                            yield {"type": "step", "data": f"✓ Refocused {target_app}"}
+                        else:
+                            # Alt+Tab as fallback
+                            import pyautogui
+                            pyautogui.hotkey('alt', 'tab')
+                            await asyncio.sleep(0.5)
+                    except Exception:
+                        pass
 
             # Screenshot
             SKIP = {"paint_pencil", "paint_fill_tool", "paint_color",
