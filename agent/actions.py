@@ -33,11 +33,11 @@ sys.path.insert(0, HELM_ROOT)
 CLAWMETHEUS_URL = "http://127.0.0.1:7331"
 
 
-def _ask_screen(question: str) -> str:
-    """Ask vision model about current screen."""
+def _ask_screen(question: str, scale: float = 0.5) -> str:
+    """Ask vision model about current screen. Use scale=0.75 for detailed UI reading."""
     try:
         q = urllib.parse.quote(question)
-        r = requests.get(f"{CLAWMETHEUS_URL}/ask?q={q}&scale=0.5", timeout=60).json()
+        r = requests.get(f"{CLAWMETHEUS_URL}/ask?q={q}&scale={scale}", timeout=60).json()
         return r.get("answer", "unknown")
     except Exception as e:
         return f"vision error: {e}"
@@ -885,8 +885,8 @@ def validate_image(filepath: str, description: str = "") -> ActionResult:
 # ── Vision / Screen Check ────────────────────────────────────────────────────
 
 def look_at_screen(question: str = "What is on screen right now?") -> ActionResult:
-    """Take a screenshot and ask the vision model a question about it."""
-    answer = _ask_screen(question)
+    """Take a screenshot and ask the vision model a question about it. Uses higher resolution for detail."""
+    answer = _ask_screen(question, scale=0.75)  # Higher res for reading text/cards/UI details
     screenshot = _screenshot_b64()
     return ActionResult(True, answer, screenshot=screenshot, state_hint=answer[:200])
 

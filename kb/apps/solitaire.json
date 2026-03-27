@@ -4,15 +4,17 @@
   "window_title": "Solitaire",
   "version_note": "Windows 11 Microsoft Solitaire Collection (UWP Store app). Contains Klondike, Spider, FreeCell, Pyramid, TriPeaks.",
   "launch": {
-    "method": "open_app(app_exe='solitaire', window_title='Solitaire'). If that fails, use Win+Search 'solitaire' + Enter.",
+    "method": "Use Win+Search: press_key(keys=['win']), type_text('solitaire'), press_key(keys=['return']). open_app often fails for UWP apps.",
     "startup_issues": [
-      "May show internet error popup on launch — dismiss with Cancel or Escape.",
-      "May show sign-in prompt — click 'Not Now' or 'Skip' or press Escape.",
-      "May show ad/video — wait for 'Skip' button or press Escape.",
-      "May resume previous game — always start a new game explicitly.",
-      "May open a browser tab with an ad — DON'T close the browser, use focus_app to switch back."
+      "May show internet error popup on launch — dismiss with Escape or click Cancel.",
+      "May show sign-in prompt — press Escape or click 'Not Now' or 'Skip'.",
+      "May show ad/video — wait 5s then press Escape, or look for 'Skip' or 'X' button.",
+      "May resume previous game — ALWAYS press F2 to start a new game.",
+      "May open a browser tab with an ad — DON'T close the browser, use focus_app('Solitaire') to switch back.",
+      "Settings/options dialog may open — press Escape to close it.",
+      "The app title in the taskbar is 'Solitaire & Casual Games' not just 'Solitaire'."
     ],
-    "fullscreen": "ALWAYS press F11 or maximize the window after opening. This prevents clicking on background apps."
+    "fullscreen": "Press F11 IMMEDIATELY after the app opens. This prevents clicking on background apps and makes cards larger and easier to read."
   },
   "klondike": {
     "rules": "Standard Klondike solitaire. 7 tableau columns, 4 foundation piles (top right), stock pile (top left), waste pile.",
@@ -20,7 +22,7 @@
     "tableau_rules": "Build down in alternating colors (red on black, black on red). Kings can go on empty columns.",
     "foundation_rules": "Build up by suit from Ace to King (Ace first, then 2, 3... King).",
     "stock": "Click the stock pile (top left) to draw cards. When stock is empty, click to recycle.",
-    "new_game": "To start a new game: press F2, or click the menu/hamburger icon and select 'New Game'.",
+    "new_game": "ALWAYS press F2 to start a fresh new game. Do NOT try to resume a previous game.",
     "shortcuts": {
       "new_game": "F2",
       "undo": "Ctrl+Z",
@@ -30,39 +32,45 @@
       "Double-click a card to auto-move it to the foundation if possible — much faster than dragging.",
       "Always move Aces and 2s to foundations immediately.",
       "Prefer uncovering face-down cards over other moves.",
-      "Don't move cards to foundations too aggressively — you may need them on the tableau.",
       "Empty columns are valuable — only fill them with Kings.",
       "Draw from stock when no obvious tableau moves exist.",
-      "Use 'H' key for hints if stuck."
+      "Use 'H' key for hints if stuck — the game will highlight a valid move.",
+      "Press H multiple times to cycle through available hints."
     ]
   },
   "ui_layout": {
-    "note": "Approximate positions when fullscreen at 2560x1600. Verify with vision.",
-    "stock_pile": "Top-left area (~x=200, y=350). Click to draw a card.",
-    "waste_pile": "Next to stock (~x=400, y=350). Top card is playable.",
-    "foundations": "Top-right area, 4 piles (~x=1200-1800, y=350).",
-    "tableau": "7 columns below, spread across the middle of the screen (~y=500+).",
-    "menu": "Hamburger icon top-left corner or top bar."
+    "note": "Positions are APPROXIMATE for fullscreen at 2560x1600. The game centers content. ALWAYS use vision to verify actual positions.",
+    "stock_pile": "Top-left of the game area. Usually around x=350-450, y=300-400 when fullscreen.",
+    "waste_pile": "Right of stock pile. Usually around x=550-650, y=300-400.",
+    "foundations": "Top-right area, 4 piles spaced horizontally. Usually x=1100-1900, y=300-400.",
+    "tableau": "7 columns below the top row, spread across the screen. Usually y=550+ when fullscreen.",
+    "menu_gear": "Small gear icon in top-left or top-right corner — DO NOT click it, it opens settings.",
+    "game_selector": "When first opened, shows game tiles (Klondike, Spider, etc). Click Klondike tile to start."
   },
   "known_issues": [
-    "App may show ads between games — wait or dismiss.",
-    "Internet error popup appears if offline — just dismiss with Cancel.",
-    "Sign-in prompts appear periodically — skip/dismiss them.",
-    "The app sometimes opens a browser tab — NEVER close the browser, just switch back.",
-    "Card positions change every game — always use vision to locate cards.",
-    "Overlapping cards in tableau — only the bottom-most visible card in each column is playable.",
-    "Drag must start ON the card and end ON the target pile/column."
+    "open_app(app_exe='solitaire') often FAILS for this UWP app. Use Win+Search instead.",
+    "App may show ads between games — wait or press Escape.",
+    "Internet error popup appears if offline — press Escape to dismiss.",
+    "Sign-in prompts appear periodically — press Escape to skip.",
+    "The app sometimes opens a browser tab with an ad — NEVER close the browser, use focus_app to switch back.",
+    "Clicking the gear/settings icon opens a settings panel that blocks the game — press Escape to close.",
+    "Card positions change every game — ALWAYS use vision (look action) to locate cards before clicking.",
+    "The vision model may struggle to read small card values — use look with specific questions like 'What card is at the bottom of column 3?'",
+    "DO NOT declare DONE unless you have actually played multiple card moves. Opening the app is NOT completing the task.",
+    "Coordinates from previous games are WRONG for new games — always look first."
   ],
   "strategy_for_agent": [
-    "1. Open app, go fullscreen (F11), start new game (F2).",
-    "2. Look at the screen to identify all visible cards and their positions.",
-    "3. Check for Aces — move them to foundations immediately (double-click).",
-    "4. Look for obvious tableau moves (alternating colors, descending).",
-    "5. Draw from stock when no tableau moves available.",
-    "6. Use double_click for foundation moves (faster and more reliable than dragging).",
-    "7. Use drag(x1,y1,x2,y2) for tableau-to-tableau moves.",
-    "8. After each move, look at the screen to see the new state.",
-    "9. If stuck for 3+ turns, use H key for a hint.",
-    "10. Don't spend more than 2 look/screenshot actions in a row — act on what you see."
+    "1. Launch: press_key(['win']), type_text('solitaire'), press_key(['return']), wait(3000).",
+    "2. Focus: focus_app('Solitaire & Casual Games'). If that fails, try focus_app('Solitaire').",
+    "3. Fullscreen: press_key(['f11']). Wait 1 second.",
+    "4. Dismiss popups: press_key(['escape']) twice to clear any dialogs/ads.",
+    "5. New game: press_key(['f2']) to start a fresh Klondike game. Wait 2 seconds.",
+    "6. Read the board: use look('Describe all 7 tableau columns. For each column, list the face-up cards from top to bottom with their value and suit.').",
+    "7. Identify moves: look for Aces (move to foundations via double-click), or cards that can stack (alternating colors, descending).",
+    "8. Make moves: double_click on a card to auto-move to foundation, or drag(x1,y1,x2,y2) between columns.",
+    "9. Draw from stock: click the stock pile (top-left) when no tableau moves available.",
+    "10. Use hints: press_key(['h']) if stuck — the game highlights a valid move.",
+    "11. NEVER spend more than 1 look action in a row. Look once, then ACT on what you see.",
+    "12. NEVER declare DONE until you have made at least 5 actual card moves (click, double_click, or drag on cards)."
   ]
 }

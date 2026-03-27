@@ -860,6 +860,20 @@ class StepExecutor:
 
             if action_name == "DONE":
                 summary = params.get("summary", "Task completed")
+                # Validate: if we haven't done much real work, don't accept DONE
+                real_actions = sum(1 for a in recent_actions
+                                   if a.split(":")[0] not in ("look", "screenshot", "wait",
+                                                                "focus_app", "press_key"))
+                if real_actions < 3 and step > 5:
+                    self._log_event("premature_done", f"Only {real_actions} real actions", step)
+                    yield {"type": "warning", "data": f"⚠ Rejecting premature DONE — only {real_actions} real actions taken"}
+                    messages.append({"role": "assistant", "content": raw})
+                    messages.append({"role": "user", "content":
+                        "You declared DONE but haven't actually completed the task. "
+                        "You've barely interacted with the app. Keep going — "
+                        "the task is NOT complete until you've actually done what was asked."})
+                    continue
+
                 img = _screenshot_b64()
                 if img:
                     yield {"type": "artifact", "data": {"type": "screenshot", "value": img,
