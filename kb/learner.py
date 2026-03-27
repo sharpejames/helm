@@ -45,9 +45,8 @@ def detect_app_from_task(task: str) -> str | None:
 
 def learn_from_log(log_path: str | Path, app_db: AppDB = None) -> dict:
     """Extract knowledge from a single task log file.
-    
-    Returns a dict of what was learned:
-      {"app": "Paint", "learned": ["tip: ...", "issue: ...", ...]}
+    Only learns from COMPLETED tasks. Skips apps with hand-curated profiles
+    (those with startup_sequence or strategy_for_agent).
     """
     if app_db is None:
         app_db = AppDB()
@@ -63,75 +62,29 @@ def learn_from_log(log_path: str | Path, app_db: AppDB = None) -> dict:
     if not app_name or not events:
         return {"app": None, "learned": []}
 
+    # Don't pollute hand-curated profiles with auto-learned noise
+    existing = app_db.get(app_name)
+    if existing.get("startup_sequence") or existing.get("strategy_for_agent"):
+        return {"app": app_name, "learned": ["skipped: hand-curated profile"]}
+
+    # Only learn from successful completions
+    if status != "completed":
+        return {"app": app_name, "learned": []}
+
     learned = []
 
-    # Extract successful open_app commands
+    # Extract successful action sequence as a tip
+    actions = []
     for e in events:
         if e["type"] == "decision":
             dd = json.loads(e["data"]) if isinstance(e["data"], str) else e["data"]
-            if dd.get("action") == "open_app" and dd.get("params"):
-                params = dd["params"]
-                exe = params.get("app_exe", "")
-                title = params.get("window_title", "")
-                if exe:
-                    existing = app_db.get(app_name)
-                    if not existing.get("exe") or existing["exe"] != exe:
-                        app_db.set_exe(app_name, exe)
-                        learned.append(f"exe: {exe}")
+            actions.append(dd.get("action", ""))
 
-    # Extract failure patterns → known issues
-    failure_actions = []
-    for e in events:
-        if e["type"] == "action_result":
-            dd = json.loads(e["data"]) if isinstance(e["data"], str) else e["data"]
-            if not dd.get("ok", True):
-                action = dd.get("action", "")
-                error = dd.get("error", "")
-                failure_actions.append(f"{action}: {error[:100]}")
-
-    # If the same failure happened 2+ times, it's a known issue
-    failure_counts = Counter(failure_actions)
-    for failure, count in failure_counts.items():
-        if count >= 2:
-            issue = f"Repeated failure ({count}x): {failure}"
-            app_db.add_issue(app_name, issue)
-            learned.append(f"issue: {issue}")
-
-    # Extract popup patterns
-    for e in events:
-        if e["type"] in ("auto_popup", "focus_stolen"):
-            detail = e["data"][:150] if isinstance(e["data"], str) else str(e["data"])[:150]
-            issue = f"Popup/focus issue: {detail}"
-            app_db.add_issue(app_name, issue)
-            learned.append(f"issue: {issue}")
-
-    # If task completed, extract the successful action sequence as a tip
-    if status == "completed":
-        actions = []
-        for e in events:
-            if e["type"] == "decision":
-                dd = json.loads(e["data"]) if isinstance(e["data"], str) else e["data"]
-                actions.append(dd.get("action", ""))
-
-        # First 5 actions are the "how to get started" pattern
-        if len(actions) >= 3:
-            start_pattern = " → ".join(actions[:5])
-            tip = f"Successful start sequence: {start_pattern}"
-            app_db.add_tip(app_name, tip)
-            learned.append(f"tip: {tip}")
-
-    # If task failed, record what went wrong
-    if status in ("failed", "partial"):
-        # Find the last few actions before failure
-        last_actions = []
-        for e in events[-10:]:
-            if e["type"] == "decision":
-                dd = json.loads(e["data"]) if isinstance(e["data"], str) else e["data"]
-                last_actions.append(dd.get("action", ""))
-        if last_actions:
-            issue = f"Task failed after: {' → '.join(last_actions[-5:])}"
-            app_db.add_issue(app_name, issue)
-            learned.append(f"issue: {issue}")
+    if len(actions) >= 3:
+        start_pattern = " → ".join(actions[:5])
+        tip = f"Successful sequence: {start_pattern}"
+        app_db.add_tip(app_name, tip)
+        learned.append(f"tip: {tip}")
 
     if learned:
         logger.info(f"Learned {len(learned)} facts about {app_name} from {Path(log_path).name}")

@@ -274,7 +274,7 @@ class StepExecutor:
         task_lower = task.lower()
         for keywords, (title, exe) in [
             (["paint", "draw", "sketch"], ("Paint", "mspaint")),
-            (["solitaire", "klondike", "spider", "freecell", "card game"], ("Solitaire", "solitaire")),
+            (["solitaire", "klondike", "spider", "freecell", "card game"], ("Solitaire & Casual Games", "solitaire")),
             (["notepad"], ("Notepad", "notepad")),
             (["chrome", "browser", "web"], ("Chrome", "chrome")),
             (["outlook", "email", "mail"], ("Outlook", "outlook")),
@@ -761,8 +761,12 @@ class StepExecutor:
         if target_app:
             app_context = app_db.format_context(target_app)
             if not app_context:
-                # Try common aliases
-                for alias in [target_app, target_exe or "", task.split()[0]]:
+                # Try progressively shorter names and aliases
+                candidates = [target_app, target_exe or ""]
+                # Add first word of target_app (e.g. "Solitaire" from "Solitaire & Casual Games")
+                candidates.append(target_app.split()[0] if target_app else "")
+                candidates.append(task.split()[0] if task else "")
+                for alias in candidates:
                     if alias:
                         app_context = app_db.format_context(alias)
                         if app_context:
@@ -788,6 +792,45 @@ class StepExecutor:
         action_fail_streak = 0
         last_screen_hash = _screenshot_hash()
         recent_actions = []  # Track last N actions for loop detection
+
+        # ── Execute startup_sequence if the app has one ──
+        # This runs deterministic steps (launch, fullscreen, new game) before the LLM takes over
+        app_profile = None
+        if target_app:
+            app_profile = app_db.get(target_app)
+            if not app_profile.get("startup_sequence"):
+                # Try aliases
+                for name in app_db.list_apps():
+                    if target_app.lower() in name.lower() or name.lower() in target_app.lower():
+                        app_profile = app_db.get(name)
+                        if app_profile.get("startup_sequence"):
+                            break
+
+        if app_profile and app_profile.get("startup_sequence"):
+            seq = app_profile["startup_sequence"]
+            yield {"type": "step", "data": f"🚀 Running startup sequence ({len(seq)} steps)..."}
+            self._log_event("startup_sequence", f"{len(seq)} steps", 0)
+            for i, seq_step in enumerate(seq):
+                if self._stopped:
+                    break
+                action = seq_step.get("action", "")
+                params = seq_step.get("params", {})
+                note = seq_step.get("note", action)
+                yield {"type": "status", "data": f"Startup {i+1}/{len(seq)}: {note}"}
+                result = await self._execute_with_timeout(action, params)
+                self._log_event("startup_step", {
+                    "action": action, "ok": result.ok, "note": note
+                }, 0)
+                if not result.ok:
+                    yield {"type": "warning", "data": f"Startup step failed: {note} — continuing"}
+            yield {"type": "step", "data": "✓ Startup sequence complete"}
+            # Update the first message to tell the LLM the app is already open
+            messages = [{"role": "user", "content": (
+                f"TASK: {task}\n\n"
+                f"The app has been launched and set up (fullscreen, new game started).\n"
+                f"ACTIVE WINDOW: {_get_active_window()}\n\n"
+                f"The app is ready. What is your first gameplay action?"
+            )}]
 
         while step < MAX_STEPS:
             if self._stopped:
