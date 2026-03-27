@@ -210,6 +210,7 @@ class StepExecutor:
     def _flush_log(self, task: str, status: str):
         if not self._run_log:
             return
+        filepath = None
         try:
             ts = datetime.now().strftime("%Y%m%d_%H%M%S")
             slug = re.sub(r'[^a-z0-9]+', '_', task.lower()[:40]).strip('_')
@@ -228,6 +229,16 @@ class StepExecutor:
             logger.error(f"Failed to save step log: {e}")
         finally:
             self._run_log = []
+
+        # Auto-learn from this task's log
+        if filepath and os.path.exists(filepath):
+            try:
+                from kb.learner import learn_from_log
+                result = learn_from_log(filepath)
+                if result.get("learned"):
+                    logger.info(f"Auto-learned {len(result['learned'])} facts about {result['app']}")
+            except Exception as e:
+                logger.debug(f"Auto-learn failed: {e}")
 
     def _clawmetheus_running(self) -> bool:
         try:
