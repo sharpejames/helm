@@ -184,36 +184,72 @@ def _quick_screenshot_hash() -> str:
 
 # ── App Management ────────────────────────────────────────────────────────────
 
-def open_application(app_exe: str, window_title: str, wait_secs: int = 5) -> ActionResult:
-    """Open a desktop application and ensure it's ready."""
+def open_application(app_exe: str, window_title: str, wait_secs: int = 8) -> ActionResult:
+    """Open a desktop application and ensure it's ready. Handles UWP/Store apps, taskbar, and search."""
     tr = _tr()
     try:
+        # Check if already open (including minimized)
         rect = tr.get_window_rect(window_title)
         if rect:
             tr.ensure_foreground(window_title)
             tr.ensure_maximized(window_title)
-            tr.wait_ms(200)
+            tr.wait_ms(500)
             return ActionResult(True, f"{window_title} already open — focused")
 
         import subprocess, time
+
+        # Try direct launch first
+        launched = False
         exe = app_exe if "." in app_exe else f"{app_exe}.exe"
         try:
-            subprocess.Popen([exe], shell=False)
+            # Handle UWP/Store apps (shell:appsFolder URIs)
+            if "shell:" in app_exe or "!" in app_exe:
+                subprocess.Popen(f'start "" "{app_exe}"', shell=True)
+            else:
+                subprocess.Popen([exe], shell=False)
+            launched = True
         except FileNotFoundError:
-            subprocess.Popen(f"start {app_exe}", shell=True)
+            try:
+                subprocess.Popen(f"start {app_exe}", shell=True)
+                launched = True
+            except Exception:
+                pass
 
+        # If direct launch failed, try Windows search
+        if not launched:
+            import pyautogui
+            pyautogui.hotkey('win')
+            time.sleep(0.8)
+            search_term = window_title.split()[0] if window_title else app_exe.split('.')[0]
+            pyautogui.typewrite(search_term, interval=0.05)
+            time.sleep(1.5)
+            pyautogui.press('enter')
+            time.sleep(2)
+
+        # Wait for window to appear
         deadline = time.time() + wait_secs
         while time.time() < deadline:
             time.sleep(0.5)
-            if tr.get_window_rect(window_title):
+            rect = tr.get_window_rect(window_title)
+            if rect:
+                break
+            # Also try partial title match via vision
+            active = _get_active_window()
+            if window_title.lower().split()[0] in active.lower():
                 break
 
+        # Try to bring to foreground
         tr.ensure_foreground(window_title)
         tr.ensure_maximized(window_title)
-        tr.wait_for_clear(window_title)
-        tr.wait_ms(300)
-        state = _ask_screen(f"Is {window_title} open and ready? Brief answer.")
-        return ActionResult(True, f"{window_title} opened and maximized", state_hint=state)
+        tr.wait_ms(1000)
+
+        # Check if there's a popup/dialog blocking the app
+        state = _ask_screen(f"Is {window_title} open and visible? Is there any popup or dialog blocking it? Brief answer.")
+        if any(kw in state.lower() for kw in ["popup", "dialog", "error", "sign in", "update", "internet"]):
+            # Auto-dismiss blocking popups
+            _smart_dismiss_popup()
+
+        return ActionResult(True, f"{window_title} opened", state_hint=state[:200])
     except Exception as e:
         return ActionResult(False, error=str(e))
 
@@ -897,6 +933,40 @@ def double_click_at(x: int, y: int) -> ActionResult:
         return ActionResult(False, error=str(e))
 
 
+def drag_to(x1: int, y1: int, x2: int, y2: int, duration: float = 0.5) -> ActionResult:
+    """Drag from (x1,y1) to (x2,y2). Use for moving cards, dragging files, resizing windows, etc."""
+    try:
+        import pyautogui, time
+        pyautogui.moveTo(x1, y1)
+        time.sleep(0.1)
+        pyautogui.mouseDown(button='left')
+        time.sleep(0.05)
+        pyautogui.moveTo(x2, y2, duration=duration)
+        time.sleep(0.05)
+        pyautogui.mouseUp(button='left')
+        time.sleep(0.2)
+        return ActionResult(True, f"Dragged ({x1},{y1}) -> ({x2},{y2})")
+    except Exception as e:
+        return ActionResult(False, error=str(e))
+
+def drag_to(x1: int, y1: int, x2: int, y2: int, duration: float = 0.5) -> ActionResult:
+    """Drag from (x1,y1) to (x2,y2). Use for moving cards, dragging files, resizing windows, etc."""
+    try:
+        import pyautogui
+        pyautogui.moveTo(x1, y1)
+        import time; time.sleep(0.1)
+        pyautogui.mouseDown(button='left')
+        time.sleep(0.05)
+        pyautogui.moveTo(x2, y2, duration=duration)
+        time.sleep(0.05)
+        pyautogui.mouseUp(button='left')
+        time.sleep(0.2)
+        return ActionResult(True, f"Dragged ({x1},{y1}) -> ({x2},{y2})")
+    except Exception as e:
+        return ActionResult(False, error=str(e))
+
+
+
 def type_text(text: str) -> ActionResult:
     """Type text using direct input (for native apps, file dialogs, etc.)."""
     tr = _tr()
@@ -928,36 +998,85 @@ def wait(ms: int = 1000) -> ActionResult:
 
 # ── Popup / Dialog Handling ───────────────────────────────────────────────────
 
+def _smart_dismiss_popup() -> str:
+    """Internal: intelligently dismiss any popup/dialog by reading it and clicking the right button."""
+    import pyautogui, time
+
+    # Ask vision what the popup says and what buttons are available
+    description = _ask_screen(
+        "There is a popup or dialog on screen. "
+        "1) What does it say? 2) List ALL buttons visible (e.g. OK, Cancel, Close, Yes, No, Skip, "
+        "Not Now, Continue, Dismiss, X). 3) Where is the best button to DISMISS/CLOSE it? "
+        "Give the button name and approximate x,y coordinates."
+    )
+
+    # Try to find coordinates of a dismiss button from the vision response
+    import re
+    # Look for coordinate patterns like (x, y) or x,y
+    coord_match = re.search(r'(\d{3,4})\s*[,]\s*(\d{3,4})', description)
+
+    # Determine the right action based on what the popup says
+    desc_lower = description.lower()
+    is_error = any(kw in desc_lower for kw in ["error", "failed", "cannot", "unable", "no internet",
+                                                  "connection", "offline", "problem"])
+    is_confirm = any(kw in desc_lower for kw in ["save", "overwrite", "replace", "are you sure",
+                                                    "do you want", "confirm"])
+    wants_cancel = any(kw in desc_lower for kw in ["cancel", "not now", "skip", "dismiss",
+                                                      "close", "no thanks", "later", "maybe later"])
+
+    result = ""
+    if coord_match:
+        # Vision gave us coordinates — click them
+        x, y = int(coord_match.group(1)), int(coord_match.group(2))
+        pyautogui.click(x, y)
+        time.sleep(0.5)
+        result = f"Clicked dismiss button at ({x},{y})"
+    elif wants_cancel or is_error:
+        # Try Escape first (works for most dialogs)
+        pyautogui.press('escape')
+        time.sleep(0.5)
+        # Check if it's gone
+        check = _ask_screen("Is the popup/dialog still visible? YES or NO.")
+        if "yes" in check.lower():
+            # Escape didn't work — try clicking Cancel/Close/X
+            pyautogui.hotkey('alt', 'F4')
+            time.sleep(0.3)
+        result = f"Dismissed error/cancel dialog"
+    elif is_confirm:
+        pyautogui.press('enter')
+        time.sleep(0.5)
+        result = f"Confirmed dialog"
+    else:
+        # Generic: try Escape, then Enter
+        pyautogui.press('escape')
+        time.sleep(0.5)
+        result = f"Pressed Escape on dialog"
+
+    return f"{result} | popup: {description[:150]}"
+
+
 def dismiss_popup() -> ActionResult:
-    """Dismiss any modal dialog, popup, or unexpected window."""
-    tr = _tr()
+    """Dismiss any modal dialog, popup, or unexpected window. Reads the popup and clicks the right button."""
     try:
-        tr.dismiss_modal()
-        tr.wait_ms(300)
-        return ActionResult(True, "Dismissed popup")
+        result = _smart_dismiss_popup()
+        return ActionResult(True, result)
     except Exception as e:
         return ActionResult(False, error=str(e))
 
 
 def handle_unexpected() -> ActionResult:
-    """Check screen for unexpected popups/dialogs and handle them."""
-    tr = _tr()
+    """Check screen for unexpected popups/dialogs and handle them intelligently."""
     try:
         state = _ask_screen(
-            "Is there any popup, dialog, modal, age verification, cookie consent, "
-            "or unexpected window on screen? Answer YES or NO, and if YES describe it briefly."
+            "Is there any popup, dialog, modal, error message, cookie consent, sign-in prompt, "
+            "update notification, or unexpected window blocking the screen? Answer YES or NO. "
+            "If YES, describe it briefly."
         )
         if "yes" not in state.lower():
-            return ActionResult(True, "No popups detected", state_hint=state)
+            return ActionResult(True, "No popups detected", state_hint=state[:200])
 
-        tr.dismiss_modal()
-        tr.wait_ms(400)
-        state2 = _ask_screen("Is the popup/dialog gone now? YES or NO.")
-        if "yes" in state2.lower() or "no" not in state2.lower():
-            return ActionResult(True, f"Handled popup: {state[:100]}")
-        tr.key("escape")
-        tr.wait_ms(300)
-        return ActionResult(True, f"Attempted to dismiss: {state[:100]}")
+        result = _smart_dismiss_popup()
+        return ActionResult(True, f"Handled: {result}")
     except Exception as e:
         return ActionResult(False, error=str(e))
 
@@ -1110,6 +1229,7 @@ ACTION_REGISTRY = {
     # General input
     "click": click_at,
     "double_click": double_click_at,
+    "drag": drag_to,
     "type_text": type_text,
     "type_keys": type_text_keyboard,
     "press_key": press_key,

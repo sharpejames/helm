@@ -22,7 +22,11 @@ import time as _time
 from datetime import datetime, timezone
 from typing import AsyncIterator
 
-from agent.models import LLMClient, LocalLLMClient, get_local_llm
+from agent.models import (
+    LLMClient, LocalLLMClient, ModelRouter,
+    get_local_llm, get_router,
+    TIER_LOCAL, TIER_FAST, TIER_SMART,
+)
 from agent.actions import (
     ACTION_REGISTRY, ActionResult, execute_action, get_action_catalog,
     _ask_screen, _screenshot_b64, _get_active_window,
@@ -104,8 +108,9 @@ Rules:
 - If stuck after 3 failures: {{"action": "FAIL", "params": {{"reason": "..."}}}}
 """
 
-# Remote-only fallback prompt (same as before)
-STEP_SYSTEM_PROMPT = """You are Helm, a desktop automation agent. You control a computer step by step.
+# Remote-only fallback prompt — used for reactive tasks (games, browsing, general desktop)
+STEP_SYSTEM_PROMPT = """You are Helm, a desktop automation agent. You control a Windows 11 computer step by step.
+You are a SAVVY computer user — you know how to use apps, handle popups, and navigate UI efficiently.
 
 Each turn: pick ONE action, provide params as JSON. I execute it and show the result.
 
@@ -117,31 +122,45 @@ Each turn: pick ONE action, provide params as JSON. I execute it and show the re
 When done: {{"thinking": "...", "action": "DONE", "params": {{"summary": "..."}}}}
 If stuck: {{"thinking": "...", "action": "FAIL", "params": {{"reason": "..."}}}}
 
-## CORE RULES:
-1. ONE action per turn.
-2. Trust action results — paint actions self-validate. Don't waste steps on "look".
-3. If an action FAILS, try a DIFFERENT approach. Never retry the same failing action 3 times.
-4. Use EXACT parameter names from the catalog.
-5. press_key with multiple keys: press_key(keys=["ctrl", "s"]).
+## CORE RULES — BE EFFICIENT:
+1. ONE action per turn. ACT, don't just look.
+2. NEVER use "look" or "screenshot" more than twice in a row. After looking, you MUST act on what you see.
+3. Trust action results. If open_app says "opened", don't screenshot to verify — just proceed.
+4. If an action FAILS, try a DIFFERENT approach. Never retry the same failing action 3 times.
+5. Use EXACT parameter names from the catalog.
+6. press_key with multiple keys: press_key(keys=["ctrl", "s"]).
+7. You have {max_steps} steps MAX. Don't waste them on looking — spend them on doing.
+
+## OPENING APPS:
+8. Use open_app(app_exe="...", window_title="...") first. It handles search, taskbar, UWP apps.
+9. Common apps: mspaint="Paint", notepad="Notepad", chrome="Chrome", "solitaire"="Solitaire".
+10. For Microsoft Store apps, use the app name: open_app(app_exe="solitaire", window_title="Solitaire").
+11. If open_app fails, try: press_key(keys=["win"]), type_text("app name"), press_key(keys=["return"]).
+12. If the app opens minimized, use focus_app(window_title="...") to bring it to front.
+
+## HANDLING POPUPS & UNEXPECTED UI — CRITICAL:
+13. If you see a popup, dialog, error, sign-in prompt, or update notification: use dismiss_popup() immediately.
+14. dismiss_popup reads the popup and clicks the right button (Cancel, Close, Skip, Not Now, X, etc.).
+15. For internet/connection errors: dismiss them — most tasks don't need internet.
+16. For "sign in" prompts: dismiss/skip them unless the task requires signing in.
+17. For cookie consent: click Accept/OK.
+18. For "save changes?" when closing: click Don't Save unless the task requires saving.
+19. NEVER get stuck on a popup. Dismiss it and move on. If dismiss_popup doesn't work, try press_key(keys=["escape"]) or click the X button.
+20. After dismissing a popup, continue with your task — don't restart from scratch.
+
+## DRAGGING (cards, files, windows):
+21. Use drag(x1=start_x, y1=start_y, x2=end_x, y2=end_y) to drag items.
+22. For card games: drag cards between columns, or double_click to auto-move to foundations.
 
 ## PAINT DRAWING RULES:
-6. Start with setup_paint. Parse canvas_bounds from state_hint.
-7. ONLY use toolbar colors: red, blue, yellow, green, orange, purple, pink, brown, black, white, gray.
-8. paint_color auto-restores the previous tool.
-9. For FILLED shapes: paint_shape_tool → paint_fill_style("Solid color") → paint_color → paint_draw_shape.
-10. For outlines/details: paint_color → paint_draw (pencil).
-11. NEVER use paint_fill_at on pencil shapes.
-12. NEVER undo more than once. NEVER call setup_paint twice.
-13. NEVER call setup_paint more than once unless the app crashed.
-
-## COLOR CONTRAST — CRITICAL:
-14. Canvas starts WHITE. NEVER draw white on white or black on black.
-15. Before drawing, think: "what color is the area I'm drawing on?"
+23. Start with setup_paint. Parse canvas_bounds from state_hint.
+24. ONLY toolbar colors: red, blue, yellow, green, orange, purple, pink, brown, black, white, gray.
+25. paint_color auto-restores the previous tool.
+26. Canvas starts WHITE. NEVER draw white on white or black on black.
 
 ## STEP BUDGET:
-18. You have {max_steps} steps. Budget: setup=1, filled shapes=15-20, details=10-15, save=3.
-19. At step {save_threshold}+, STOP drawing and SAVE immediately.
-20. save_file(filepath="C:\\\\Users\\\\sharp\\\\Pictures\\\\drawing.png", app_title="Paint").
+27. At step {save_threshold}+, wrap up and finish the task.
+28. save_file(filepath="C:\\\\Users\\\\sharp\\\\Pictures\\\\drawing.png", app_title="Paint").
 """
 
 
@@ -165,6 +184,7 @@ class StepExecutor:
     def __init__(self, llm: LLMClient, config: dict = None):
         self.llm = llm
         self.local_llm: LocalLLMClient | None = get_local_llm()
+        self.router: ModelRouter | None = get_router()
         self._stopped = False
         self._run_log: list[dict] = []
         self._last_task: str | None = None
@@ -290,13 +310,18 @@ class StepExecutor:
             yield {"type": "error", "data": f"Internal error: {e}"}
 
     def _call_remote_llm(self, system: str, messages: list, max_tokens: int = None,
-                          timeout: float = None) -> str | None:
-        """Call remote LLM with retry logic for transient errors."""
+                          timeout: float = None, tier: str = TIER_SMART) -> str | None:
+        """Call LLM with retry logic. Uses ModelRouter for tier-based routing."""
         for attempt in range(3):
             try:
-                return self.llm.complete(system, messages,
-                                          max_tokens=max_tokens or STEP_MAX_TOKENS,
-                                          timeout=timeout or STEP_LLM_TIMEOUT)
+                if self.router:
+                    return self.router.complete(system, messages, tier=tier,
+                                                 max_tokens=max_tokens or STEP_MAX_TOKENS,
+                                                 timeout=timeout)
+                else:
+                    return self.llm.complete(system, messages,
+                                              max_tokens=max_tokens or STEP_MAX_TOKENS,
+                                              timeout=timeout or STEP_LLM_TIMEOUT)
             except Exception as e:
                 err_str = str(e).lower()
                 retryable = any(kw in err_str for kw in [
@@ -306,7 +331,7 @@ class StepExecutor:
                 ])
                 if retryable and attempt < 2:
                     wait = (attempt + 1) * 5
-                    self._log_event("llm_retry", f"Attempt {attempt+1}: {e}")
+                    self._log_event("llm_retry", f"Attempt {attempt+1} ({tier}): {e}")
                     _time.sleep(wait)
                     continue
                 raise
@@ -441,7 +466,7 @@ class StepExecutor:
         try:
             raw = await asyncio.to_thread(
                 self._call_remote_llm, system, messages,
-                max_tokens=4096, timeout=90.0)
+                max_tokens=4096, timeout=90.0, tier=TIER_SMART)
             if not raw:
                 return None
             self._log_event("plan_raw", raw[:500])
@@ -685,7 +710,7 @@ class StepExecutor:
         try:
             raw = await asyncio.to_thread(
                 self._call_remote_llm, system, messages,
-                max_tokens=4096, timeout=90.0)
+                max_tokens=4096, timeout=90.0, tier=TIER_SMART)
             if raw:
                 parsed = self._parse_llm_response(raw)
                 if parsed and "steps" in parsed:
@@ -720,12 +745,15 @@ class StepExecutor:
                 return
 
             step += 1
-            yield {"type": "status", "data": f"Step {step}/{MAX_STEPS} — Thinking (remote)..."}
+            # Use FAST tier for routine reactive steps, SMART for first step (needs more context)
+            step_tier = TIER_SMART if step <= 1 else TIER_FAST
+            tier_label = "smart" if step_tier == TIER_SMART else "fast"
+            yield {"type": "status", "data": f"Step {step}/{MAX_STEPS} — Thinking ({tier_label})..."}
 
             llm_start = _time.time()
             try:
                 raw = await asyncio.to_thread(
-                    self._call_remote_llm, system, messages)
+                    self._call_remote_llm, system, messages, tier=step_tier)
             except Exception as e:
                 self._log_event("error", f"LLM error: {e}", step)
                 self._flush_log(task, "failed")
@@ -745,7 +773,12 @@ class StepExecutor:
                 messages.append({"role": "user", "content":
                     'Reply with ONLY JSON: {"thinking": "...", "action": "name", "params": {...}}'})
                 consecutive_fails += 1
-                if consecutive_fails >= 3:
+                # Escalate to SMART after 2 parse failures from FAST
+                if consecutive_fails == 2 and step_tier == TIER_FAST:
+                    self._log_event("escalate", "Haiku struggling, escalating to Opus", step)
+                    yield {"type": "warning", "data": "Escalating to Opus for better reasoning..."}
+                    step_tier = TIER_SMART
+                elif consecutive_fails >= 4:
                     self._flush_log(task, "failed")
                     yield {"type": "error", "data": "LLM not returning valid JSON."}
                     return
@@ -801,6 +834,15 @@ class StepExecutor:
                         action_fail_streak = 0
                 except Exception:
                     pass
+
+            # Auto-detect and dismiss popups after app-opening or navigation actions
+            AUTO_POPUP_CHECK_ACTIONS = {"open_app", "focus_app", "open_website", "click", "click_web_element"}
+            if action_name in AUTO_POPUP_CHECK_ACTIONS and result.ok:
+                popup_result = await asyncio.to_thread(
+                    execute_action, "handle_unexpected", {})
+                if popup_result.ok and "handled" in popup_result.output.lower():
+                    self._log_event("auto_popup", popup_result.output[:200], step)
+                    yield {"type": "step", "data": f"🔔 {popup_result.output[:100]}"}
 
             # Screenshot
             SKIP = {"paint_pencil", "paint_fill_tool", "paint_color",

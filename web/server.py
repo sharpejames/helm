@@ -43,9 +43,13 @@ def create_app(config: dict, scheduler) -> FastAPI:
     logger.info(f"Executor: {executor_mode}, MAX_STEPS={StepExecutor.__module__}")
     from agent.actions import ACTION_REGISTRY
     logger.info(f"Actions loaded: {len(ACTION_REGISTRY)} actions")
-    from agent.models import get_local_llm
+    from agent.models import get_local_llm, get_router
     local = get_local_llm()
-    if local:
+    router = get_router()
+    if router:
+        logger.info(f"Model tiers: smart={router.smart_model}, fast={router.fast_model}, "
+                     f"local={local.model if local else 'none'}")
+    elif local:
         logger.info(f"Hybrid mode ACTIVE: local LLM = {local.model} at {local.base_url}")
     else:
         logger.info("Hybrid mode OFF: no local LLM configured (remote-only)")
