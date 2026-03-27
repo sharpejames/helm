@@ -263,8 +263,12 @@ class StepExecutor:
         task_lower = task.lower()
         for keywords, (title, exe) in [
             (["paint", "draw", "sketch"], ("Paint", "mspaint")),
+            (["solitaire", "klondike", "spider", "freecell", "card game"], ("Solitaire", "solitaire")),
             (["notepad"], ("Notepad", "notepad")),
             (["chrome", "browser", "web"], ("Chrome", "chrome")),
+            (["outlook", "email", "mail"], ("Outlook", "outlook")),
+            (["word", "document"], ("Word", "winword")),
+            (["excel", "spreadsheet"], ("Excel", "excel")),
         ]:
             if any(kw in task_lower for kw in keywords):
                 return title, exe
@@ -746,12 +750,36 @@ class StepExecutor:
 
     async def _execute_remote_only(self, task: str, screen_state: str, action_catalog: str,
                                      target_app: str | None, target_exe: str | None) -> AsyncIterator[dict]:
-        """Original remote-only execution mode (fallback when local LLM unavailable)."""
+        """Remote-only execution mode for reactive tasks (games, browsing, general desktop)."""
         save_threshold = MAX_STEPS - 5
         system = (STEP_SYSTEM_PROMPT
                   .replace("{action_catalog}", action_catalog)
                   .replace("{max_steps}", str(MAX_STEPS))
                   .replace("{save_threshold}", str(save_threshold)))
+
+        # Inject app-specific knowledge if available
+        from kb.apps import AppDB
+        app_db = AppDB()
+        app_context = ""
+        if target_app:
+            app_context = app_db.format_context(target_app)
+            if not app_context:
+                # Try common aliases
+                for alias in [target_app, target_exe or "", task.split()[0]]:
+                    if alias:
+                        app_context = app_db.format_context(alias)
+                        if app_context:
+                            break
+        # Also check task keywords for app names
+        if not app_context:
+            for app_name in app_db.list_apps():
+                if app_name.lower() in task.lower():
+                    app_context = app_db.format_context(app_name)
+                    if app_context:
+                        break
+        if app_context:
+            system += app_context
+            self._log_event("app_knowledge", f"Loaded: {app_context[:100]}")
 
         messages = [{"role": "user", "content": (
             f"TASK: {task}\n\nCURRENT SCREEN: {screen_state}\n\n"
@@ -762,6 +790,7 @@ class StepExecutor:
         consecutive_fails = 0
         action_fail_streak = 0
         last_screen_hash = _screenshot_hash()
+        recent_actions = []  # Track last N actions for loop detection
 
         while step < MAX_STEPS:
             if self._stopped:
@@ -901,6 +930,28 @@ class StepExecutor:
                         "type": "screenshot", "value": img,
                         "label": f"Step {step}: {action_name}"
                     }}
+
+            # Loop detection: if the same action+params repeats 3+ times, force a different approach
+            action_sig = f"{action_name}:{json.dumps(params, sort_keys=True)[:100]}"
+            recent_actions.append(action_sig)
+            if len(recent_actions) > 8:
+                recent_actions = recent_actions[-8:]
+            # Check for loops (same action 3+ times in last 6)
+            if len(recent_actions) >= 3:
+                last_few = recent_actions[-6:]
+                most_common = max(set(last_few), key=last_few.count)
+                if last_few.count(most_common) >= 3:
+                    self._log_event("loop_detected", most_common, step)
+                    yield {"type": "warning", "data": f"🔄 Loop detected: {action_name} repeated 3+ times. Forcing new approach."}
+                    # Escalate to SMART and inject loop-breaking instruction
+                    step_tier = TIER_SMART
+                    messages.append({"role": "assistant", "content": raw})
+                    messages.append({"role": "user", "content":
+                        f"LOOP DETECTED: You've repeated '{action_name}' 3+ times with no progress. "
+                        f"This approach is NOT working. Try something COMPLETELY DIFFERENT. "
+                        f"If you're stuck on a menu, press Escape and try a keyboard shortcut instead. "
+                        f"If you can't find a button, try a different approach entirely."})
+                    continue
 
             # Build feedback
             active_win = _get_active_window()

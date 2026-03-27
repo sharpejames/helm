@@ -1,0 +1,68 @@
+{
+  "name": "Microsoft Solitaire Collection",
+  "exe": "solitaire",
+  "window_title": "Solitaire",
+  "version_note": "Windows 11 Microsoft Solitaire Collection (UWP Store app). Contains Klondike, Spider, FreeCell, Pyramid, TriPeaks.",
+  "launch": {
+    "method": "open_app(app_exe='solitaire', window_title='Solitaire'). If that fails, use Win+Search 'solitaire' + Enter.",
+    "startup_issues": [
+      "May show internet error popup on launch — dismiss with Cancel or Escape.",
+      "May show sign-in prompt — click 'Not Now' or 'Skip' or press Escape.",
+      "May show ad/video — wait for 'Skip' button or press Escape.",
+      "May resume previous game — always start a new game explicitly.",
+      "May open a browser tab with an ad — DON'T close the browser, use focus_app to switch back."
+    ],
+    "fullscreen": "ALWAYS press F11 or maximize the window after opening. This prevents clicking on background apps."
+  },
+  "klondike": {
+    "rules": "Standard Klondike solitaire. 7 tableau columns, 4 foundation piles (top right), stock pile (top left), waste pile.",
+    "goal": "Move all cards to the 4 foundation piles, building up from Ace to King in each suit.",
+    "tableau_rules": "Build down in alternating colors (red on black, black on red). Kings can go on empty columns.",
+    "foundation_rules": "Build up by suit from Ace to King (Ace first, then 2, 3... King).",
+    "stock": "Click the stock pile (top left) to draw cards. When stock is empty, click to recycle.",
+    "new_game": "To start a new game: press F2, or click the menu/hamburger icon and select 'New Game'.",
+    "shortcuts": {
+      "new_game": "F2",
+      "undo": "Ctrl+Z",
+      "hint": "H"
+    },
+    "tips": [
+      "Double-click a card to auto-move it to the foundation if possible — much faster than dragging.",
+      "Always move Aces and 2s to foundations immediately.",
+      "Prefer uncovering face-down cards over other moves.",
+      "Don't move cards to foundations too aggressively — you may need them on the tableau.",
+      "Empty columns are valuable — only fill them with Kings.",
+      "Draw from stock when no obvious tableau moves exist.",
+      "Use 'H' key for hints if stuck."
+    ]
+  },
+  "ui_layout": {
+    "note": "Approximate positions when fullscreen at 2560x1600. Verify with vision.",
+    "stock_pile": "Top-left area (~x=200, y=350). Click to draw a card.",
+    "waste_pile": "Next to stock (~x=400, y=350). Top card is playable.",
+    "foundations": "Top-right area, 4 piles (~x=1200-1800, y=350).",
+    "tableau": "7 columns below, spread across the middle of the screen (~y=500+).",
+    "menu": "Hamburger icon top-left corner or top bar."
+  },
+  "known_issues": [
+    "App may show ads between games — wait or dismiss.",
+    "Internet error popup appears if offline — just dismiss with Cancel.",
+    "Sign-in prompts appear periodically — skip/dismiss them.",
+    "The app sometimes opens a browser tab — NEVER close the browser, just switch back.",
+    "Card positions change every game — always use vision to locate cards.",
+    "Overlapping cards in tableau — only the bottom-most visible card in each column is playable.",
+    "Drag must start ON the card and end ON the target pile/column."
+  ],
+  "strategy_for_agent": [
+    "1. Open app, go fullscreen (F11), start new game (F2).",
+    "2. Look at the screen to identify all visible cards and their positions.",
+    "3. Check for Aces — move them to foundations immediately (double-click).",
+    "4. Look for obvious tableau moves (alternating colors, descending).",
+    "5. Draw from stock when no tableau moves available.",
+    "6. Use double_click for foundation moves (faster and more reliable than dragging).",
+    "7. Use drag(x1,y1,x2,y2) for tableau-to-tableau moves.",
+    "8. After each move, look at the screen to see the new state.",
+    "9. If stuck for 3+ turns, use H key for a hint.",
+    "10. Don't spend more than 2 look/screenshot actions in a row — act on what you see."
+  ]
+}

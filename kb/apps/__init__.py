@@ -164,47 +164,81 @@ class AppDB:
         data["feedback"] = data["feedback"][-50:]
         self._save(app_name, data)
 
-    def format_context(self, app_name: str, max_chars: int = 2000) -> str:
+    def format_context(self, app_name: str, max_chars: int = 3000) -> str:
         """
         Format app knowledge as context for LLM prompts.
         Returns a string to inject into the system/user prompt.
+        Handles rich profiles with game rules, strategies, launch tips, etc.
         """
         data = self._load(app_name)
-        if not data.get("shortcuts") and not data.get("tips") and not data.get("known_issues"):
+        if not data.get("shortcuts") and not data.get("tips") and not data.get("known_issues") and not data.get("launch"):
             return ""
 
         parts = [f"\n\nAPP KNOWLEDGE — {data['name']}:"]
 
         if data.get("exe"):
             parts.append(f"  Executable: {data['exe']}")
+        if data.get("version_note"):
+            parts.append(f"  Note: {data['version_note']}")
+
+        # Launch instructions
+        if data.get("launch"):
+            launch = data["launch"]
+            if launch.get("method"):
+                parts.append(f"  Launch: {launch['method']}")
+            if launch.get("fullscreen"):
+                parts.append(f"  Fullscreen: {launch['fullscreen']}")
+            if launch.get("startup_issues"):
+                parts.append("  Startup issues to handle:")
+                for issue in launch["startup_issues"]:
+                    parts.append(f"    - {issue}")
 
         if data.get("shortcuts"):
-            parts.append("  Keyboard shortcuts:")
-            for action, keys in data["shortcuts"].items():
-                parts.append(f"    {action}: {keys}")
+            sc = data["shortcuts"]
+            if isinstance(sc, dict):
+                parts.append("  Shortcuts: " + ", ".join(f"{k}={v}" for k, v in sc.items()))
 
-        if data.get("tools"):
-            parts.append("  Available tools (via UIA):")
-            for name, how in list(data["tools"].items())[:20]:
-                parts.append(f"    {name}: {how}")
+        # Game-specific knowledge (klondike, spider, etc.)
+        for key in ("klondike", "spider", "freecell"):
+            if data.get(key):
+                game = data[key]
+                parts.append(f"  {key.upper()} RULES:")
+                if game.get("rules"):
+                    parts.append(f"    {game['rules']}")
+                if game.get("goal"):
+                    parts.append(f"    Goal: {game['goal']}")
+                if game.get("new_game"):
+                    parts.append(f"    New game: {game['new_game']}")
+                if game.get("shortcuts"):
+                    parts.append("    Shortcuts: " + ", ".join(f"{k}={v}" for k, v in game["shortcuts"].items()))
+                if game.get("tips"):
+                    parts.append("    Tips:")
+                    for tip in game["tips"][:8]:
+                        parts.append(f"      - {tip}")
+
+        # Strategy for agent
+        if data.get("strategy_for_agent"):
+            parts.append("  STRATEGY:")
+            for step in data["strategy_for_agent"]:
+                parts.append(f"    {step}")
+
+        # UI layout hints
+        if data.get("ui_layout"):
+            layout = data["ui_layout"]
+            parts.append("  UI Layout:")
+            for k, v in layout.items():
+                if k != "note":
+                    parts.append(f"    {k}: {v}")
 
         if data.get("known_issues"):
             parts.append("  ⚠ Known issues:")
-            for issue in data["known_issues"]:
+            for issue in data["known_issues"][:8]:
                 parts.append(f"    - {issue}")
 
-        if data.get("tips"):
+        if data.get("tips") and not data.get("strategy_for_agent"):
             parts.append("  Tips:")
-            for tip in data["tips"]:
+            for tip in data["tips"][:8]:
                 parts.append(f"    - {tip}")
-
-        # Include recent negative feedback as warnings
-        if data.get("feedback"):
-            negatives = [f for f in data["feedback"] if not f["success"]][-5:]
-            if negatives:
-                parts.append("  Recent failures (avoid these mistakes):")
-                for f in negatives:
-                    parts.append(f"    - {f['context']}")
 
         result = "\n".join(parts)
         return result[:max_chars]
