@@ -389,10 +389,12 @@ class StepExecutor:
         target_app, target_exe = self._detect_target_app(task)
 
         # ── Decide mode: hybrid (plan+local) or remote-only ──
-        use_hybrid = self.local_llm is not None
+        # Hybrid plan-then-execute ONLY works for Paint drawing tasks.
+        # All other tasks (games, browsing, general desktop) use remote-only reactive mode.
+        use_hybrid = self.local_llm is not None and target_app == "Paint"
         plan = None
 
-        if use_hybrid and target_app == "Paint":
+        if use_hybrid:
             # Step 0: Run setup_paint FIRST to get canvas bounds
             yield {"type": "status", "data": "Setting up Paint canvas..."}
             setup_result = await self._execute_with_timeout("setup_paint", {})
@@ -419,24 +421,8 @@ class StepExecutor:
                     return
                 else:
                     yield {"type": "warning", "data": "Plan failed, falling back to remote-only mode"}
-                    use_hybrid = False
-        elif use_hybrid:
-            # Non-paint tasks: plan without canvas bounds
-            yield {"type": "status", "data": "🧠 Claude planning (1 remote call)..."}
-            plan = await self._get_plan(task, screen_state, action_catalog, None)
-            if plan:
-                self._log_event("plan", {"summary": plan.get("plan_summary", ""),
-                                          "steps": len(plan.get("steps", []))})
-                yield {"type": "step", "data":
-                    f"📋 Plan: {plan.get('plan_summary', '?')} ({len(plan.get('steps', []))} steps)"}
-                async for event in self._execute_plan(plan, task, target_app, target_exe):
-                    yield event
-                return
-            else:
-                yield {"type": "warning", "data": "Plan failed, falling back to remote-only mode"}
-                use_hybrid = False
 
-        # ── Remote-only fallback ──
+        # ── Remote-only reactive mode (games, browsing, general desktop) ──
         async for event in self._execute_remote_only(task, screen_state, action_catalog,
                                                        target_app, target_exe):
             yield event
