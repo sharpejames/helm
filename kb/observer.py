@@ -286,20 +286,24 @@ class Observer:
             import speech_recognition as sr
 
             recognizer = sr.Recognizer()
-            recognizer.energy_threshold = 300  # Sensitivity — lower = more sensitive
+            recognizer.energy_threshold = 300
             recognizer.dynamic_energy_threshold = True
-            recognizer.pause_threshold = 1.5   # Seconds of silence before phrase is considered complete
+            recognizer.pause_threshold = 1.5
 
             mic = sr.Microphone()
 
-            # Calibrate for ambient noise
             with mic as source:
                 logger.info("Audio: calibrating for ambient noise (2s)...")
                 recognizer.adjust_for_ambient_noise(source, duration=2)
                 logger.info(f"Audio: calibrated, energy_threshold={recognizer.energy_threshold:.0f}")
 
+            # Add a startup event so we know audio is working
+            self._recording.events.append(InputEvent(
+                ts=time.time(), type="speech",
+                data={"text": "[Audio recording started — speak to narrate your actions]"}
+            ))
+
             def _transcribe_callback(recognizer, audio):
-                """Called in a background thread when speech is detected."""
                 if not self._running:
                     return
                 speech_ts = time.time()
@@ -310,34 +314,52 @@ class Observer:
                             ts=speech_ts, type="speech",
                             data={"text": text.strip()}
                         ))
-                        logger.debug(f"Speech: '{text.strip()}'")
+                        logger.info(f"🎤 Speech: '{text.strip()}'")
                 except sr.UnknownValueError:
-                    pass  # No speech detected in this chunk
+                    pass
                 except sr.RequestError as e:
-                    logger.debug(f"Speech API error: {e}")
+                    logger.warning(f"Speech API error: {e}")
                 except Exception as e:
-                    logger.debug(f"Transcription error: {e}")
+                    logger.warning(f"Transcription error: {e}")
 
-            # Start listening in background — calls _transcribe_callback for each phrase
             stop_listening = recognizer.listen_in_background(mic, _transcribe_callback,
                                                               phrase_time_limit=10)
-            logger.info("Audio: listening for speech...")
+            logger.info("Audio: listening for speech — speak to narrate your actions")
 
-            # Keep thread alive while recording
             while self._running:
                 time.sleep(0.5)
 
-            # Stop the background listener
             stop_listening(wait_for_stop=False)
             logger.info("Audio: stopped listening")
 
-        except ImportError:
-            logger.warning("speech_recognition not installed — audio disabled. "
-                           "Install with: pip install SpeechRecognition")
+        except ImportError as e:
+            err = f"Audio FAILED: missing library — run: pip install SpeechRecognition PyAudio ({e})"
+            logger.error(err)
+            self._recording.events.append(InputEvent(
+                ts=time.time(), type="speech",
+                data={"text": f"[ERROR: {err}]"}
+            ))
+        except AttributeError as e:
+            err = f"Audio FAILED: PyAudio not installed — run: pip install PyAudio ({e})"
+            logger.error(err)
+            self._recording.events.append(InputEvent(
+                ts=time.time(), type="speech",
+                data={"text": f"[ERROR: {err}]"}
+            ))
         except OSError as e:
-            logger.warning(f"No microphone available: {e}")
+            err = f"Audio FAILED: no microphone available ({e})"
+            logger.error(err)
+            self._recording.events.append(InputEvent(
+                ts=time.time(), type="speech",
+                data={"text": f"[ERROR: {err}]"}
+            ))
         except Exception as e:
-            logger.error(f"Audio listener error: {e}")
+            err = f"Audio FAILED: {e}"
+            logger.error(err)
+            self._recording.events.append(InputEvent(
+                ts=time.time(), type="speech",
+                data={"text": f"[ERROR: {err}]"}
+            ))
 
 
 # Global singleton

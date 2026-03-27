@@ -12,6 +12,7 @@ Pillow>=10.0.0
 pywin32>=306
 pynput>=1.7.6
 SpeechRecognition>=3.10.0
+PyAudio>=0.2.13
 sounddevice>=0.4.6
 numpy>=1.24.0
 
