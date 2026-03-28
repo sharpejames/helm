@@ -27,7 +27,7 @@ import time
 from pathlib import Path
 from typing import Optional
 
-APPS_DIR = Path(__file__).parent / "apps"
+APPS_DIR = Path(__file__).parent
 
 
 class AppDB:

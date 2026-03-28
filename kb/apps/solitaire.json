@@ -1,46 +1,38 @@
 {
   "name": "Microsoft Solitaire Collection",
-  "exe": "solitaire",
+  "exe": "shell:appsFolder\\Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe!App",
   "window_title": "Solitaire & Casual Games",
   "version_note": "Windows 11 Microsoft Solitaire Collection (UWP Store app).",
 
   "startup_sequence": [
-    {"action": "press_key", "params": {"keys": ["win"]}, "note": "Open Start menu"},
-    {"action": "wait", "params": {"ms": 800}},
-    {"action": "type_text", "params": {"text": "solitaire"}, "note": "Search for app"},
-    {"action": "wait", "params": {"ms": 1500}},
-    {"action": "press_key", "params": {"keys": ["return"]}, "note": "Launch from search"},
-    {"action": "wait", "params": {"ms": 4000}, "note": "Wait for app to load"},
+    {"action": "open_app", "params": {"app_exe": "shell:appsFolder\\Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe!App", "window_title": "Solitaire & Casual Games", "wait_secs": 8}, "note": "Launch Solitaire via UWP URI"},
+    {"action": "wait", "params": {"ms": 2000}, "note": "Wait for app to fully load"},
     {"action": "press_key", "params": {"keys": ["escape"]}, "note": "Dismiss any popup"},
     {"action": "wait", "params": {"ms": 500}},
-    {"action": "press_key", "params": {"keys": ["escape"]}, "note": "Dismiss second popup if any"},
+    {"action": "press_key", "params": {"keys": ["escape"]}, "note": "Dismiss second popup"},
     {"action": "wait", "params": {"ms": 500}},
     {"action": "press_key", "params": {"keys": ["f11"]}, "note": "Go fullscreen"},
     {"action": "wait", "params": {"ms": 1000}},
-    {"action": "press_key", "params": {"keys": ["f2"]}, "note": "Start new game"},
+    {"action": "press_key", "params": {"keys": ["f2"]}, "note": "Start new Klondike game"},
     {"action": "wait", "params": {"ms": 2000}, "note": "Wait for new game to deal"}
   ],
 
   "launch": {
-    "method": "Use the startup_sequence above. open_app FAILS for this UWP app.",
+    "method": "Use open_app with the UWP URI: shell:appsFolder\\Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe!App",
     "startup_issues": [
       "Internet error popup — press Escape.",
       "Sign-in prompt — press Escape.",
       "Ad/video — press Escape.",
-      "Browser tab ad — DON'T close browser, focus back to Solitaire.",
+      "Browser tab ad — DON'T close browser, focus back.",
       "Settings dialog — press Escape.",
-      "Window title is 'Solitaire & Casual Games' not 'Solitaire'."
+      "Window title is 'Solitaire & Casual Games'."
     ]
   },
   "klondike": {
     "rules": "7 tableau columns, 4 foundations (top right), stock (top left), waste pile.",
     "goal": "Move all cards to foundations, Ace to King by suit.",
     "new_game": "Press F2.",
-    "shortcuts": {
-      "new_game": "F2",
-      "undo": "Ctrl+Z",
-      "hint": "H"
-    },
+    "shortcuts": {"new_game": "F2", "undo": "Ctrl+Z", "hint": "H"},
     "tips": [
       "Double-click a card to auto-move to foundation.",
       "Move Aces and 2s to foundations immediately.",
@@ -55,7 +47,6 @@
     "tableau": "7 columns below, ~y=550+ fullscreen."
   },
   "known_issues": [
-    "open_app FAILS for this UWP app — use startup_sequence instead.",
     "Vision model struggles to read small card values — ask specific questions.",
     "Clicking gear icon opens settings — press Escape to close.",
     "DO NOT declare DONE unless you made 5+ real card moves."

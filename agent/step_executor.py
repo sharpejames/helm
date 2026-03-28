@@ -812,17 +812,26 @@ class StepExecutor:
             self._log_event("startup_sequence", f"{len(seq)} steps", 0)
             for i, seq_step in enumerate(seq):
                 if self._stopped:
-                    break
+                    self._flush_log(task, "stopped")
+                    yield {"type": "done", "data": "Task stopped."}
+                    return
                 action = seq_step.get("action", "")
                 params = seq_step.get("params", {})
                 note = seq_step.get("note", action)
                 yield {"type": "status", "data": f"Startup {i+1}/{len(seq)}: {note}"}
                 result = await self._execute_with_timeout(action, params)
                 self._log_event("startup_step", {
-                    "action": action, "ok": result.ok, "note": note
+                    "action": action, "ok": result.ok, "note": note,
+                    "output": result.output[:100] if result.ok else result.error[:100],
                 }, 0)
                 if not result.ok:
                     yield {"type": "warning", "data": f"Startup step failed: {note} — continuing"}
+
+            if self._stopped:
+                self._flush_log(task, "stopped")
+                yield {"type": "done", "data": "Task stopped."}
+                return
+
             yield {"type": "step", "data": "✓ Startup sequence complete"}
             # Update the first message to tell the LLM the app is already open
             messages = [{"role": "user", "content": (
