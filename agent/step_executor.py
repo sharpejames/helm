@@ -898,18 +898,33 @@ class StepExecutor:
 
             if action_name == "DONE":
                 summary = params.get("summary", "Task completed")
-                # Validate: if we haven't done much real work, don't accept DONE
+                # Validate: check real actions AND verify with vision
                 real_actions = sum(1 for a in recent_actions
                                    if a.split(":")[0] not in ("look", "screenshot", "wait",
-                                                                "focus_app", "press_key"))
-                if real_actions < 3 and step > 5:
+                                                                "focus_app", "press_key",
+                                                                "scroll_page", "handle_unexpected"))
+                if real_actions < 5 and step > 5:
                     self._log_event("premature_done", f"Only {real_actions} real actions", step)
                     yield {"type": "warning", "data": f"⚠ Rejecting premature DONE — only {real_actions} real actions taken"}
                     messages.append({"role": "assistant", "content": raw})
                     messages.append({"role": "user", "content":
                         "You declared DONE but haven't actually completed the task. "
-                        "You've barely interacted with the app. Keep going — "
-                        "the task is NOT complete until you've actually done what was asked."})
+                        f"You've only made {real_actions} real interactions. "
+                        "Keep going — the task is NOT complete."})
+                    continue
+
+                # Vision verification: actually check if the task looks complete
+                verify = _ask_screen(
+                    f"The agent claims this task is done: '{task[:80]}'. "
+                    f"Does the screen show the task was actually completed? Answer YES or NO honestly.",
+                    scale=0.75)
+                if "no" in verify.lower() and "yes" not in verify.lower():
+                    self._log_event("done_rejected_vision", verify[:200], step)
+                    yield {"type": "warning", "data": f"⚠ Vision says NOT complete: {verify[:80]}"}
+                    messages.append({"role": "assistant", "content": raw})
+                    messages.append({"role": "user", "content":
+                        f"Vision verification says the task is NOT complete: {verify[:200]}. "
+                        "Keep working."})
                     continue
 
                 img = _screenshot_b64()
