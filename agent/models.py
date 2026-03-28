@@ -96,11 +96,12 @@ class LLMClient:
 
 
 class LocalLLMClient:
-    """Local LLM client via Ollama's native API."""
+    """Local LLM client via Ollama's native API.
+    Supports both text-only and vision (multimodal) queries."""
 
     def __init__(self, config: dict):
         cfg = config.get('local_llm', {})
-        self.model = cfg.get('model', 'qwen2.5:3b')
+        self.model = cfg.get('model', 'qwen3.5:4b')
         self.max_tokens = cfg.get('max_tokens', 2048)
         self.base_url = cfg.get('base_url', 'http://localhost:11434').rstrip('/')
         self._timeout = cfg.get('timeout', 30)
@@ -116,6 +117,7 @@ class LocalLLMClient:
             "model": self.model,
             "messages": msgs,
             "stream": False,
+            "think": False,  # Disable thinking for speed
             "options": {"num_predict": tokens, "temperature": 0.3},
         }
         r = self._session.post(f"{self.base_url}/api/chat", json=payload, timeout=t)
@@ -126,6 +128,26 @@ class LocalLLMClient:
         if not content:
             raise ValueError(f"Empty response from local LLM: {data}")
         return content
+
+    def ask_with_image(self, question: str, image_b64: str,
+                        max_tokens: int = 512, timeout: float = 30) -> str:
+        """Ask a question about an image. Uses Ollama's multimodal support."""
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "user", "content": question, "images": [image_b64]}
+            ],
+            "stream": False,
+            "think": False,  # Disable thinking for speed
+            "options": {"num_predict": max_tokens, "temperature": 0.2},
+        }
+        r = self._session.post(f"{self.base_url}/api/chat", json=payload,
+                                timeout=timeout)
+        r.raise_for_status()
+        data = r.json()
+        content = data.get("message", {}).get("content", "")
+        content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
+        return content or "no response"
 
 
 class ModelRouter:

@@ -44,7 +44,10 @@ def init_vision(config: dict):
     vcfg = config.get("vision", {})
     provider = vcfg.get("provider", "local")
 
-    if provider == "gemini" and vcfg.get("api_key"):
+    if provider == "ollama":
+        _vision_provider = "ollama"
+        logger.info("Vision: Ollama (local multimodal model)")
+    elif provider == "gemini" and vcfg.get("api_key"):
         try:
             import google.generativeai as genai
             genai.configure(api_key=vcfg["api_key"])
@@ -60,8 +63,10 @@ def init_vision(config: dict):
 
 
 def _ask_screen(question: str, scale: float = 0.5) -> str:
-    """Ask vision model about current screen. Uses Gemini if configured, else local."""
-    if _vision_provider == "gemini" and _gemini_model:
+    """Ask vision model about current screen. Routes to configured provider."""
+    if _vision_provider == "ollama":
+        return _ask_screen_ollama(question, scale)
+    elif _vision_provider == "gemini" and _gemini_model:
         return _ask_screen_gemini(question, scale)
     return _ask_screen_local(question, scale)
 
@@ -93,6 +98,26 @@ def _ask_screen_gemini(question: str, scale: float = 0.75) -> str:
         return response.text.strip()
     except Exception as e:
         logger.warning(f"Gemini vision error: {e}, falling back to local")
+        return _ask_screen_local(question, scale)
+
+
+def _ask_screen_ollama(question: str, scale: float = 0.75) -> str:
+    """Ask Ollama multimodal model about current screen. Fast and local."""
+    try:
+        from agent.models import get_local_llm
+        local = get_local_llm()
+        if not local:
+            return _ask_screen_local(question, scale)
+
+        # Get screenshot
+        r = requests.get(f"{CLAWMETHEUS_URL}/screenshot/base64?scale={scale}", timeout=10).json()
+        img_b64 = r.get("image", "")
+        if not img_b64:
+            return "no screenshot available"
+
+        return local.ask_with_image(question, img_b64, max_tokens=512, timeout=30)
+    except Exception as e:
+        logger.warning(f"Ollama vision error: {e}, falling back to local clawmetheus")
         return _ask_screen_local(question, scale)
 
 
