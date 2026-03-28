@@ -164,14 +164,16 @@ class AppDB:
         data["feedback"] = data["feedback"][-50:]
         self._save(app_name, data)
 
-    def format_context(self, app_name: str, max_chars: int = 3000) -> str:
+    def format_context(self, app_name: str, max_chars: int = 5000) -> str:
         """
         Format app knowledge as context for LLM prompts.
         Returns a string to inject into the system/user prompt.
         Handles rich profiles with game rules, strategies, launch tips, etc.
         """
         data = self._load(app_name)
-        if not data.get("shortcuts") and not data.get("tips") and not data.get("known_issues") and not data.get("launch"):
+        if not any(data.get(k) for k in ["shortcuts", "tips", "known_issues", "launch",
+                                           "strategy_for_agent", "startup_sequence",
+                                           "how_to_navigate_to_klondike_and_start_new_game"]):
             return ""
 
         parts = [f"\n\nAPP KNOWLEDGE — {data['name']}:"]
@@ -221,6 +223,17 @@ class AppDB:
             parts.append("  STRATEGY:")
             for step in data["strategy_for_agent"]:
                 parts.append(f"    {step}")
+
+        # How-to guides (learned from training or hand-written)
+        for key, val in data.items():
+            if key.startswith("how_to_") and isinstance(val, dict):
+                title = key.replace("how_to_", "").replace("_", " ").upper()
+                parts.append(f"  HOW TO {title}:")
+                if val.get("description"):
+                    parts.append(f"    {val['description']}")
+                if val.get("steps"):
+                    for step in val["steps"]:
+                        parts.append(f"    {step}")
 
         # UI layout hints
         if data.get("ui_layout"):

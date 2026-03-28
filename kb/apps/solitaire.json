@@ -2,7 +2,6 @@
   "name": "Microsoft Solitaire Collection",
   "exe": "shell:appsFolder\\Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe!App",
   "window_title": "Solitaire & Casual Games",
-  "version_note": "Windows 11 Microsoft Solitaire Collection (UWP Store app).",
 
   "startup_sequence": [
     {"action": "open_app", "params": {"app_exe": "shell:appsFolder\\Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe!App", "window_title": "Solitaire & Casual Games", "wait_secs": 8}, "note": "Launch Solitaire via UWP URI"},
@@ -15,67 +14,67 @@
     {"action": "wait", "params": {"ms": 1500}, "note": "Wait for fullscreen transition"}
   ],
 
-  "launch": {
-    "method": "Use the startup_sequence. After startup, the LLM must click on Klondike tile and start a new game.",
-    "post_startup_instructions": "After the startup sequence, you MUST: 1) Look at the screen to find the Klondike game tile, 2) Click on it, 3) If a game is in progress, click 'New' on the bottom toolbar then 'End Game', 4) Select Easy difficulty, 5) Then start playing.",
-    "startup_issues": [
-      "Internet error popup — press Escape.",
-      "Sign-in prompt — press Escape.",
-      "The app remembers the LAST game played (might be Spider, FreeCell, etc.) — you MUST click on Klondike specifically.",
-      "Window title is 'Solitaire & Casual Games'."
-    ]
-  },
   "klondike": {
-    "rules": "7 tableau columns, 4 foundations (top right), stock (top left), waste pile.",
+    "rules": "7 tableau columns, 4 foundations (top right), stock (top left), waste pile. Build down alternating colors on tableau, build up by suit on foundations.",
     "goal": "Move all cards to foundations, Ace to King by suit.",
-    "how_to_start_new_game": "Click the Klondike tile in the top game bar. If a game is in progress, click 'New' button on the bottom toolbar, then click 'End Game' (gold button), then select Easy difficulty.",
     "shortcuts": {
-      "new_game": "F2",
-      "undo": "Ctrl+Z",
-      "hint": "H",
-      "draw_card": "D",
-      "fullscreen": "F11",
-      "menu": "Escape",
-      "play_card": "Enter",
-      "select_column": "Arrow keys"
-    },
-    "tips": [
-      "SINGLE-CLICK a card to auto-move it to the best valid position — much easier than dragging.",
-      "Clicking a card in a stack moves the entire sub-stack together.",
-      "Move Aces and 2s to foundations immediately by single-clicking them.",
-      "After inactivity, the game highlights the next suggested move with a yellowish glow.",
-      "Use H key for on-demand hints.",
-      "When stock pile is empty, click the empty stock area to recycle drawn cards.",
-      "Click through all face-up tableau cards after each stock draw to find all moves.",
-      "Move Kings to empty tableau columns immediately to free up hidden cards.",
-      "Use D key to draw from stock pile instead of clicking it."
+      "new_game": "F2", "undo": "Ctrl+Z", "hint": "H", "draw_card": "D",
+      "fullscreen": "F11", "menu": "Escape"
+    }
+  },
+
+  "how_to_navigate_to_klondike_and_start_new_game": {
+    "description": "EXACT step-by-step UI flow learned from human demonstration. Follow these steps IN ORDER.",
+    "steps": [
+      "1. After the app opens, you see a game selection screen with tiles: Klondike, Spider, FreeCell, Pyramid, TriPeaks across the top.",
+      "2. Look at the screen and find the 'Klondike' tile. It's usually the FIRST tile on the LEFT. Click it.",
+      "3. If a previous game loads (you see cards on the board), you need to start a NEW game:",
+      "   a. Look at the BOTTOM of the screen for a toolbar with buttons.",
+      "   b. Find and click the 'New' button on the bottom toolbar.",
+      "   c. A dialog appears asking 'End Game or Cancel'. Click the GOLD/YELLOW 'End Game' button.",
+      "   d. A difficulty selection screen appears with Easy, Medium, Hard options.",
+      "   e. Click 'Easy' (or whichever difficulty you want).",
+      "   f. You may see a card back selection screen. Just click any card back design.",
+      "   g. Look for a big 'PLAY' button and click it. The new game will start.",
+      "4. If no previous game exists, clicking Klondike goes straight to difficulty selection.",
+      "5. On the difficulty screen: click Easy, choose a card back, click PLAY.",
+      "6. The game board appears with 7 tableau columns, stock pile top-left, foundations top-right."
     ]
   },
-  "ui_layout": {
-    "game_tiles": "Top row shows game options: Klondike (usually first/leftmost), Spider, FreeCell, Pyramid, TriPeaks.",
-    "stock_pile": "Top-left of game area when playing.",
-    "waste_pile": "Right of stock pile.",
-    "foundations": "Top-right, 4 piles.",
-    "tableau": "7 columns below the top row.",
-    "bottom_toolbar": "Bottom of screen has New, Undo, Hint, and other buttons.",
-    "new_button": "Bottom toolbar — click to start a new game (then confirm 'End Game')."
+
+  "how_to_play_klondike": {
+    "description": "How to actually play the game once the board is visible.",
+    "steps": [
+      "1. SINGLE-CLICK any face-up card to auto-move it to the best valid position. The game figures out where it goes.",
+      "2. Move Aces to foundations immediately — single-click them and they go to the top-right foundation area.",
+      "3. After moving an Ace, the 2 of the same suit can also go up — single-click it.",
+      "4. Click through ALL face-up cards in the tableau to find any that can auto-move.",
+      "5. When no more tableau moves: click the stock pile (top-left deck) or press D to draw a new card.",
+      "6. Check the drawn card (waste pile, right of stock) — single-click it to play if possible.",
+      "7. Repeat: click all face-up cards, draw from stock, click all face-up cards again.",
+      "8. If stuck: press H for a hint — the game highlights the suggested card with a yellow glow.",
+      "9. Clicking a card in a stack moves the entire sub-stack together (e.g., clicking a 7 also moves the 6 on it).",
+      "10. When stock pile is empty, click the empty stock area to recycle/reshuffle drawn cards."
+    ]
   },
+
   "known_issues": [
     "The app opens the LAST game played — might be Spider, not Klondike. Always click Klondike tile first.",
-    "Vision model struggles to read small card values — use single-click auto-move instead of trying to read and drag.",
-    "DO NOT declare DONE unless you made 5+ real card moves.",
-    "F2 starts a new game of the CURRENT game type — make sure Klondike is selected first."
+    "On the difficulty screen, there is a big PLAY button — you MUST click it after selecting difficulty.",
+    "DO NOT declare DONE unless you made 5+ real card moves on the actual game board.",
+    "If you see 'How to Play' screen, press the Back button (top-left) or Escape to return to the game."
   ],
+
   "strategy_for_agent": [
-    "1. Startup sequence handles launch, popups, and fullscreen automatically.",
-    "2. FIRST: Look at the screen. Find and click the 'Klondike' game tile in the top row.",
-    "3. If a game is in progress, click 'New' on the bottom toolbar, then 'End Game', then select 'Easy'.",
-    "4. If no game is in progress, the game starts automatically after clicking Klondike.",
-    "5. To play: SINGLE-CLICK face-up cards to auto-move them. The game figures out where they go.",
-    "6. Click the stock pile (top-left) or press D to draw new cards when no moves available.",
-    "7. Press H for hints if stuck.",
-    "8. NEVER spend more than 1 look in a row — look once, then act.",
-    "9. NEVER declare DONE until 5+ real card moves made.",
-    "10. If the screen shows a menu or dialog, press Escape to dismiss it."
+    "1. Startup sequence handles launch, popups, and fullscreen.",
+    "2. Look at the screen. Follow 'how_to_navigate_to_klondike_and_start_new_game' steps exactly.",
+    "3. Click Klondike tile. If previous game loads, click New → End Game → Easy → PLAY.",
+    "4. If difficulty screen shows, click Easy, then click the big PLAY button.",
+    "5. Once the game board is visible with 7 columns of cards:",
+    "6. SINGLE-CLICK every face-up card to auto-move it. Start from left column to right.",
+    "7. When no cards move, press D to draw from stock, then click all face-up cards again.",
+    "8. Press H for hints if stuck.",
+    "9. NEVER look more than once in a row. Look → Act → Look → Act.",
+    "10. NEVER declare DONE until 5+ real card moves made on the actual game board."
   ]
 }
