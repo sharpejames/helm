@@ -3,149 +3,79 @@
   "exe": "shell:appsFolder\\Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe!App",
   "window_title": "Solitaire & Casual Games",
   "version_note": "Windows 11 Microsoft Solitaire Collection (UWP Store app).",
+
   "startup_sequence": [
-    {
-      "action": "open_app",
-      "params": {
-        "app_exe": "shell:appsFolder\\Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe!App",
-        "window_title": "Solitaire & Casual Games",
-        "wait_secs": 8
-      },
-      "note": "Launch Solitaire via UWP URI"
-    },
-    {
-      "action": "wait",
-      "params": {
-        "ms": 2000
-      },
-      "note": "Wait for app to fully load"
-    },
-    {
-      "action": "press_key",
-      "params": {
-        "keys": [
-          "escape"
-        ]
-      },
-      "note": "Dismiss any popup"
-    },
-    {
-      "action": "wait",
-      "params": {
-        "ms": 500
-      }
-    },
-    {
-      "action": "press_key",
-      "params": {
-        "keys": [
-          "escape"
-        ]
-      },
-      "note": "Dismiss second popup"
-    },
-    {
-      "action": "wait",
-      "params": {
-        "ms": 500
-      }
-    },
-    {
-      "action": "press_key",
-      "params": {
-        "keys": [
-          "f11"
-        ]
-      },
-      "note": "Go fullscreen"
-    },
-    {
-      "action": "wait",
-      "params": {
-        "ms": 1000
-      }
-    },
-    {
-      "action": "press_key",
-      "params": {
-        "keys": [
-          "f2"
-        ]
-      },
-      "note": "Start new Klondike game"
-    },
-    {
-      "action": "wait",
-      "params": {
-        "ms": 2000
-      },
-      "note": "Wait for new game to deal"
-    }
+    {"action": "open_app", "params": {"app_exe": "shell:appsFolder\\Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe!App", "window_title": "Solitaire & Casual Games", "wait_secs": 8}, "note": "Launch Solitaire via UWP URI"},
+    {"action": "wait", "params": {"ms": 3000}, "note": "Wait for app to fully load"},
+    {"action": "press_key", "params": {"keys": ["escape"]}, "note": "Dismiss any popup"},
+    {"action": "wait", "params": {"ms": 500}},
+    {"action": "press_key", "params": {"keys": ["escape"]}, "note": "Dismiss second popup"},
+    {"action": "wait", "params": {"ms": 500}},
+    {"action": "press_key", "params": {"keys": ["f11"]}, "note": "Go fullscreen"},
+    {"action": "wait", "params": {"ms": 1500}, "note": "Wait for fullscreen transition"}
   ],
+
   "launch": {
-    "method": "Use open_app with the UWP URI: shell:appsFolder\\Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe!App",
+    "method": "Use the startup_sequence. After startup, the LLM must click on Klondike tile and start a new game.",
+    "post_startup_instructions": "After the startup sequence, you MUST: 1) Look at the screen to find the Klondike game tile, 2) Click on it, 3) If a game is in progress, click 'New' on the bottom toolbar then 'End Game', 4) Select Easy difficulty, 5) Then start playing.",
     "startup_issues": [
       "Internet error popup — press Escape.",
       "Sign-in prompt — press Escape.",
-      "Ad/video — press Escape.",
-      "Browser tab ad — DON'T close browser, focus back.",
-      "Settings dialog — press Escape.",
+      "The app remembers the LAST game played (might be Spider, FreeCell, etc.) — you MUST click on Klondike specifically.",
       "Window title is 'Solitaire & Casual Games'."
     ]
   },
   "klondike": {
     "rules": "7 tableau columns, 4 foundations (top right), stock (top left), waste pile.",
     "goal": "Move all cards to foundations, Ace to King by suit.",
-    "new_game": "Press F2.",
+    "how_to_start_new_game": "Click the Klondike tile in the top game bar. If a game is in progress, click 'New' button on the bottom toolbar, then click 'End Game' (gold button), then select Easy difficulty.",
     "shortcuts": {
       "new_game": "F2",
       "undo": "Ctrl+Z",
       "hint": "H",
-      "Start a new game": "F2",
-      "Draw a card from stock": "D",
-      "Show hint": "H",
-      "Open How to Play guide": "F1",
-      "View statistics": "F4",
-      "Toggle full screen": "F11",
-      "Open/close menu": "Escape",
-      "Play/move a card": "Enter",
-      "Select a column": "Arrow keys",
-      "Jump between menus": "Tab"
+      "draw_card": "D",
+      "fullscreen": "F11",
+      "menu": "Escape",
+      "play_card": "Enter",
+      "select_column": "Arrow keys"
     },
     "tips": [
-      "Double-click a card to auto-move to foundation.",
-      "Move Aces and 2s to foundations immediately.",
-      "Use H key for hints when stuck.",
-      "Press H multiple times to cycle hints.",
-      "Single-clicking a card auto-moves it to the best valid position — no need to drag unless you want to choose a specific destination",
-      "Clicking a card in a stack (e.g., a 7 with a 6 on it) moves the entire sub-stack together",
-      "After a period of inactivity, the game highlights the next suggested move with a yellowish glow (hint system)",
-      "Use the 'H' key for on-demand hints instead of waiting for the automatic highlight",
-      "When the stock pile is exhausted (empty), click the empty stock area to recycle/reshuffle the drawn cards",
-      "Systematically click through all face-up tableau cards after each stock draw to find all available moves before drawing again",
-      "Combine visual scanning with clicking — experienced players can visually identify valid moves faster than clicking every card",
-      "Move Kings to empty tableau columns immediately to free up hidden cards"
+      "SINGLE-CLICK a card to auto-move it to the best valid position — much easier than dragging.",
+      "Clicking a card in a stack moves the entire sub-stack together.",
+      "Move Aces and 2s to foundations immediately by single-clicking them.",
+      "After inactivity, the game highlights the next suggested move with a yellowish glow.",
+      "Use H key for on-demand hints.",
+      "When stock pile is empty, click the empty stock area to recycle drawn cards.",
+      "Click through all face-up tableau cards after each stock draw to find all moves.",
+      "Move Kings to empty tableau columns immediately to free up hidden cards.",
+      "Use D key to draw from stock pile instead of clicking it."
     ]
   },
   "ui_layout": {
-    "stock_pile": "Top-left of game area, ~x=350-450, y=300-400 fullscreen.",
-    "waste_pile": "Right of stock, ~x=550-650, y=300-400.",
-    "foundations": "Top-right, 4 piles, ~x=1100-1900, y=300-400.",
-    "tableau": "7 columns below, ~y=550+ fullscreen."
+    "game_tiles": "Top row shows game options: Klondike (usually first/leftmost), Spider, FreeCell, Pyramid, TriPeaks.",
+    "stock_pile": "Top-left of game area when playing.",
+    "waste_pile": "Right of stock pile.",
+    "foundations": "Top-right, 4 piles.",
+    "tableau": "7 columns below the top row.",
+    "bottom_toolbar": "Bottom of screen has New, Undo, Hint, and other buttons.",
+    "new_button": "Bottom toolbar — click to start a new game (then confirm 'End Game')."
   },
   "known_issues": [
-    "Vision model struggles to read small card values — ask specific questions.",
-    "Clicking gear icon opens settings — press Escape to close.",
-    "DO NOT declare DONE unless you made 5+ real card moves."
+    "The app opens the LAST game played — might be Spider, not Klondike. Always click Klondike tile first.",
+    "Vision model struggles to read small card values — use single-click auto-move instead of trying to read and drag.",
+    "DO NOT declare DONE unless you made 5+ real card moves.",
+    "F2 starts a new game of the CURRENT game type — make sure Klondike is selected first."
   ],
   "strategy_for_agent": [
-    "1. The startup_sequence handles launching, fullscreen, and new game automatically.",
-    "2. After startup, use look('Describe all visible cards in the 7 tableau columns.') to read the board.",
-    "3. Move Aces to foundations immediately (double_click on the Ace).",
-    "4. Look for tableau moves: alternating colors, descending rank.",
-    "5. Click stock pile (top-left) to draw when no moves available.",
-    "6. Press H for hints if stuck.",
-    "7. NEVER spend more than 1 look in a row — look once, then act.",
-    "8. NEVER declare DONE until 5+ real card moves made."
+    "1. Startup sequence handles launch, popups, and fullscreen automatically.",
+    "2. FIRST: Look at the screen. Find and click the 'Klondike' game tile in the top row.",
+    "3. If a game is in progress, click 'New' on the bottom toolbar, then 'End Game', then select 'Easy'.",
+    "4. If no game is in progress, the game starts automatically after clicking Klondike.",
+    "5. To play: SINGLE-CLICK face-up cards to auto-move them. The game figures out where they go.",
+    "6. Click the stock pile (top-left) or press D to draw new cards when no moves available.",
+    "7. Press H for hints if stuck.",
+    "8. NEVER spend more than 1 look in a row — look once, then act.",
+    "9. NEVER declare DONE until 5+ real card moves made.",
+    "10. If the screen shows a menu or dialog, press Escape to dismiss it."
   ]
 }

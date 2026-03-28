@@ -32,8 +32,12 @@ async def chat(request: Request):
 
     async def event_stream():
         try:
+            import asyncio
+            last_event_time = asyncio.get_event_loop().time()
+
             async for event in executor.stream_task(message):
                 yield f"data: {json.dumps(event)}\n\n"
+                last_event_time = asyncio.get_event_loop().time()
 
                 # Save artifacts and status updates in their own DB sessions
                 try:
