@@ -558,6 +558,29 @@ class StepExecutor:
             # Handle DONE
             if action_name == "DONE":
                 summary = params.get("summary", "Task completed")
+
+                # Vision verification before accepting completion
+                verify = await asyncio.to_thread(
+                    _ask_screen,
+                    f"The task was: '{task[:100]}'. The agent says it's done. "
+                    f"Does the screen show a reasonable result? Is the work visible and recognizable? "
+                    f"YES or NO with brief reason.",
+                    0.75)
+                self._log_event("done_verify", verify[:300], step_num)
+                yield {"type": "step", "data": f"🔍 Verify: {verify[:100]}"}
+
+                if "no" in verify.lower() and "yes" not in verify.lower() and replan_count < 2:
+                    replan_count += 1
+                    yield {"type": "warning", "data": f"⚠ Result doesn't look right. Replanning..."}
+                    new_plan = await self._replan(task, plan, plan_idx,
+                                                   f"Vision says result is wrong: {verify[:200]}")
+                    if new_plan and new_plan.get("steps"):
+                        plan = new_plan
+                        steps = plan["steps"]
+                        plan_idx = 0
+                        yield {"type": "step", "data": f"📋 Fixing: {len(steps)} steps"}
+                        continue
+
                 self._log_event("task_done", summary, step_num)
                 img = _screenshot_b64()
                 if img:
@@ -665,13 +688,45 @@ class StepExecutor:
                         "label": f"Step {step_num}: {action_name}"
                     }}
 
-            # Progress check every 15 drawing steps
-            DRAWING_ACTIONS = {"paint_draw", "paint_fill_at", "paint_draw_shape"}
-            if action_name in DRAWING_ACTIONS and step_num % 15 == 0 and step_num > 5:
-                progress = _ask_screen(
-                    "Briefly describe what has been drawn on the canvas so far. "
-                    "What colors are visible? Is anything wrong?")
-                self._log_event("progress_check", progress[:300], step_num)
+            # ── Universal vision checkpoint ──
+            # Every 10 steps, verify things are on track (works for any app)
+            if step_num % 10 == 0 and step_num > 3:
+                check = await asyncio.to_thread(
+                    _ask_screen,
+                    f"Task: '{task[:80]}'. Look at the screen. "
+                    f"Is progress being made toward this task? "
+                    f"Is anything wrong (wrong app, wrong screen, errors, blank canvas, "
+                    f"invisible drawing, wrong colors)? Answer briefly.",
+                    0.75)
+                self._log_event("vision_checkpoint", check[:300], step_num)
+                yield {"type": "step", "data": f"🔍 Check: {check[:100]}"}
+
+                # If something is clearly wrong, trigger a replan
+                check_lower = check.lower()
+                if any(kw in check_lower for kw in ["wrong", "error", "blank", "nothing", "invisible",
+                                                      "empty canvas", "not visible", "incorrect"]):
+                    if replan_count < 2:
+                        replan_count += 1
+                        yield {"type": "warning", "data": f"⚠ Vision detected issue: {check[:80]}. Replanning..."}
+                        new_plan = await self._replan(task, plan, plan_idx,
+                                                       f"Vision checkpoint: {check[:200]}")
+                        if new_plan and new_plan.get("steps"):
+                            plan = new_plan
+                            steps = plan["steps"]
+                            plan_idx = 0
+                            yield {"type": "step", "data": f"📋 Replanned: {len(steps)} steps"}
+                            continue
+
+            # Pre-save verification: before saving, check the result looks right
+            if action_name == "save_file" and result.ok:
+                verify = await asyncio.to_thread(
+                    _ask_screen,
+                    f"The task was: '{task[:80]}'. The file was just saved. "
+                    f"Does the result on screen look like a reasonable attempt at this task? "
+                    f"Is the drawing/work visible and recognizable? YES or NO with brief reason.",
+                    0.75)
+                self._log_event("pre_save_verify", verify[:300], step_num)
+                yield {"type": "step", "data": f"🔍 Save check: {verify[:100]}"}
 
             # Urgent save reminder
             remaining = MAX_STEPS - step_num
@@ -1036,6 +1091,18 @@ class StepExecutor:
                         f"If you can't find a button, try a different approach entirely."})
                     continue
 
+            # ── Universal vision checkpoint (every 10 steps) ──
+            if step % 10 == 0 and step > 3:
+                check = await asyncio.to_thread(
+                    _ask_screen,
+                    f"Task: '{task[:80]}'. Is progress being made? "
+                    f"Is anything wrong (wrong app, errors, blank screen, invisible work)? Brief answer.",
+                    0.75)
+                self._log_event("vision_checkpoint", check[:300], step)
+                feedback_extra = f"\n🔍 VISION CHECK: {check[:200]}"
+            else:
+                feedback_extra = ""
+
             # Build feedback
             active_win = _get_active_window()
             feedback = f"{'OK' if result.ok else 'FAIL'}: {(result.output if result.ok else result.error)[:200]}"
@@ -1047,6 +1114,7 @@ class StepExecutor:
             if remaining <= 10:
                 feedback += f"\n⚠ ONLY {remaining} STEPS LEFT — SAVE NOW."
 
+            feedback += feedback_extra
             feedback += "\nNext?"
             messages.append({"role": "assistant", "content": raw})
             messages.append({"role": "user", "content": feedback})
