@@ -799,9 +799,14 @@ class StepExecutor:
         if target_app:
             app_profile = app_db.get(target_app)
             if not app_profile.get("startup_sequence"):
-                # Try aliases
+                # Try first word of target_app (e.g. "Solitaire" from "Solitaire & Casual Games")
+                first_word = target_app.split()[0]
+                app_profile = app_db.get(first_word)
+            if not app_profile.get("startup_sequence"):
+                # Try all known apps for substring match
                 for name in app_db.list_apps():
-                    if target_app.lower() in name.lower() or name.lower() in target_app.lower():
+                    if (target_app.lower().split()[0] in name.lower() or
+                        name.lower().split()[0] in target_app.lower()):
                         app_profile = app_db.get(name)
                         if app_profile.get("startup_sequence"):
                             break
