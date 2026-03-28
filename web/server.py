@@ -28,6 +28,10 @@ def create_app(config: dict, scheduler) -> FastAPI:
     from agent.models import init_llm
     init_llm(config)
 
+    # Initialize vision provider (Gemini or local)
+    from agent.actions import init_vision
+    init_vision(config)
+
     # Executor mode: "step" (new, step-by-step) or "script" (legacy, monolithic)
     executor_mode = config.get("executor", {}).get("mode", "step")
     if executor_mode == "script":

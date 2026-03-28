@@ -32,15 +32,68 @@ sys.path.insert(0, HELM_ROOT)
 
 CLAWMETHEUS_URL = "http://127.0.0.1:7331"
 
+# Vision provider: "local" (clawmetheus/Qwen) or "gemini" (Google cloud)
+# Set by init_vision() from config.yaml
+_vision_provider = "local"
+_gemini_model = None
+
+
+def init_vision(config: dict):
+    """Initialize vision provider from config."""
+    global _vision_provider, _gemini_model
+    vcfg = config.get("vision", {})
+    provider = vcfg.get("provider", "local")
+
+    if provider == "gemini" and vcfg.get("api_key"):
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=vcfg["api_key"])
+            _gemini_model = genai.GenerativeModel(vcfg.get("model", "gemini-2.5-flash"))
+            _vision_provider = "gemini"
+            logger.info(f"Vision: Gemini ({vcfg.get('model', 'gemini-2.5-flash')})")
+        except Exception as e:
+            logger.warning(f"Gemini init failed, falling back to local: {e}")
+            _vision_provider = "local"
+    else:
+        _vision_provider = "local"
+        logger.info("Vision: local (clawmetheus/Qwen)")
+
 
 def _ask_screen(question: str, scale: float = 0.5) -> str:
-    """Ask vision model about current screen. Use scale=0.75 for detailed UI reading."""
+    """Ask vision model about current screen. Uses Gemini if configured, else local."""
+    if _vision_provider == "gemini" and _gemini_model:
+        return _ask_screen_gemini(question, scale)
+    return _ask_screen_local(question, scale)
+
+
+def _ask_screen_local(question: str, scale: float = 0.5) -> str:
+    """Ask local vision model (clawmetheus/Qwen) about current screen."""
     try:
         q = urllib.parse.quote(question)
         r = requests.get(f"{CLAWMETHEUS_URL}/ask?q={q}&scale={scale}", timeout=60).json()
         return r.get("answer", "unknown")
     except Exception as e:
         return f"vision error: {e}"
+
+
+def _ask_screen_gemini(question: str, scale: float = 0.75) -> str:
+    """Ask Gemini vision about current screen. More accurate but slower."""
+    try:
+        # Get screenshot
+        r = requests.get(f"{CLAWMETHEUS_URL}/screenshot/base64?scale={scale}", timeout=10).json()
+        img_b64 = r.get("image", "")
+        if not img_b64:
+            return "no screenshot available"
+
+        img_bytes = base64.b64decode(img_b64)
+        response = _gemini_model.generate_content([
+            question,
+            {"mime_type": "image/png", "data": img_bytes}
+        ])
+        return response.text.strip()
+    except Exception as e:
+        logger.warning(f"Gemini vision error: {e}, falling back to local")
+        return _ask_screen_local(question, scale)
 
 
 def _screenshot_b64() -> str | None:
