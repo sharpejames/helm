@@ -86,7 +86,7 @@
           <span class="font-medium text-sm">Test Single Action</span>
         </div>
         <div class="flex gap-2 mb-2">
-          <select id="skill-action" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+          <select id="skill-action" onchange="updateSkillPlaceholder()" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
             <option value="open_website">open_website</option>
             <option value="open_app">open_app</option>
             <option value="click">click</option>
@@ -101,7 +101,7 @@
             <option value="upload_file">upload_file</option>
             <option value="dismiss_popup">dismiss_popup</option>
           </select>
-          <input id="skill-params" type="text" placeholder='{"url":"https://x.com/i/grok"}'
+          <input id="skill-params" type="text" placeholder='{"url":"https://example.com"}'
             class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-blue-500 placeholder-gray-600">
           <button onclick="testStep()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-medium">▶ Run</button>
         </div>
@@ -696,6 +696,28 @@ async function testConnection() {
 }
 
 // ── Skill Builder ─────────────────────────────────────────────────────────────
+const SKILL_TEMPLATES = {
+  open_website: '{"url":"https://x.com/i/grok"}',
+  open_app: '{"app_exe":"solitaire","window_title":"Solitaire"}',
+  click: '{"x":500,"y":300}',
+  double_click: '{"x":500,"y":300}',
+  type_text: '{"text":"hello world"}',
+  press_key: '{"keys":["enter"]}',
+  look: '{"question":"What is on screen?"}',
+  screenshot: '{}',
+  focus_app: '{"window_title":"Chrome"}',
+  wait: '{"ms":2000}',
+  drag: '{"x1":100,"y1":100,"x2":500,"y2":300}',
+  upload_file: '{"filepath":"C:\\\\Users\\\\sharp\\\\Pictures\\\\drawing.png"}',
+  dismiss_popup: '{}',
+};
+function updateSkillPlaceholder() {
+  const action = document.getElementById('skill-action').value;
+  const input = document.getElementById('skill-params');
+  input.placeholder = SKILL_TEMPLATES[action] || '{}';
+  input.value = SKILL_TEMPLATES[action] || '{}';
+}
+
 async function testStep() {
   const action = document.getElementById('skill-action').value;
   const paramsStr = document.getElementById('skill-params').value.trim();
