@@ -85,26 +85,26 @@
           <span class="text-lg">⚡</span>
           <span class="font-medium text-sm">Test Single Action</span>
         </div>
-        <div class="flex gap-2 mb-2">
-          <select id="skill-action" onchange="updateSkillPlaceholder()" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
-            <option value="open_website">open_website</option>
-            <option value="open_app">open_app</option>
-            <option value="click">click</option>
-            <option value="double_click">double_click</option>
-            <option value="type_text">type_text</option>
-            <option value="press_key">press_key</option>
-            <option value="look">look</option>
-            <option value="screenshot">screenshot</option>
-            <option value="focus_app">focus_app</option>
-            <option value="wait">wait</option>
-            <option value="drag">drag</option>
-            <option value="upload_file">upload_file</option>
-            <option value="dismiss_popup">dismiss_popup</option>
+        <div class="mb-2">
+          <select id="skill-action" onchange="updateSkillFields()" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+            <option value="open_website">Open Website</option>
+            <option value="open_app">Open App</option>
+            <option value="click">Click at Position</option>
+            <option value="double_click">Double Click</option>
+            <option value="type_text">Type Text</option>
+            <option value="press_key">Press Key</option>
+            <option value="look">Look at Screen</option>
+            <option value="screenshot">Take Screenshot</option>
+            <option value="focus_app">Focus App</option>
+            <option value="wait">Wait</option>
+            <option value="drag">Drag</option>
+            <option value="dismiss_popup">Dismiss Popup</option>
           </select>
-          <input id="skill-params" type="text" placeholder='{"url":"https://example.com"}'
-            class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-blue-500 placeholder-gray-600">
-          <button onclick="testStep()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-medium">▶ Run</button>
         </div>
+        <div id="skill-fields" class="space-y-2 mb-3">
+          <input id="sf-url" type="text" placeholder="https://x.com/i/grok" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 placeholder-gray-600">
+        </div>
+        <button onclick="testStep()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-medium">▶ Run</button>
         <div id="skill-result" class="text-xs text-gray-400 mt-2"></div>
         <img id="skill-screenshot" class="hidden rounded mt-2 max-w-full" style="max-height:200px;cursor:pointer" onclick="this.style.maxHeight=this.style.maxHeight?'':'200px'">
       </div>
@@ -696,35 +696,56 @@ async function testConnection() {
 }
 
 // ── Skill Builder ─────────────────────────────────────────────────────────────
-const SKILL_TEMPLATES = {
-  open_website: '{"url":"https://x.com/i/grok"}',
-  open_app: '{"app_exe":"solitaire","window_title":"Solitaire"}',
-  click: '{"x":500,"y":300}',
-  double_click: '{"x":500,"y":300}',
-  type_text: '{"text":"hello world"}',
-  press_key: '{"keys":["enter"]}',
-  look: '{"question":"What is on screen?"}',
-  screenshot: '{}',
-  focus_app: '{"window_title":"Chrome"}',
-  wait: '{"ms":2000}',
-  drag: '{"x1":100,"y1":100,"x2":500,"y2":300}',
-  upload_file: '{"filepath":"C:\\\\Users\\\\sharp\\\\Pictures\\\\drawing.png"}',
-  dismiss_popup: '{}',
+const SKILL_FIELDS = {
+  open_website: [{id:'url', label:'URL', placeholder:'https://x.com/i/grok', type:'text'}],
+  open_app: [{id:'app_exe', label:'App name or path', placeholder:'solitaire', type:'text'}, {id:'window_title', label:'Window title', placeholder:'Solitaire', type:'text'}],
+  click: [{id:'x', label:'X', placeholder:'500', type:'number'}, {id:'y', label:'Y', placeholder:'300', type:'number'}],
+  double_click: [{id:'x', label:'X', placeholder:'500', type:'number'}, {id:'y', label:'Y', placeholder:'300', type:'number'}],
+  type_text: [{id:'text', label:'Text to type', placeholder:'hello world', type:'text'}],
+  press_key: [{id:'keys', label:'Keys (comma separated)', placeholder:'ctrl,s', type:'text'}],
+  look: [{id:'question', label:'Question', placeholder:'What is on screen?', type:'text'}],
+  screenshot: [],
+  focus_app: [{id:'window_title', label:'Window title', placeholder:'Chrome', type:'text'}],
+  wait: [{id:'ms', label:'Milliseconds', placeholder:'2000', type:'number'}],
+  drag: [{id:'x1', label:'From X', placeholder:'100', type:'number'}, {id:'y1', label:'From Y', placeholder:'100', type:'number'}, {id:'x2', label:'To X', placeholder:'500', type:'number'}, {id:'y2', label:'To Y', placeholder:'300', type:'number'}],
+  dismiss_popup: [],
 };
-function updateSkillPlaceholder() {
+
+function updateSkillFields() {
   const action = document.getElementById('skill-action').value;
-  const input = document.getElementById('skill-params');
-  input.placeholder = SKILL_TEMPLATES[action] || '{}';
-  input.value = SKILL_TEMPLATES[action] || '{}';
+  const container = document.getElementById('skill-fields');
+  const fields = SKILL_FIELDS[action] || [];
+  if (!fields.length) { container.innerHTML = '<span class="text-xs text-gray-600">No parameters needed</span>'; return; }
+  container.innerHTML = fields.map(f =>
+    `<div class="flex items-center gap-2">
+      <label class="text-xs text-gray-400 w-20 text-right">${f.label}</label>
+      <input id="sf-${f.id}" type="${f.type}" placeholder="${f.placeholder}"
+        class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 placeholder-gray-600">
+    </div>`
+  ).join('');
+}
+
+function getSkillParams() {
+  const action = document.getElementById('skill-action').value;
+  const fields = SKILL_FIELDS[action] || [];
+  const params = {};
+  for (const f of fields) {
+    const el = document.getElementById('sf-' + f.id);
+    if (!el) continue;
+    let val = el.value.trim();
+    if (!val) val = el.placeholder;
+    if (f.type === 'number') val = parseInt(val) || 0;
+    if (f.id === 'keys') val = val.split(',').map(k => k.trim());
+    params[f.id] = val;
+  }
+  return params;
 }
 
 async function testStep() {
   const action = document.getElementById('skill-action').value;
-  const paramsStr = document.getElementById('skill-params').value.trim();
+  const params = getSkillParams();
   const res = document.getElementById('skill-result');
   const img = document.getElementById('skill-screenshot');
-  let params = {};
-  try { if (paramsStr) params = JSON.parse(paramsStr); } catch(e) { res.textContent = 'Invalid JSON: ' + e.message; return; }
   res.textContent = '⏳ Running...';
   try {
     const r = await fetch('/api/skills/test-step', {
