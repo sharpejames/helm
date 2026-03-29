@@ -569,9 +569,13 @@ class StepExecutor:
                 self._log_event("done_verify", verify[:300], step_num)
                 yield {"type": "step", "data": f"🔍 Verify: {verify[:100]}"}
 
-                if "no" in verify.lower() and "yes" not in verify.lower() and replan_count < 2:
+                # Check if verification says NO — look at the FIRST word/line only
+                first_line = verify.strip().split('\n')[0].lower().strip()
+                verification_failed = first_line.startswith("no")
+
+                if verification_failed and replan_count < 3:
                     replan_count += 1
-                    yield {"type": "warning", "data": f"⚠ Result doesn't look right. Replanning..."}
+                    yield {"type": "warning", "data": f"⚠ Result doesn't look right: {verify[:80]}. Replanning..."}
                     new_plan = await self._replan(task, plan, plan_idx,
                                                    f"Vision says result is wrong: {verify[:200]}")
                     if new_plan and new_plan.get("steps"):
@@ -580,6 +584,12 @@ class StepExecutor:
                         plan_idx = 0
                         yield {"type": "step", "data": f"📋 Fixing: {len(steps)} steps"}
                         continue
+                    # Replan failed — mark as partial, not completed
+                    self._log_event("task_partial", f"Vision rejected but replan failed: {verify[:100]}", step_num)
+                    self._flush_log(task, "partial")
+                    yield {"type": "warning", "data": f"Task incomplete — vision says: {verify[:100]}"}
+                    yield {"type": "done", "data": f"Partial: {summary}"}
+                    return
 
                 self._log_event("task_done", summary, step_num)
                 img = _screenshot_b64()
