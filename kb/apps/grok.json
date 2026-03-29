@@ -1,0 +1,55 @@
+{
+  "name": "Grok (SuperGrok) via x.com",
+  "exe": "chrome",
+  "window_title": "Grok",
+  "url": "https://x.com/i/grok",
+
+  "how_to_open_grok": {
+    "description": "How to navigate to Grok's chat interface.",
+    "steps": [
+      "1. Open Chrome or use the existing browser window.",
+      "2. Navigate to x.com/grok — BUT this may load the Grok profile page, not the chat.",
+      "3. If you see a profile page, look for 'SuperGrok' in the left sidebar and click it.",
+      "4. The SuperGrok chat interface has a text box that says 'Ask anything'.",
+      "5. Alternative: navigate directly to x.com/i/grok which may go straight to the chat."
+    ]
+  },
+
+  "how_to_upload_image_and_prompt": {
+    "description": "How to upload an image and send a prompt to Grok.",
+    "steps": [
+      "1. First type your text prompt in the 'Ask anything' text box.",
+      "2. Find the paperclip/attachment icon — it's on the LEFT side inside the text input box.",
+      "3. Click the paperclip icon. A file browser dialog opens.",
+      "4. In the file browser, navigate to the file location or type the file path.",
+      "5. Select the image file and click 'Open'.",
+      "6. The image thumbnail should appear in the chat input area.",
+      "7. Click the send button (arrow icon) on the RIGHT side of the text input box.",
+      "8. Wait 30-40+ seconds for Grok to process the image.",
+      "9. Scroll down to see the result."
+    ]
+  },
+
+  "known_issues": [
+    "x.com/grok may load the profile page instead of the chat — click SuperGrok in sidebar.",
+    "Image processing takes 30-40+ seconds — be patient.",
+    "SuperGrok (paid tier) may be required for image editing.",
+    "The paperclip button is INSIDE the text box on the LEFT side, not above it.",
+    "The send button (arrow) is on the RIGHT side of the text box."
+  ],
+
+  "strategy_for_agent": [
+    "1. Open x.com/i/grok in the browser (use open_website action).",
+    "2. Wait for the page to load (wait 3-5 seconds).",
+    "3. Look at the screen to verify the Grok chat interface is visible.",
+    "4. If you see a profile page, look for and click 'SuperGrok' in the left sidebar.",
+    "5. Click the text input box ('Ask anything').",
+    "6. Type your prompt using type_in_web or type_text.",
+    "7. Click the paperclip/attachment button (LEFT side of text box) to attach an image.",
+    "8. In the file picker dialog, type the file path and press Enter.",
+    "9. Wait for the image thumbnail to appear.",
+    "10. Click the send button (arrow, RIGHT side of text box) or press Enter to submit.",
+    "11. Wait 30-40 seconds for Grok to process.",
+    "12. Look at the screen to verify Grok responded."
+  ]
+}

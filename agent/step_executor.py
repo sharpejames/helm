@@ -93,6 +93,7 @@ Center your drawing around (cx, cy). Use the FULL canvas area.
 10. ALWAYS end with: save_file(filepath="C:\\\\Users\\\\sharp\\\\Pictures\\\\drawing.png", app_title="Paint")
 11. Be EFFICIENT: don't repeat tool/style selections. Set once, draw many.
 12. For a portrait: use large shapes for face/body, small shapes for eyes, pencil lines for details.
+13. ONLY include Paint drawing actions in the plan. Do NOT include web/browser actions (open_website, upload_file, type_in_web, click_web_element). Those will be handled separately after the drawing is saved.
 """
 
 LOCAL_EXECUTOR_SYSTEM = """You are Helm's step executor. You follow a drawing plan step by step.
@@ -418,6 +419,19 @@ class StepExecutor:
                         f"📋 Plan: {plan.get('plan_summary', '?')} ({len(plan.get('steps', []))} steps)"}
                     async for event in self._execute_plan(plan, task, target_app, target_exe):
                         yield event
+
+                    # Check if the task has more to do beyond Paint (e.g. "upload to grok")
+                    # If so, continue with reactive mode for the remaining work
+                    task_lower = task.lower()
+                    has_web_part = any(kw in task_lower for kw in [
+                        "upload", "grok", "post", "share", "send", "email",
+                        "browser", "website", "x.com", "twitter"])
+                    if has_web_part:
+                        yield {"type": "step", "data": "📤 Drawing saved. Continuing with upload/web task..."}
+                        screen_state = _ask_screen("What is on screen now?")
+                        async for event in self._execute_remote_only(
+                                task, screen_state, action_catalog, None, None):
+                            yield event
                     return
                 else:
                     yield {"type": "warning", "data": "Plan failed, falling back to remote-only mode"}
