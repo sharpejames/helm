@@ -160,6 +160,13 @@ If stuck: {{"thinking": "...", "action": "FAIL", "params": {{"reason": "..."}}}}
 26. Use drag(x1=start_x, y1=start_y, x2=end_x, y2=end_y) to drag items.
 27. For card games: drag cards between columns, or double_click to auto-move to foundations.
 
+## FILE UPLOADS ON WEBSITES — CRITICAL:
+28. Do NOT use upload_file — it often fails on modern web apps.
+29. Instead, use vision to find the attach/paperclip button: look("Where is the attach or paperclip button?")
+30. Click the button with click(x, y) using coordinates from the vision response.
+31. A file picker dialog will open. Type the file path with type_text and press Enter.
+32. Wait for the file thumbnail to appear, then click the send/submit button.
+
 ## PAINT DRAWING RULES:
 23. Start with setup_paint. Parse canvas_bounds from state_hint.
 24. ONLY toolbar colors: red, blue, yellow, green, orange, purple, pink, brown, black, white, gray.
@@ -429,8 +436,19 @@ class StepExecutor:
                     if has_web_part:
                         yield {"type": "step", "data": "📤 Drawing saved. Continuing with upload/web task..."}
                         screen_state = _ask_screen("What is on screen now?")
+                        # Give the reactive mode a FOCUSED task — only the upload part
+                        # Tell it the drawing is DONE and where the file is saved
+                        upload_task = (
+                            f"The drawing has been completed and saved to C:\\Users\\sharp\\Pictures\\drawing.png. "
+                            f"DO NOT go back to Paint. DO NOT redraw anything. The drawing is DONE. "
+                            f"Now complete the remaining part of the original task: {task}. "
+                            f"Specifically: upload the saved image file and interact with the website/app as needed. "
+                            f"Use the look action to find buttons. Do NOT use upload_file — instead, "
+                            f"use vision to find the attach/paperclip button, click it with click action, "
+                            f"then type the file path in the file picker dialog."
+                        )
                         async for event in self._execute_remote_only(
-                                task, screen_state, action_catalog, None, None):
+                                upload_task, screen_state, action_catalog, None, None):
                             yield event
                     return
                 else:
