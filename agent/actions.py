@@ -654,6 +654,7 @@ def paint_select_color(color_name: str) -> ActionResult:
 
         # AUTO-RESTORE previous tool — clicking toolbar deselects the drawing tool
         # This saves the LLM a whole step per color change
+        # NOTE: Never auto-restore fill tool — it causes drag-fill issues
         if prev_tool == "pencil":
             tr.use_pencil()
             tr.wait_ms(100)
@@ -668,10 +669,9 @@ def paint_select_color(color_name: str) -> ActionResult:
                 _current_paint_tool = prev_tool
             except Exception:
                 _current_paint_tool = None
-        elif prev_tool == "fill":
-            tr.use_fill()
-            tr.wait_ms(100)
-            _current_paint_tool = "fill"
+        else:
+            # Don't restore fill or unknown tools
+            _current_paint_tool = None
 
         remap_note = f" (remapped from {original_name})" if original_name.lower() != color_name.lower() else ""
         tool_note = f", tool={prev_tool} restored" if prev_tool else ", no tool active — select pencil or shape tool next"
@@ -902,14 +902,17 @@ def paint_draw_shape(x1: int, y1: int, x2: int, y2: int) -> ActionResult:
     """Draw the currently selected shape tool by dragging from (x1,y1) to (x2,y2).
     Self-validates: checks foreground, clamps to canvas, verifies shape tool is active.
     Use AFTER paint_shape_tool + paint_fill_style + paint_color."""
+    global _current_paint_tool
     tr = _tr()
     try:
         if not _ensure_paint_foreground():
             return ActionResult(False, error="Paint not in foreground")
 
-        # PRE-CHECK: A shape tool should be active
+        # PRE-CHECK: A shape tool MUST be active — re-select if not
         if _current_paint_tool is None or not str(_current_paint_tool).startswith("shape:"):
-            return ActionResult(False, error="No shape tool selected. Call paint_shape_tool first.")
+            # Try to recover by checking what tool is actually active
+            logger.warning(f"paint_draw_shape: expected shape tool, got '{_current_paint_tool}'. Cannot draw shape without shape tool selected.")
+            return ActionResult(False, error=f"No shape tool selected (current: {_current_paint_tool}). Call paint_shape_tool first.")
 
         # Clamp to canvas
         bounds = _get_canvas_bounds()
@@ -920,6 +923,10 @@ def paint_draw_shape(x1: int, y1: int, x2: int, y2: int) -> ActionResult:
             y1 = max(ct + m, min(cb - m, int(y1)))
             x2 = max(cl + m, min(cr - m, int(x2)))
             y2 = max(ct + m, min(cb - m, int(y2)))
+
+        # Ensure minimum size
+        if abs(x2 - x1) < 5 or abs(y2 - y1) < 5:
+            return ActionResult(False, error=f"Shape too small: ({x1},{y1})->({x2},{y2}). Min 5px.")
 
         tr.drag(x1, y1, x2, y2)
         tr.wait_ms(150)

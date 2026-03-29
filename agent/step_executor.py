@@ -81,19 +81,20 @@ Center your drawing around (cx, cy). Use the FULL canvas area.
 ## PAINT RULES:
 1. Do NOT include setup_paint — it's already done before planning.
 2. ONLY toolbar colors: red, blue, yellow, green, orange, purple, pink, brown, black, white, gray.
-3. paint_color auto-restores the previous tool. No need to re-select tool after color change.
+3. paint_color auto-restores pencil or shape tool. No need to re-select after color change.
 4. For FILLED shapes: set shape tool + fill style ONCE, then draw multiple shapes. Do NOT repeat paint_shape_tool/paint_fill_style/paint_outline_style if they haven't changed.
 5. For outlines/details: paint_color → paint_draw (pencil auto-selected if needed).
 6. NEVER use paint_fill_at on pencil shapes — gaps cause fill to leak.
-7. Canvas starts WHITE. NEVER draw white on white or black on black.
-8. Group by color to minimize switches.
+7. NEVER use paint_fill_at AFTER drawing shapes — it will erase them.
+8. If you need a colored background, use paint_fill_at FIRST (before any shapes), then draw shapes on top.
+9. Canvas starts WHITE. NEVER draw white on white or black on black — ALWAYS ensure contrast.
+10. Group by color to minimize switches. Draw ALL shapes of one color before switching.
 
 ## STEP BUDGET — CRITICAL:
-9. Maximum {max_steps} steps. Your plan MUST be under {plan_limit} steps to leave room for save.
-10. ALWAYS end with: save_file(filepath="C:\\\\Users\\\\sharp\\\\Pictures\\\\drawing.png", app_title="Paint")
-11. Be EFFICIENT: don't repeat tool/style selections. Set once, draw many.
-12. For a portrait: use large shapes for face/body, small shapes for eyes, pencil lines for details.
-13. ONLY include Paint drawing actions in the plan. Do NOT include web/browser actions (open_website, upload_file, type_in_web, click_web_element). Those will be handled separately after the drawing is saved.
+11. Maximum {max_steps} steps. Your plan MUST be under {plan_limit} steps to leave room for save.
+12. ALWAYS end with: save_file(filepath="C:\\\\Users\\\\sharp\\\\Pictures\\\\drawing.png", app_title="Paint")
+13. Be EFFICIENT: don't repeat tool/style selections. Set once, draw many.
+14. ONLY include Paint drawing actions in the plan. Do NOT include web/browser actions.
 """
 
 LOCAL_EXECUTOR_SYSTEM = """You are Helm's step executor. You follow a drawing plan step by step.
