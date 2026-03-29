@@ -64,12 +64,13 @@ def create_app(config: dict, scheduler) -> FastAPI:
     app.state.executor = executor
     
     # Mount routes
-    from web.routes import chat, tasks, settings, runs, learn
+    from web.routes import chat, tasks, settings, runs, learn, skills
     app.include_router(chat.router, prefix="/api")
     app.include_router(tasks.router, prefix="/api")
     app.include_router(settings.router, prefix="/api")
     app.include_router(runs.router, prefix="/api")
     app.include_router(learn.router, prefix="/api")
+    app.include_router(skills.router, prefix="/api")
 
     @app.get("/health")
     async def health():
