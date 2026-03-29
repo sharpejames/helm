@@ -82,17 +82,26 @@ def _ask_screen_local(question: str, scale: float = 0.5) -> str:
 
 
 def _ask_screen_gemini(question: str, scale: float = 0.75) -> str:
-    """Ask Gemini vision about current screen. More accurate but slower."""
+    """Ask Gemini vision about current screen."""
     try:
-        # Get screenshot
         r = requests.get(f"{CLAWMETHEUS_URL}/screenshot/base64?scale={scale}", timeout=10).json()
         img_b64 = r.get("image", "")
         if not img_b64:
             return "no screenshot available"
 
+        import pyautogui
+        sw, sh = pyautogui.size()
+        img_w, img_h = int(sw * scale), int(sh * scale)
+
+        augmented_question = (
+            f"This screenshot is {img_w}x{img_h} pixels but the actual screen is {sw}x{sh}. "
+            f"If you give coordinates, multiply by {1/scale:.2f} for actual screen coordinates. "
+            f"\n\n{question}"
+        )
+
         img_bytes = base64.b64decode(img_b64)
         response = _gemini_model.generate_content([
-            question,
+            augmented_question,
             {"mime_type": "image/png", "data": img_bytes}
         ])
         return response.text.strip()
@@ -102,7 +111,8 @@ def _ask_screen_gemini(question: str, scale: float = 0.75) -> str:
 
 
 def _ask_screen_ollama(question: str, scale: float = 0.75) -> str:
-    """Ask Ollama multimodal model about current screen. Fast and local."""
+    """Ask Ollama multimodal model about current screen. Fast and local.
+    Tells the model the actual screen resolution so coordinates are in screen space."""
     try:
         from agent.models import get_local_llm
         local = get_local_llm()
@@ -115,7 +125,20 @@ def _ask_screen_ollama(question: str, scale: float = 0.75) -> str:
         if not img_b64:
             return "no screenshot available"
 
-        return local.ask_with_image(question, img_b64, max_tokens=512, timeout=30)
+        # Get actual screen size for coordinate scaling context
+        import pyautogui
+        sw, sh = pyautogui.size()
+        img_w, img_h = int(sw * scale), int(sh * scale)
+
+        # Prepend coordinate context so the model returns screen-space coords
+        augmented_question = (
+            f"This screenshot is {img_w}x{img_h} pixels but the actual screen is {sw}x{sh}. "
+            f"If you give coordinates, multiply them by {1/scale:.2f} to get actual screen coordinates. "
+            f"For example, if something is at pixel (400,300) in this image, the actual screen coordinate is ({int(400/scale)},{int(300/scale)}). "
+            f"\n\n{question}"
+        )
+
+        return local.ask_with_image(augmented_question, img_b64, max_tokens=512, timeout=30)
     except Exception as e:
         logger.warning(f"Ollama vision error: {e}, falling back to local clawmetheus")
         return _ask_screen_local(question, scale)
