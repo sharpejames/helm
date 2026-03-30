@@ -34,9 +34,11 @@ async def update_settings(request: Request):
         config = yaml.safe_load(f)
     
     # Update fields (only allow certain fields to be updated)
-    allowed = ['llm', 'vision', 'pipeline', 'scheduler']
+    allowed = ['llm', 'vision', 'pipeline', 'scheduler', 'executor']
     for key in allowed:
         if key in body:
+            if key not in config:
+                config[key] = {}
             config[key].update(body[key])
     
     # Save back to file
