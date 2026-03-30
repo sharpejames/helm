@@ -204,6 +204,10 @@ class StepExecutor:
         self._stopped = False
         self._run_log: list[dict] = []
         self._last_task: str | None = None
+        # Speed setting: 1=careful, 3=balanced, 5=fast
+        self._speed = (config or {}).get("executor", {}).get("speed", 3)
+        # Vision checkpoint interval based on speed
+        self._checkpoint_interval = max(5, self._speed * 5)  # 5, 15, or 25 steps
         os.makedirs(LOG_DIR, exist_ok=True)
 
     def _log_event(self, event_type: str, data, step: int = 0):
@@ -592,23 +596,23 @@ class StepExecutor:
             if action_name == "DONE":
                 summary = params.get("summary", "Task completed")
 
-                # Vision verification before accepting completion
-                verify = await asyncio.to_thread(
-                    _ask_screen,
-                    f"The task was: '{task[:100]}'. The agent says it's done. "
-                    f"Does the screen show a reasonable result? Is the work visible and recognizable? "
-                    f"YES or NO with brief reason.",
-                    0.75)
-                self._log_event("done_verify", verify[:300], step_num)
-                yield {"type": "step", "data": f"🔍 Verify: {verify[:100]}"}
-
-                # Check if verification says NO — look at the FIRST word/line only
-                first_line = verify.strip().split('\n')[0].lower().strip()
-                verification_failed = first_line.startswith("no")
+                # Vision verification before accepting completion (skip at speed 5)
+                verification_failed = False
+                if self._speed < 5:
+                    verify = await asyncio.to_thread(
+                        _ask_screen,
+                        f"The task was: '{task[:100]}'. The agent says it's done. "
+                        f"Does the screen show a reasonable result? Is the work visible and recognizable? "
+                        f"YES or NO with brief reason.",
+                        0.75)
+                    self._log_event("done_verify", verify[:300], step_num)
+                    yield {"type": "step", "data": f"🔍 Verify: {verify[:100]}"}
+                    first_line = verify.strip().split('\n')[0].lower().strip()
+                    verification_failed = first_line.startswith("no")
 
                 if verification_failed and replan_count < 3:
                     replan_count += 1
-                    yield {"type": "warning", "data": f"⚠ Result doesn't look right: {verify[:80]}. Replanning..."}
+                    yield {"type": "warning", "data": f"⚠ Result doesn't look right. Replanning..."}
                     new_plan = await self._replan(task, plan, plan_idx,
                                                    f"Vision says result is wrong: {verify[:200]}")
                     if new_plan and new_plan.get("steps"):
@@ -617,10 +621,7 @@ class StepExecutor:
                         plan_idx = 0
                         yield {"type": "step", "data": f"📋 Fixing: {len(steps)} steps"}
                         continue
-                    # Replan failed — mark as partial, not completed
-                    self._log_event("task_partial", f"Vision rejected but replan failed: {verify[:100]}", step_num)
                     self._flush_log(task, "partial")
-                    yield {"type": "warning", "data": f"Task incomplete — vision says: {verify[:100]}"}
                     yield {"type": "done", "data": f"Partial: {summary}"}
                     return
 
@@ -733,7 +734,7 @@ class StepExecutor:
 
             # ── Universal vision checkpoint ──
             # Every 15 steps, verify things are on track (works for any app)
-            if step_num % 15 == 0 and step_num > 5:
+            if step_num % self._checkpoint_interval == 0 and step_num > 5:
                 check = await asyncio.to_thread(
                     _ask_screen,
                     f"Task: '{task[:80]}'. Look at the screen. "
@@ -1135,7 +1136,7 @@ class StepExecutor:
                     continue
 
             # ── Universal vision checkpoint (every 15 steps) ──
-            if step % 15 == 0 and step > 5:
+            if step % self._checkpoint_interval == 0 and step > 5:
                 check = await asyncio.to_thread(
                     _ask_screen,
                     f"Task: '{task[:80]}'. Is progress being made? "
