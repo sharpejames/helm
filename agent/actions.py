@@ -994,7 +994,7 @@ def validate_image(filepath: str, description: str = "") -> ActionResult:
 
 def look_at_screen(question: str = "What is on screen right now?") -> ActionResult:
     """Take a screenshot and ask the vision model a question about it. Uses higher resolution for detail."""
-    answer = _ask_screen(question, scale=0.75)  # Higher res for reading text/cards/UI details
+    answer = _ask_screen(question, scale=0.5)  # 0.5 for speed, 0.75 only when coordinates needed
     screenshot = _screenshot_b64()
     return ActionResult(True, answer, screenshot=screenshot, state_hint=answer[:200])
 

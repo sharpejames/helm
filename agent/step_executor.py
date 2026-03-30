@@ -732,8 +732,8 @@ class StepExecutor:
                     }}
 
             # ── Universal vision checkpoint ──
-            # Every 10 steps, verify things are on track (works for any app)
-            if step_num % 10 == 0 and step_num > 3:
+            # Every 15 steps, verify things are on track (works for any app)
+            if step_num % 15 == 0 and step_num > 5:
                 check = await asyncio.to_thread(
                     _ask_screen,
                     f"Task: '{task[:80]}'. Look at the screen. "
@@ -1134,8 +1134,8 @@ class StepExecutor:
                         f"If you can't find a button, try a different approach entirely."})
                     continue
 
-            # ── Universal vision checkpoint (every 10 steps) ──
-            if step % 10 == 0 and step > 3:
+            # ── Universal vision checkpoint (every 15 steps) ──
+            if step % 15 == 0 and step > 5:
                 check = await asyncio.to_thread(
                     _ask_screen,
                     f"Task: '{task[:80]}'. Is progress being made? "
