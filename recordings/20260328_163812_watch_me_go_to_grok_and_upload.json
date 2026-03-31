@@ -1,0 +1,963 @@
+{
+  "prompt": "watch me go to grok and upload an image for it to edit",
+  "started": 1774741092.9722888,
+  "stopped": 1774741286.4424243,
+  "duration_secs": 193.47013545036316,
+  "event_count": 97,
+  "screenshot_count": 62,
+  "speech_count": 19,
+  "events": [
+    {
+      "ts": 1774741095.5124426,
+      "type": "click",
+      "data": {
+        "x": 871,
+        "y": 1573,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774741095.880723,
+      "type": "speech",
+      "data": {
+        "text": "[Audio recording started \u2014 speak to narrate your actions]"
+      }
+    },
+    {
+      "ts": 1774741098.501457,
+      "type": "key",
+      "data": {
+        "key": "c"
+      }
+    },
+    {
+      "ts": 1774741098.6654642,
+      "type": "key",
+      "data": {
+        "key": "h"
+      }
+    },
+    {
+      "ts": 1774741098.7820022,
+      "type": "key",
+      "data": {
+        "key": "r"
+      }
+    },
+    {
+      "ts": 1774741098.9505267,
+      "type": "key",
+      "data": {
+        "key": "o"
+      }
+    },
+    {
+      "ts": 1774741099.1904535,
+      "type": "key",
+      "data": {
+        "key": "m"
+      }
+    },
+    {
+      "ts": 1774741099.272047,
+      "type": "key",
+      "data": {
+        "key": "e"
+      }
+    },
+    {
+      "ts": 1774741099.5799744,
+      "type": "speech",
+      "data": {
+        "text": "all I want to launch Chrome"
+      }
+    },
+    {
+      "ts": 1774741106.9979763,
+      "type": "click",
+      "data": {
+        "x": 934,
+        "y": 421,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774741110.4242816,
+      "type": "speech",
+      "data": {
+        "text": "a type Chrome in the search box and then I find it in the search results and click it the Chrome browser opens up"
+      }
+    },
+    {
+      "ts": 1774741113.5281677,
+      "type": "click",
+      "data": {
+        "x": 701,
+        "y": 206,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774741117.996439,
+      "type": "key",
+      "data": {
+        "key": "x"
+      }
+    },
+    {
+      "ts": 1774741119.2090907,
+      "type": "key",
+      "data": {
+        "key": "."
+      }
+    },
+    {
+      "ts": 1774741119.48604,
+      "type": "key",
+      "data": {
+        "key": "c"
+      }
+    },
+    {
+      "ts": 1774741119.6782713,
+      "type": "key",
+      "data": {
+        "key": "o"
+      }
+    },
+    {
+      "ts": 1774741119.914358,
+      "type": "key",
+      "data": {
+        "key": "m"
+      }
+    },
+    {
+      "ts": 1774741120.8834703,
+      "type": "key",
+      "data": {
+        "key": "/"
+      }
+    },
+    {
+      "ts": 1774741121.2987962,
+      "type": "key",
+      "data": {
+        "key": "g"
+      }
+    },
+    {
+      "ts": 1774741121.5202668,
+      "type": "key",
+      "data": {
+        "key": "r"
+      }
+    },
+    {
+      "ts": 1774741121.656564,
+      "type": "key",
+      "data": {
+        "key": "o"
+      }
+    },
+    {
+      "ts": 1774741121.8333979,
+      "type": "key",
+      "data": {
+        "key": "k"
+      }
+    },
+    {
+      "ts": 1774741122.7021852,
+      "type": "key",
+      "data": {
+        "key": "Key.enter"
+      }
+    },
+    {
+      "ts": 1774741123.5994604,
+      "type": "speech",
+      "data": {
+        "text": "URL search box click in their my type in x.com"
+      }
+    },
+    {
+      "ts": 1774741136.3566065,
+      "type": "speech",
+      "data": {
+        "text": "did not load the crop age that I need it just loaded the clock profile page but that's fine I can see on the left hand"
+      }
+    },
+    {
+      "ts": 1774741147.0305784,
+      "type": "click",
+      "data": {
+        "x": 389,
+        "y": 710,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774741147.3180346,
+      "type": "speech",
+      "data": {
+        "text": "Supercroc is what I'm after it's the app I click on it"
+      }
+    },
+    {
+      "ts": 1774741156.0945582,
+      "type": "speech",
+      "data": {
+        "text": "boats that Supercroc interface I see a text box that has says ask anything"
+      }
+    },
+    {
+      "ts": 1774741158.6684124,
+      "type": "click",
+      "data": {
+        "x": 1090,
+        "y": 866,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774741161.3771486,
+      "type": "key",
+      "data": {
+        "key": "e"
+      }
+    },
+    {
+      "ts": 1774741161.535037,
+      "type": "key",
+      "data": {
+        "key": "d"
+      }
+    },
+    {
+      "ts": 1774741161.6435342,
+      "type": "key",
+      "data": {
+        "key": "i"
+      }
+    },
+    {
+      "ts": 1774741161.907772,
+      "type": "key",
+      "data": {
+        "key": "t"
+      }
+    },
+    {
+      "ts": 1774741162.1060817,
+      "type": "key",
+      "data": {
+        "key": "Key.space"
+      }
+    },
+    {
+      "ts": 1774741162.3412888,
+      "type": "key",
+      "data": {
+        "key": "t"
+      }
+    },
+    {
+      "ts": 1774741161.6816738,
+      "type": "speech",
+      "data": {
+        "text": "not ask anything box and I'll say"
+      }
+    },
+    {
+      "ts": 1774741162.526884,
+      "type": "key",
+      "data": {
+        "key": "h"
+      }
+    },
+    {
+      "ts": 1774741162.7696333,
+      "type": "key",
+      "data": {
+        "key": "i"
+      }
+    },
+    {
+      "ts": 1774741162.9205587,
+      "type": "key",
+      "data": {
+        "key": "s"
+      }
+    },
+    {
+      "ts": 1774741163.097217,
+      "type": "key",
+      "data": {
+        "key": "Key.space"
+      }
+    },
+    {
+      "ts": 1774741163.3126454,
+      "type": "key",
+      "data": {
+        "key": "i"
+      }
+    },
+    {
+      "ts": 1774741163.4924064,
+      "type": "key",
+      "data": {
+        "key": "m"
+      }
+    },
+    {
+      "ts": 1774741163.5774186,
+      "type": "key",
+      "data": {
+        "key": "a"
+      }
+    },
+    {
+      "ts": 1774741163.7494643,
+      "type": "key",
+      "data": {
+        "key": "g"
+      }
+    },
+    {
+      "ts": 1774741163.8720613,
+      "type": "key",
+      "data": {
+        "key": "e"
+      }
+    },
+    {
+      "ts": 1774741165.7781289,
+      "type": "key",
+      "data": {
+        "key": "Key.space"
+      }
+    },
+    {
+      "ts": 1774741165.4153588,
+      "type": "speech",
+      "data": {
+        "text": "this image"
+      }
+    },
+    {
+      "ts": 1774741165.876668,
+      "type": "key",
+      "data": {
+        "key": "a"
+      }
+    },
+    {
+      "ts": 1774741165.9905405,
+      "type": "key",
+      "data": {
+        "key": "n"
+      }
+    },
+    {
+      "ts": 1774741166.1054192,
+      "type": "key",
+      "data": {
+        "key": "d"
+      }
+    },
+    {
+      "ts": 1774741166.2072575,
+      "type": "key",
+      "data": {
+        "key": "Key.space"
+      }
+    },
+    {
+      "ts": 1774741167.764679,
+      "type": "key",
+      "data": {
+        "key": "c"
+      }
+    },
+    {
+      "ts": 1774741168.1379158,
+      "type": "key",
+      "data": {
+        "key": "r"
+      }
+    },
+    {
+      "ts": 1774741168.3682177,
+      "type": "key",
+      "data": {
+        "key": "e"
+      }
+    },
+    {
+      "ts": 1774741168.595634,
+      "type": "key",
+      "data": {
+        "key": "a"
+      }
+    },
+    {
+      "ts": 1774741168.745293,
+      "type": "key",
+      "data": {
+        "key": "t"
+      }
+    },
+    {
+      "ts": 1774741168.8815098,
+      "type": "key",
+      "data": {
+        "key": "e"
+      }
+    },
+    {
+      "ts": 1774741169.1030502,
+      "type": "key",
+      "data": {
+        "key": "Key.space"
+      }
+    },
+    {
+      "ts": 1774741169.478222,
+      "type": "key",
+      "data": {
+        "key": "a"
+      }
+    },
+    {
+      "ts": 1774741169.6883752,
+      "type": "key",
+      "data": {
+        "key": "n"
+      }
+    },
+    {
+      "ts": 1774741170.6440394,
+      "type": "key",
+      "data": {
+        "key": "Key.space"
+      }
+    },
+    {
+      "ts": 1774741170.8027115,
+      "type": "key",
+      "data": {
+        "key": "a"
+      }
+    },
+    {
+      "ts": 1774741171.0904992,
+      "type": "key",
+      "data": {
+        "key": "r"
+      }
+    },
+    {
+      "ts": 1774741171.3088715,
+      "type": "key",
+      "data": {
+        "key": "t"
+      }
+    },
+    {
+      "ts": 1774741171.4554968,
+      "type": "key",
+      "data": {
+        "key": "i"
+      }
+    },
+    {
+      "ts": 1774741171.598321,
+      "type": "key",
+      "data": {
+        "key": "s"
+      }
+    },
+    {
+      "ts": 1774741171.902216,
+      "type": "key",
+      "data": {
+        "key": "t"
+      }
+    },
+    {
+      "ts": 1774741172.3337588,
+      "type": "key",
+      "data": {
+        "key": "Key.space"
+      }
+    },
+    {
+      "ts": 1774741172.852633,
+      "type": "key",
+      "data": {
+        "key": "s"
+      }
+    },
+    {
+      "ts": 1774741172.9935255,
+      "type": "key",
+      "data": {
+        "key": "t"
+      }
+    },
+    {
+      "ts": 1774741173.6513338,
+      "type": "key",
+      "data": {
+        "key": "l"
+      }
+    },
+    {
+      "ts": 1774741173.945883,
+      "type": "key",
+      "data": {
+        "key": "y"
+      }
+    },
+    {
+      "ts": 1774741174.1183863,
+      "type": "key",
+      "data": {
+        "key": "e"
+      }
+    },
+    {
+      "ts": 1774741174.2854815,
+      "type": "key",
+      "data": {
+        "key": "Key.space"
+      }
+    },
+    {
+      "ts": 1774741174.4665005,
+      "type": "key",
+      "data": {
+        "key": "v"
+      }
+    },
+    {
+      "ts": 1774741174.677522,
+      "type": "key",
+      "data": {
+        "key": "e"
+      }
+    },
+    {
+      "ts": 1774741174.8427868,
+      "type": "key",
+      "data": {
+        "key": "r"
+      }
+    },
+    {
+      "ts": 1774741175.077834,
+      "type": "key",
+      "data": {
+        "key": "s"
+      }
+    },
+    {
+      "ts": 1774741175.1911244,
+      "type": "key",
+      "data": {
+        "key": "i"
+      }
+    },
+    {
+      "ts": 1774741175.3502922,
+      "type": "key",
+      "data": {
+        "key": "o"
+      }
+    },
+    {
+      "ts": 1774741175.5751553,
+      "type": "key",
+      "data": {
+        "key": "n"
+      }
+    },
+    {
+      "ts": 1774741176.6715276,
+      "type": "speech",
+      "data": {
+        "text": "Gates and artistic style version"
+      }
+    },
+    {
+      "ts": 1774741187.777226,
+      "type": "click",
+      "data": {
+        "x": 902,
+        "y": 877,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774741187.6515086,
+      "type": "speech",
+      "data": {
+        "text": "then find the paperclip attachment button which is on the left hand side in the text box when I click it"
+      }
+    },
+    {
+      "ts": 1774741194.7506974,
+      "type": "speech",
+      "data": {
+        "text": "find opens up the"
+      }
+    },
+    {
+      "ts": 1774741206.0738437,
+      "type": "speech",
+      "data": {
+        "text": "interphase so I can look for files on my folders on my computer and go and type in the find the file"
+      }
+    },
+    {
+      "ts": 1774741211.3781164,
+      "type": "click",
+      "data": {
+        "x": 357,
+        "y": 416,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774741215.2702036,
+      "type": "click",
+      "data": {
+        "x": 1042,
+        "y": 858,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774741219.4068952,
+      "type": "speech",
+      "data": {
+        "text": "off of the following click on the image which is drawing and click open and now has put the image in the"
+      }
+    },
+    {
+      "ts": 1774741232.4559994,
+      "type": "click",
+      "data": {
+        "x": 2080,
+        "y": 1102,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774741231.9332933,
+      "type": "speech",
+      "data": {
+        "text": "text the arrow on the right hand side which has a subtext of rock something and I like that to send"
+      }
+    },
+    {
+      "ts": 1774741253.3583353,
+      "type": "speech",
+      "data": {
+        "text": "continue to think so I'm waiting"
+      }
+    },
+    {
+      "ts": 1774741274.6805136,
+      "type": "speech",
+      "data": {
+        "text": "is I now see an image loading picture scroll down and"
+      }
+    },
+    {
+      "ts": 1774741279.034063,
+      "type": "speech",
+      "data": {
+        "text": "legend of the image that"
+      }
+    },
+    {
+      "ts": 1774741285.0061045,
+      "type": "click",
+      "data": {
+        "x": 1294,
+        "y": 1413,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774741286.0583105,
+      "type": "click",
+      "data": {
+        "x": 201,
+        "y": 564,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774741285.3093143,
+      "type": "speech",
+      "data": {
+        "text": "exactly what I wanted it to do so now I'm going to end"
+      }
+    }
+  ],
+  "screenshots": [
+    {
+      "ts": 1774741093.0956655,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741096.23047,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741099.3821034,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741102.5086923,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741105.640973,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741108.7740686,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741111.9087644,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741115.0181434,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741118.1354232,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741121.2615387,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741124.3901045,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741127.5186703,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741130.6402414,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741133.7517424,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741136.8849397,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741140.0143695,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741143.1401765,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741146.2710557,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741149.397486,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741152.5206792,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741155.6474607,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741158.7579224,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741161.8790028,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741165.010762,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741168.1497796,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741171.2965834,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741174.4458044,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741177.5563052,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741180.6985457,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741183.8200016,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741186.9724085,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741190.138673,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741193.273297,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741196.4312685,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741199.5795548,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741202.7093258,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741205.860856,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741209.0169783,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741212.1683757,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741215.3334765,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741218.48418,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741221.6360781,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741224.7627037,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741227.9112468,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741231.0462837,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741234.1737688,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741237.308075,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741240.4438868,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741243.5689294,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741246.6960125,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741249.8227232,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741252.9481974,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741256.0740945,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741259.2099578,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741262.3352983,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741265.4681304,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741268.5968206,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741271.7124233,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741274.83609,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741277.9633605,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741281.0951724,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774741284.2318788,
+      "window": "unknown"
+    }
+  ],
+  "transcript": "[3s] [Audio recording started \u2014 speak to narrate your actions]\n[7s] all I want to launch Chrome\n[17s] a type Chrome in the search box and then I find it in the search results and click it the Chrome browser opens up\n[31s] URL search box click in their my type in x.com\n[43s] did not load the crop age that I need it just loaded the clock profile page but that's fine I can see on the left hand\n[54s] Supercroc is what I'm after it's the app I click on it\n[63s] boats that Supercroc interface I see a text box that has says ask anything\n[69s] not ask anything box and I'll say\n[72s] this image\n[84s] Gates and artistic style version\n[95s] then find the paperclip attachment button which is on the left hand side in the text box when I click it\n[102s] find opens up the\n[113s] interphase so I can look for files on my folders on my computer and go and type in the find the file\n[126s] off of the following click on the image which is drawing and click open and now has put the image in the\n[139s] text the arrow on the right hand side which has a subtext of rock something and I like that to send\n[160s] continue to think so I'm waiting\n[182s] is I now see an image loading picture scroll down and\n[186s] legend of the image that\n[192s] exactly what I wanted it to do so now I'm going to end"
+}

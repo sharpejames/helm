@@ -1,0 +1,972 @@
+{
+  "prompt": "watch me play solitaire klondike",
+  "started": 1774630160.386271,
+  "stopped": 1774630637.2833793,
+  "duration_secs": 476.8971083164215,
+  "event_count": 40,
+  "screenshot_count": 152,
+  "events": [
+    {
+      "ts": 1774630163.782632,
+      "type": "click",
+      "data": {
+        "x": 875,
+        "y": 1564,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630165.2062414,
+      "type": "key",
+      "data": {
+        "key": "s"
+      }
+    },
+    {
+      "ts": 1774630165.460394,
+      "type": "key",
+      "data": {
+        "key": "o"
+      }
+    },
+    {
+      "ts": 1774630165.666301,
+      "type": "key",
+      "data": {
+        "key": "l"
+      }
+    },
+    {
+      "ts": 1774630165.8836083,
+      "type": "key",
+      "data": {
+        "key": "i"
+      }
+    },
+    {
+      "ts": 1774630176.4007664,
+      "type": "click",
+      "data": {
+        "x": 1033,
+        "y": 436,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630191.8627074,
+      "type": "click",
+      "data": {
+        "x": 1920,
+        "y": 63,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630218.1706426,
+      "type": "click",
+      "data": {
+        "x": 557,
+        "y": 448,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630254.288133,
+      "type": "click",
+      "data": {
+        "x": 320,
+        "y": 1475,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630271.7001162,
+      "type": "click",
+      "data": {
+        "x": 1094,
+        "y": 936,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630285.9713342,
+      "type": "click",
+      "data": {
+        "x": 994,
+        "y": 660,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630311.0762153,
+      "type": "click",
+      "data": {
+        "x": 1092,
+        "y": 1313,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630354.2762706,
+      "type": "click",
+      "data": {
+        "x": 547,
+        "y": 304,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630375.770326,
+      "type": "click",
+      "data": {
+        "x": 1024,
+        "y": 681,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630422.6909454,
+      "type": "click",
+      "data": {
+        "x": 1582,
+        "y": 659,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630454.4264603,
+      "type": "click",
+      "data": {
+        "x": 806,
+        "y": 704,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630454.6245115,
+      "type": "click",
+      "data": {
+        "x": 806,
+        "y": 704,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630527.9763663,
+      "type": "click",
+      "data": {
+        "x": 721,
+        "y": 611,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630536.3864734,
+      "type": "click",
+      "data": {
+        "x": 557,
+        "y": 662,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630559.539679,
+      "type": "click",
+      "data": {
+        "x": 2000,
+        "y": 781,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630578.372965,
+      "type": "click",
+      "data": {
+        "x": 2035,
+        "y": 752,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630589.0867593,
+      "type": "click",
+      "data": {
+        "x": 2035,
+        "y": 752,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630600.0512242,
+      "type": "click",
+      "data": {
+        "x": 2033,
+        "y": 752,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630604.1166432,
+      "type": "click",
+      "data": {
+        "x": 1803,
+        "y": 873,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630605.8646913,
+      "type": "click",
+      "data": {
+        "x": 1738,
+        "y": 693,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630606.7626438,
+      "type": "click",
+      "data": {
+        "x": 1445,
+        "y": 745,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630607.7213225,
+      "type": "click",
+      "data": {
+        "x": 1330,
+        "y": 865,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630609.405379,
+      "type": "click",
+      "data": {
+        "x": 1499,
+        "y": 836,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630610.598513,
+      "type": "click",
+      "data": {
+        "x": 1340,
+        "y": 860,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630611.4873168,
+      "type": "click",
+      "data": {
+        "x": 1517,
+        "y": 774,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630612.330572,
+      "type": "click",
+      "data": {
+        "x": 1314,
+        "y": 828,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630613.172438,
+      "type": "click",
+      "data": {
+        "x": 1478,
+        "y": 781,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630614.0144866,
+      "type": "click",
+      "data": {
+        "x": 1292,
+        "y": 830,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630614.8345485,
+      "type": "click",
+      "data": {
+        "x": 1465,
+        "y": 782,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630615.608567,
+      "type": "click",
+      "data": {
+        "x": 1326,
+        "y": 839,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630616.3987195,
+      "type": "click",
+      "data": {
+        "x": 1516,
+        "y": 784,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630617.5990295,
+      "type": "click",
+      "data": {
+        "x": 1261,
+        "y": 836,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630619.3886619,
+      "type": "click",
+      "data": {
+        "x": 1510,
+        "y": 765,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630635.610886,
+      "type": "click",
+      "data": {
+        "x": 1450,
+        "y": 1468,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774630636.8427248,
+      "type": "click",
+      "data": {
+        "x": 315,
+        "y": 579,
+        "button": "Button.left"
+      }
+    }
+  ],
+  "screenshots": [
+    {
+      "ts": 1774630160.5075548,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630163.6199243,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630166.7337658,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630169.862836,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630172.9729419,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630176.1017554,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630179.2380414,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630182.3654976,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630185.4802456,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630188.583033,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630191.692972,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630194.8416307,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630197.9879215,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630201.1396918,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630204.2817976,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630207.421269,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630210.5581658,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630213.6976151,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630216.8337076,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630219.9906478,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630223.143459,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630226.2887313,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630229.428704,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630232.5683217,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630235.7198246,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630238.883859,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630242.0234475,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630245.1777852,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630248.3276823,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630251.469793,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630254.6125991,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630257.765625,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630260.910799,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630264.0636575,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630267.2141514,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630270.3539023,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630273.520723,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630276.6727114,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630279.8386924,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630282.9756482,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630286.1207676,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630289.2848167,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630292.427771,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630295.568707,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630298.7065856,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630301.854808,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630304.9875066,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630308.1385636,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630311.290545,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630314.4530597,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630317.5928798,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630320.7439687,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630323.8870015,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630327.0415463,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630330.1856258,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630333.3219616,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630336.4855068,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630339.6339302,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630342.7738895,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630345.916694,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630349.058825,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630352.2086964,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630355.36378,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630358.5148864,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630361.665188,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630364.8018906,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630367.9527948,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630371.1011333,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630374.2407594,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630377.392209,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630380.5527296,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630383.6898503,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630386.8255162,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630389.991275,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630393.1430397,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630396.287714,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630399.4284918,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630402.5807254,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630405.722553,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630408.86907,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630412.0107026,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630415.141876,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630418.2917764,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630421.4355114,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630424.5802443,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630427.7405639,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630430.880766,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630434.0458367,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630437.1948524,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630440.334393,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630443.4965107,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630446.6373155,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630449.7752388,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630452.9248188,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630456.0865715,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630459.242479,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630462.3865888,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630465.5153992,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630468.6552951,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630471.8047128,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630474.9550464,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630478.0960188,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630481.2495363,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630484.399808,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630487.5465784,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630490.6852653,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630493.8239589,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630496.976043,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630500.143377,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630503.281941,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630506.4234238,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630509.579885,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630512.7294693,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630515.8741848,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630519.0208547,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630522.1624835,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630525.3012972,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630528.463691,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630531.6234665,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630534.8030849,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630537.968477,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630541.1068218,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630544.2523563,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630547.390335,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630550.5336783,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630553.6719048,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630556.8205419,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630559.9692807,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630563.124914,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630566.2634637,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630569.4049685,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630572.5442398,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630575.6867173,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630578.8414886,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630581.9997456,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630585.1411192,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630588.2942533,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630591.4622016,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630594.6141238,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630597.7559566,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630600.9012513,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630604.068458,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630607.222081,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630610.3818598,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630613.5412812,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630616.6918457,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630619.854114,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630622.991982,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630626.1419947,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630629.2974045,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630632.4480472,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774630635.5895183,
+      "window": "unknown"
+    }
+  ]
+}

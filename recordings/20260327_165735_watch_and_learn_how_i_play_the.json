@@ -1,0 +1,4051 @@
+{
+  "prompt": "watch and learn how i play the game solitaire and casual games for windows, i will be specifically playing klondike in this demo",
+  "started": 1774655855.8393447,
+  "stopped": 1774657024.2403376,
+  "duration_secs": 1168.4009928703308,
+  "event_count": 307,
+  "screenshot_count": 372,
+  "speech_count": 98,
+  "events": [
+    {
+      "ts": 1774655858.5912516,
+      "type": "speech",
+      "data": {
+        "text": "[Audio recording started \u2014 speak to narrate your actions]"
+      }
+    },
+    {
+      "ts": 1774655858.6710374,
+      "type": "click",
+      "data": {
+        "x": 906,
+        "y": 1561,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774655865.4969146,
+      "type": "key",
+      "data": {
+        "key": "s"
+      }
+    },
+    {
+      "ts": 1774655866.7583818,
+      "type": "key",
+      "data": {
+        "key": "o"
+      }
+    },
+    {
+      "ts": 1774655867.2892609,
+      "type": "key",
+      "data": {
+        "key": "l"
+      }
+    },
+    {
+      "ts": 1774655868.477599,
+      "type": "key",
+      "data": {
+        "key": "i"
+      }
+    },
+    {
+      "ts": 1774655869.9686196,
+      "type": "key",
+      "data": {
+        "key": "t"
+      }
+    },
+    {
+      "ts": 1774655870.1796346,
+      "type": "key",
+      "data": {
+        "key": "a"
+      }
+    },
+    {
+      "ts": 1774655870.4352925,
+      "type": "key",
+      "data": {
+        "key": "i"
+      }
+    },
+    {
+      "ts": 1774655871.4604769,
+      "type": "key",
+      "data": {
+        "key": "r"
+      }
+    },
+    {
+      "ts": 1774655869.276172,
+      "type": "speech",
+      "data": {
+        "text": "I start off by going into the the search bar and type in in Solitaire s o l i"
+      }
+    },
+    {
+      "ts": 1774655872.631537,
+      "type": "key",
+      "data": {
+        "key": "e"
+      }
+    },
+    {
+      "ts": 1774655882.0571353,
+      "type": "click",
+      "data": {
+        "x": 958,
+        "y": 413,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774655882.7405684,
+      "type": "speech",
+      "data": {
+        "text": "eat I see some list of apps I find the app I'm looking for in the list and I click it with the mouse"
+      }
+    },
+    {
+      "ts": 1774655896.7098994,
+      "type": "speech",
+      "data": {
+        "text": "the game solitaire for me I see a list of games Klondike spider FreeCell pyramid TriPeaks some other inter"
+      }
+    },
+    {
+      "ts": 1774655901.8174434,
+      "type": "click",
+      "data": {
+        "x": 2453,
+        "y": 20,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774655910.7092748,
+      "type": "speech",
+      "data": {
+        "text": "is in full screen if it wasn't a full screen I can click on the taskbar sorry the the"
+      }
+    },
+    {
+      "ts": 1774655922.9905527,
+      "type": "speech",
+      "data": {
+        "text": "what are the keyboard shortcut to make it full screen so I've made it window size now just to show you and now I'm going to move my mouse up to the top"
+      }
+    },
+    {
+      "ts": 1774655927.8053207,
+      "type": "click",
+      "data": {
+        "x": 1917,
+        "y": 64,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774655935.8370657,
+      "type": "speech",
+      "data": {
+        "text": "full screen mode I see the list of games on the top row I see the game I'm interested in"
+      }
+    },
+    {
+      "ts": 1774655944.9459932,
+      "type": "click",
+      "data": {
+        "x": 531,
+        "y": 281,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774655948.4504342,
+      "type": "speech",
+      "data": {
+        "text": "it highlights it and I want to click the mouse the left click Mouse button once and this loads the game as you"
+      }
+    },
+    {
+      "ts": 1774655960.7953808,
+      "type": "speech",
+      "data": {
+        "text": "play that's in progress and it's resume this game I don't want to resume a game I want to start a new game so I"
+      }
+    },
+    {
+      "ts": 1774655972.845544,
+      "type": "speech",
+      "data": {
+        "text": "medium difficulty the score the timer menu back button I also see a bar at the bottom which I can see different tools"
+      }
+    },
+    {
+      "ts": 1774655984.2575755,
+      "type": "click",
+      "data": {
+        "x": 342,
+        "y": 1460,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774655985.9567955,
+      "type": "speech",
+      "data": {
+        "text": "I want new so I Mouse over new it highlights that button and click it I"
+      }
+    },
+    {
+      "ts": 1774655997.551526,
+      "type": "click",
+      "data": {
+        "x": 943,
+        "y": 958,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774655998.3329356,
+      "type": "speech",
+      "data": {
+        "text": "62 end the game or cancel I actually want to end the game so I Mass over that a yellow gold button that says endgame by cricket"
+      }
+    },
+    {
+      "ts": 1774656011.1997194,
+      "type": "speech",
+      "data": {
+        "text": "cream where I can select the difficulty level that I'm interested in I want to play an easy game today medium is currently"
+      }
+    },
+    {
+      "ts": 1774656017.3741684,
+      "type": "click",
+      "data": {
+        "x": 999,
+        "y": 562,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656027.523478,
+      "type": "click",
+      "data": {
+        "x": 1491,
+        "y": 436,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656035.5472124,
+      "type": "click",
+      "data": {
+        "x": 1242,
+        "y": 552,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656042.375095,
+      "type": "click",
+      "data": {
+        "x": 1123,
+        "y": 1306,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656060.8685296,
+      "type": "speech",
+      "data": {
+        "text": "example of cards to choose from that the face up and then I see you on the top left hand corner the part the deck cards I can turn over and I see Aunt"
+      }
+    },
+    {
+      "ts": 1774656072.6597435,
+      "type": "click",
+      "data": {
+        "x": 1063,
+        "y": 697,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656086.8094816,
+      "type": "click",
+      "data": {
+        "x": 1266,
+        "y": 697,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656091.343584,
+      "type": "speech",
+      "data": {
+        "text": "Ace of Spades by click once and it also puts it in the top right for me"
+      }
+    },
+    {
+      "ts": 1774656107.7382746,
+      "type": "click",
+      "data": {
+        "x": 1507,
+        "y": 735,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656105.867405,
+      "type": "speech",
+      "data": {
+        "text": "so for example if I click on this 3:00 it can either go on the floor of diamonds or the four"
+      }
+    },
+    {
+      "ts": 1774656118.6895814,
+      "type": "speech",
+      "data": {
+        "text": "what's the system automatically moved it for me over to the four of diamonds I can also see now the two of diamonds has shown"
+      }
+    },
+    {
+      "ts": 1774656124.8995805,
+      "type": "click",
+      "data": {
+        "x": 1533,
+        "y": 722,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656125.4003372,
+      "type": "speech",
+      "data": {
+        "text": "3 of clubs I'm going to click on the tube"
+      }
+    },
+    {
+      "ts": 1774656136.5972376,
+      "type": "speech",
+      "data": {
+        "text": "that can go on top of the Ace of Spades in the top row because Ace Spade to"
+      }
+    },
+    {
+      "ts": 1774656139.9215548,
+      "type": "click",
+      "data": {
+        "x": 1530,
+        "y": 653,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656142.8741748,
+      "type": "speech",
+      "data": {
+        "text": "we moved it up"
+      }
+    },
+    {
+      "ts": 1774656153.3524652,
+      "type": "speech",
+      "data": {
+        "text": "now going to click on each card on this Bottom Road to see if the auto move it so here we go starting with the nine I know that will 9"
+      }
+    },
+    {
+      "ts": 1774656156.6415048,
+      "type": "click",
+      "data": {
+        "x": 1550,
+        "y": 705,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656159.6611617,
+      "type": "click",
+      "data": {
+        "x": 1758,
+        "y": 759,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656166.2276576,
+      "type": "click",
+      "data": {
+        "x": 2014,
+        "y": 794,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656168.6779282,
+      "type": "click",
+      "data": {
+        "x": 535,
+        "y": 573,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656167.5663338,
+      "type": "speech",
+      "data": {
+        "text": "picked on the seven of Spades nothing happened cuz it can't move yet same with the 7 of Clubs"
+      }
+    },
+    {
+      "ts": 1774656169.4377189,
+      "type": "click",
+      "data": {
+        "x": 541,
+        "y": 662,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656171.3520045,
+      "type": "click",
+      "data": {
+        "x": 789,
+        "y": 558,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656171.9232464,
+      "type": "click",
+      "data": {
+        "x": 784,
+        "y": 634,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656180.1552558,
+      "type": "click",
+      "data": {
+        "x": 1290,
+        "y": 686,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656179.063658,
+      "type": "speech",
+      "data": {
+        "text": "79943 when I clicked on three of clubs and moved it from the four of diamonds over to the 4th hearts"
+      }
+    },
+    {
+      "ts": 1774656195.522155,
+      "type": "click",
+      "data": {
+        "x": 1059,
+        "y": 644,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656193.1530604,
+      "type": "speech",
+      "data": {
+        "text": "volume zero right now I will keep it on the 4th of diamonds I see there's a six of diamonds and I have some black 7s if I click on the"
+      }
+    },
+    {
+      "ts": 1774656198.6872218,
+      "type": "speech",
+      "data": {
+        "text": "and it did so"
+      }
+    },
+    {
+      "ts": 1774656200.6172848,
+      "type": "click",
+      "data": {
+        "x": 537,
+        "y": 681,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656201.3075252,
+      "type": "click",
+      "data": {
+        "x": 731,
+        "y": 741,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656201.9633381,
+      "type": "click",
+      "data": {
+        "x": 1041,
+        "y": 673,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656202.6257892,
+      "type": "click",
+      "data": {
+        "x": 1247,
+        "y": 681,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656203.2581108,
+      "type": "click",
+      "data": {
+        "x": 1529,
+        "y": 688,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656203.9634025,
+      "type": "click",
+      "data": {
+        "x": 1735,
+        "y": 795,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656205.1518757,
+      "type": "click",
+      "data": {
+        "x": 2055,
+        "y": 859,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656205.9818678,
+      "type": "click",
+      "data": {
+        "x": 1802,
+        "y": 823,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656206.6693144,
+      "type": "click",
+      "data": {
+        "x": 2008,
+        "y": 853,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656208.0435753,
+      "type": "click",
+      "data": {
+        "x": 2005,
+        "y": 793,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656209.8266323,
+      "type": "speech",
+      "data": {
+        "text": "I will just run through each card again clicking on it to see if we can move anywhere on the 6th will go between each of the sevens and that's it"
+      }
+    },
+    {
+      "ts": 1774656220.897526,
+      "type": "click",
+      "data": {
+        "x": 581,
+        "y": 308,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656221.5407524,
+      "type": "speech",
+      "data": {
+        "text": "I've exhausted all my play options on the face up cards now I only need to reveal more"
+      }
+    },
+    {
+      "ts": 1774656227.327473,
+      "type": "click",
+      "data": {
+        "x": 785,
+        "y": 304,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656233.2172816,
+      "type": "click",
+      "data": {
+        "x": 601,
+        "y": 301,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656233.977759,
+      "type": "speech",
+      "data": {
+        "text": "see you at 6:00 if I click that 6666 clubs nothing happens this cannot go anywhere right now so I need to turn over another"
+      }
+    },
+    {
+      "ts": 1774656237.0433247,
+      "type": "click",
+      "data": {
+        "x": 853,
+        "y": 280,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656243.9598806,
+      "type": "speech",
+      "data": {
+        "text": "no but I can also visually tell from myself by looking at all the available cards"
+      }
+    },
+    {
+      "ts": 1774656255.346893,
+      "type": "speech",
+      "data": {
+        "text": "put it anywhere so you have two options you can either just blindly click on cards and hope that you get lucky or you can determine what's needed blind"
+      }
+    },
+    {
+      "ts": 1774656267.554489,
+      "type": "speech",
+      "data": {
+        "text": "make it have an algorithm or something that Cycles through every card and clicks it and you should probably balance it out with knowing what you're doing"
+      }
+    },
+    {
+      "ts": 1774656279.9629157,
+      "type": "speech",
+      "data": {
+        "text": "for a while it will the UI will highlight in kind of a yellowish glow what card you should click next so you can see"
+      }
+    },
+    {
+      "ts": 1774656287.467642,
+      "type": "click",
+      "data": {
+        "x": 577,
+        "y": 341,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656290.9762292,
+      "type": "click",
+      "data": {
+        "x": 819,
+        "y": 313,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656292.3787775,
+      "type": "speech",
+      "data": {
+        "text": "how to click on the top left-hand deck to reveal the next card so I will do this I have a blackjack picking on it"
+      }
+    },
+    {
+      "ts": 1774656296.8380187,
+      "type": "click",
+      "data": {
+        "x": 562,
+        "y": 254,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656300.2663364,
+      "type": "click",
+      "data": {
+        "x": 836,
+        "y": 245,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656304.8816006,
+      "type": "speech",
+      "data": {
+        "text": "nine of Spades in that"
+      }
+    },
+    {
+      "ts": 1774656317.773696,
+      "type": "click",
+      "data": {
+        "x": 1762,
+        "y": 676,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656317.2420638,
+      "type": "speech",
+      "data": {
+        "text": "that's what I'm going to do this black 7 of Spades and the six of diamonds if I click on the seven card it will also move the six cardinal"
+      }
+    },
+    {
+      "ts": 1774656323.413339,
+      "type": "speech",
+      "data": {
+        "text": "it's revealed seven of diamonds"
+      }
+    },
+    {
+      "ts": 1774656328.753733,
+      "type": "click",
+      "data": {
+        "x": 579,
+        "y": 278,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656331.2596364,
+      "type": "click",
+      "data": {
+        "x": 818,
+        "y": 256,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656332.609454,
+      "type": "click",
+      "data": {
+        "x": 593,
+        "y": 294,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656332.5354538,
+      "type": "speech",
+      "data": {
+        "text": "want to click on the deck Now to turn over another card black king I can't go"
+      }
+    },
+    {
+      "ts": 1774656336.6915507,
+      "type": "click",
+      "data": {
+        "x": 892,
+        "y": 321,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656344.420633,
+      "type": "speech",
+      "data": {
+        "text": "I have at 5:00 clubs that can go to the 6th of diamonds I can now move one of my four red fours over I'm going to choose the four with the"
+      }
+    },
+    {
+      "ts": 1774656353.7538989,
+      "type": "click",
+      "data": {
+        "x": 743,
+        "y": 577,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656356.5864422,
+      "type": "speech",
+      "data": {
+        "text": "I thought this can't see the whole card I can just see the top of it that's fine I click on that top pop and it moves it"
+      }
+    },
+    {
+      "ts": 1774656361.5199604,
+      "type": "click",
+      "data": {
+        "x": 599,
+        "y": 325,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656364.8415716,
+      "type": "click",
+      "data": {
+        "x": 569,
+        "y": 348,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656364.8353376,
+      "type": "speech",
+      "data": {
+        "text": "Hanover and revealing more cards blackjack"
+      }
+    },
+    {
+      "ts": 1774656377.6281536,
+      "type": "click",
+      "data": {
+        "x": 857,
+        "y": 288,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656376.1259127,
+      "type": "speech",
+      "data": {
+        "text": "I don't need so I can visually check to see that that Queen cannot go anywhere so I'm not going to waste my time by clicking it to but you know sometimes"
+      }
+    },
+    {
+      "ts": 1774656380.5095234,
+      "type": "click",
+      "data": {
+        "x": 564,
+        "y": 323,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656381.9677224,
+      "type": "click",
+      "data": {
+        "x": 830,
+        "y": 304,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656382.5436666,
+      "type": "click",
+      "data": {
+        "x": 630,
+        "y": 323,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656385.8975098,
+      "type": "speech",
+      "data": {
+        "text": "Red Jacket free of diamonds"
+      }
+    },
+    {
+      "ts": 1774656386.9514527,
+      "type": "click",
+      "data": {
+        "x": 812,
+        "y": 327,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656387.5435362,
+      "type": "click",
+      "data": {
+        "x": 640,
+        "y": 325,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656387.941774,
+      "type": "click",
+      "data": {
+        "x": 543,
+        "y": 330,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656390.5195324,
+      "type": "click",
+      "data": {
+        "x": 543,
+        "y": 330,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656390.741014,
+      "type": "speech",
+      "data": {
+        "text": "three of heart"
+      }
+    },
+    {
+      "ts": 1774656394.0496595,
+      "type": "click",
+      "data": {
+        "x": 556,
+        "y": 308,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656394.7357779,
+      "type": "speech",
+      "data": {
+        "text": "black 10 of Spades"
+      }
+    },
+    {
+      "ts": 1774656400.9215977,
+      "type": "click",
+      "data": {
+        "x": 919,
+        "y": 256,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656403.633455,
+      "type": "click",
+      "data": {
+        "x": 539,
+        "y": 284,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656403.7850125,
+      "type": "speech",
+      "data": {
+        "text": "that's not too hot can move over to the top row on the Ace of Hearts so I'll click it and it did so"
+      }
+    },
+    {
+      "ts": 1774656406.8437989,
+      "type": "click",
+      "data": {
+        "x": 868,
+        "y": 344,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656410.1235178,
+      "type": "click",
+      "data": {
+        "x": 586,
+        "y": 321,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656413.1417418,
+      "type": "click",
+      "data": {
+        "x": 571,
+        "y": 340,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656414.3931332,
+      "type": "speech",
+      "data": {
+        "text": "make it to the top row nicely done I'll keep going and I'll see you at 8:00"
+      }
+    },
+    {
+      "ts": 1774656420.5078187,
+      "type": "click",
+      "data": {
+        "x": 831,
+        "y": 305,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656426.2937102,
+      "type": "speech",
+      "data": {
+        "text": "that Queen black Queen of Clubs can move down to the Red King so I click on it and use it alternatively I can you can drag card so you can click and drag"
+      }
+    },
+    {
+      "ts": 1774656429.277673,
+      "type": "click",
+      "data": {
+        "x": 585,
+        "y": 271,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656435.0919771,
+      "type": "click",
+      "data": {
+        "x": 877,
+        "y": 266,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656438.9357007,
+      "type": "speech",
+      "data": {
+        "text": "okay now we see the six of hearts on the top left deck I've turned over by click that hold down the mouse button"
+      }
+    },
+    {
+      "ts": 1774656442.9408522,
+      "type": "speech",
+      "data": {
+        "text": "and where"
+      }
+    },
+    {
+      "ts": 1774656453.4098432,
+      "type": "speech",
+      "data": {
+        "text": "don't want to use the autoclave to move out I can drag it move it and then once I'm over its destination I let go and it popped in place"
+      }
+    },
+    {
+      "ts": 1774656457.4738605,
+      "type": "click",
+      "data": {
+        "x": 589,
+        "y": 297,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656461.073505,
+      "type": "click",
+      "data": {
+        "x": 895,
+        "y": 302,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656465.2076986,
+      "type": "click",
+      "data": {
+        "x": 564,
+        "y": 299,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656462.7557714,
+      "type": "speech",
+      "data": {
+        "text": "keep going through the motions of Spades can go on the two Spades in the top row"
+      }
+    },
+    {
+      "ts": 1774656466.5537088,
+      "type": "click",
+      "data": {
+        "x": 575,
+        "y": 300,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656467.5975962,
+      "type": "click",
+      "data": {
+        "x": 586,
+        "y": 293,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656470.1678011,
+      "type": "click",
+      "data": {
+        "x": 573,
+        "y": 301,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656478.9182582,
+      "type": "click",
+      "data": {
+        "x": 622,
+        "y": 314,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656477.9539638,
+      "type": "speech",
+      "data": {
+        "text": "by using my eyes I can quickly shift through each card without having to click"
+      }
+    },
+    {
+      "ts": 1774656483.3879998,
+      "type": "click",
+      "data": {
+        "x": 885,
+        "y": 377,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656486.88011,
+      "type": "click",
+      "data": {
+        "x": 580,
+        "y": 1252,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656489.3671567,
+      "type": "speech",
+      "data": {
+        "text": "Ace of Diamonds shown so I will move that up and I will move the two diamonds up there cuz the end of the game is to move all the cards"
+      }
+    },
+    {
+      "ts": 1774656505.0995755,
+      "type": "click",
+      "data": {
+        "x": 54,
+        "y": 87,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656505.5305715,
+      "type": "speech",
+      "data": {
+        "text": "if I was not sure on the rules and I wanted to learn There's an opportunity for you to do this if you click on menu on the top left-hand Corner which I will do now"
+      }
+    },
+    {
+      "ts": 1774656517.959119,
+      "type": "speech",
+      "data": {
+        "text": "make a pop-up pop-up menu and on the very top the option is how to play with the question mark underneath that is a"
+      }
+    },
+    {
+      "ts": 1774656526.4840977,
+      "type": "click",
+      "data": {
+        "x": 218,
+        "y": 192,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656530.4746146,
+      "type": "speech",
+      "data": {
+        "text": "21 candy and then you can also load more games below I'm going to click how to play this open the screen giving me a tutorial"
+      }
+    },
+    {
+      "ts": 1774656543.1920505,
+      "type": "speech",
+      "data": {
+        "text": "you could absorb this information and add it to your knowledge base for how to play it shows you the objective"
+      }
+    },
+    {
+      "ts": 1774656555.2527092,
+      "type": "speech",
+      "data": {
+        "text": "you still see The Columns of cards on antique columns mean the stockpile of cards you draw from now to un"
+      }
+    },
+    {
+      "ts": 1774656561.1507523,
+      "type": "speech",
+      "data": {
+        "text": "we can use them two button"
+      }
+    },
+    {
+      "ts": 1774656571.335264,
+      "type": "click",
+      "data": {
+        "x": 969,
+        "y": 204,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656572.1098232,
+      "type": "click",
+      "data": {
+        "x": 1254,
+        "y": 182,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656572.7596438,
+      "type": "click",
+      "data": {
+        "x": 1474,
+        "y": 194,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656573.554137,
+      "type": "click",
+      "data": {
+        "x": 1634,
+        "y": 200,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656574.4617221,
+      "type": "click",
+      "data": {
+        "x": 1884,
+        "y": 193,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656572.2492828,
+      "type": "speech",
+      "data": {
+        "text": "so there is a tutorial here telling you the rules the scoring is also quick links on the navbar at the top"
+      }
+    },
+    {
+      "ts": 1774656576.1526947,
+      "type": "click",
+      "data": {
+        "x": 2091,
+        "y": 204,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656579.1767337,
+      "type": "speech",
+      "data": {
+        "text": "stop this how to play guide I recommend"
+      }
+    },
+    {
+      "ts": 1774656582.1987333,
+      "type": "speech",
+      "data": {
+        "text": "automation"
+      }
+    },
+    {
+      "ts": 1774656589.950683,
+      "type": "speech",
+      "data": {
+        "text": "so that you can understand how to play"
+      }
+    },
+    {
+      "ts": 1774656595.4151495,
+      "type": "speech",
+      "data": {
+        "text": "you've got to figure out here are some keyboard shortcuts that are useful"
+      }
+    },
+    {
+      "ts": 1774656606.546841,
+      "type": "speech",
+      "data": {
+        "text": "start a new game the drawers card H is for hint if one brings up this how to play menu statistics in F4"
+      }
+    },
+    {
+      "ts": 1774656618.8869498,
+      "type": "speech",
+      "data": {
+        "text": "full screen f11 open close menu scape you can play a card by hitting the enter key select a column"
+      }
+    },
+    {
+      "ts": 1774656631.0323143,
+      "type": "speech",
+      "data": {
+        "text": "cars with the arrow keys or jump between menus tap so if keyboard shortcuts could be an easier way for you to control this"
+      }
+    },
+    {
+      "ts": 1774656638.6079614,
+      "type": "click",
+      "data": {
+        "x": 43,
+        "y": 98,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656643.8859,
+      "type": "click",
+      "data": {
+        "x": 534,
+        "y": 330,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656645.2779102,
+      "type": "speech",
+      "data": {
+        "text": "Mouse at the top left and go click on the back button then returns me to the game so now I will continue going through the game"
+      }
+    },
+    {
+      "ts": 1774656649.8399875,
+      "type": "click",
+      "data": {
+        "x": 857,
+        "y": 294,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656654.871768,
+      "type": "click",
+      "data": {
+        "x": 862,
+        "y": 296,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656657.714042,
+      "type": "speech",
+      "data": {
+        "text": "you can go on a tent of Hearts below a ticket and the music I can now move my red 8 with diamonds down as well and keep going and now"
+      }
+    },
+    {
+      "ts": 1774656673.079673,
+      "type": "speech",
+      "data": {
+        "text": "and so I have the empty deck if I click on this blank area and so you can see a circle by click that where the cards were"
+      }
+    },
+    {
+      "ts": 1774656676.395914,
+      "type": "click",
+      "data": {
+        "x": 531,
+        "y": 293,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656679.8461838,
+      "type": "click",
+      "data": {
+        "x": 522,
+        "y": 290,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656684.3579125,
+      "type": "click",
+      "data": {
+        "x": 823,
+        "y": 319,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656685.3582673,
+      "type": "speech",
+      "data": {
+        "text": "shit out of the cards for me to pick from again now I can repeat the process I see a 6:00 now I can move that down to the seven of diamonds"
+      }
+    },
+    {
+      "ts": 1774656689.413792,
+      "type": "click",
+      "data": {
+        "x": 977,
+        "y": 630,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656696.918025,
+      "type": "click",
+      "data": {
+        "x": 560,
+        "y": 298,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656701.0798988,
+      "type": "click",
+      "data": {
+        "x": 1224,
+        "y": 750,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656704.1979694,
+      "type": "click",
+      "data": {
+        "x": 529,
+        "y": 291,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656706.0156786,
+      "type": "click",
+      "data": {
+        "x": 519,
+        "y": 305,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656712.294046,
+      "type": "click",
+      "data": {
+        "x": 847,
+        "y": 264,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656714.820671,
+      "type": "click",
+      "data": {
+        "x": 535,
+        "y": 278,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656712.7209492,
+      "type": "speech",
+      "data": {
+        "text": "can't do anything right now keep going keep going huh it was a king so I'm going to click on that King and it should go down to the spot that it"
+      }
+    },
+    {
+      "ts": 1774656717.3037634,
+      "type": "click",
+      "data": {
+        "x": 538,
+        "y": 276,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656721.8519087,
+      "type": "click",
+      "data": {
+        "x": 836,
+        "y": 238,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656724.7957842,
+      "type": "click",
+      "data": {
+        "x": 837,
+        "y": 254,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656724.7665417,
+      "type": "speech",
+      "data": {
+        "text": "red Queen's going to black king and here we have a red queen I'll move that car down I will now move"
+      }
+    },
+    {
+      "ts": 1774656729.3902752,
+      "type": "click",
+      "data": {
+        "x": 745,
+        "y": 541,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656738.301305,
+      "type": "click",
+      "data": {
+        "x": 478,
+        "y": 372,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656736.4020858,
+      "type": "speech",
+      "data": {
+        "text": "types of hearts and this column over to the Blackjack revealing an empty space which another king can now occupy"
+      }
+    },
+    {
+      "ts": 1774656740.2858353,
+      "type": "click",
+      "data": {
+        "x": 851,
+        "y": 291,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656744.822471,
+      "type": "click",
+      "data": {
+        "x": 535,
+        "y": 321,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656754.1601248,
+      "type": "click",
+      "data": {
+        "x": 866,
+        "y": 292,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656745.7128792,
+      "type": "speech",
+      "data": {
+        "text": "read Jack the red Jack can go on the black queen I want to drag it down you can drag it or click it"
+      }
+    },
+    {
+      "ts": 1774656758.3218532,
+      "type": "click",
+      "data": {
+        "x": 558,
+        "y": 298,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656760.9999096,
+      "type": "click",
+      "data": {
+        "x": 876,
+        "y": 300,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656766.7560508,
+      "type": "click",
+      "data": {
+        "x": 1307,
+        "y": 664,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656768.661838,
+      "type": "click",
+      "data": {
+        "x": 1307,
+        "y": 664,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656773.5524368,
+      "type": "click",
+      "data": {
+        "x": 523,
+        "y": 315,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656763.1120167,
+      "type": "speech",
+      "data": {
+        "text": "going three of Hearts I can go to the top row"
+      }
+    },
+    {
+      "ts": 1774656775.2319143,
+      "type": "click",
+      "data": {
+        "x": 837,
+        "y": 288,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656782.28577,
+      "type": "click",
+      "data": {
+        "x": 583,
+        "y": 300,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656784.1557415,
+      "type": "click",
+      "data": {
+        "x": 568,
+        "y": 310,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656783.53295,
+      "type": "speech",
+      "data": {
+        "text": "let me just keep playing through these cards"
+      }
+    },
+    {
+      "ts": 1774656785.9858286,
+      "type": "click",
+      "data": {
+        "x": 567,
+        "y": 299,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656787.6518981,
+      "type": "click",
+      "data": {
+        "x": 553,
+        "y": 292,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656788.9777725,
+      "type": "click",
+      "data": {
+        "x": 870,
+        "y": 293,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656791.7537107,
+      "type": "click",
+      "data": {
+        "x": 869,
+        "y": 246,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656792.2567859,
+      "type": "speech",
+      "data": {
+        "text": "Red King I'll move that red King down"
+      }
+    },
+    {
+      "ts": 1774656798.2000566,
+      "type": "click",
+      "data": {
+        "x": 559,
+        "y": 330,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656798.9445803,
+      "type": "click",
+      "data": {
+        "x": 559,
+        "y": 330,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656799.662667,
+      "type": "speech",
+      "data": {
+        "text": "YouTube channel over again"
+      }
+    },
+    {
+      "ts": 1774656800.6202817,
+      "type": "click",
+      "data": {
+        "x": 506,
+        "y": 324,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656802.0659873,
+      "type": "click",
+      "data": {
+        "x": 539,
+        "y": 313,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656803.6260536,
+      "type": "click",
+      "data": {
+        "x": 513,
+        "y": 361,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656810.3059204,
+      "type": "speech",
+      "data": {
+        "text": "I'm getting to a point now where I'm running out of options"
+      }
+    },
+    {
+      "ts": 1774656811.7039576,
+      "type": "click",
+      "data": {
+        "x": 1238,
+        "y": 603,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656813.8976996,
+      "type": "click",
+      "data": {
+        "x": 2098,
+        "y": 834,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656814.608385,
+      "type": "click",
+      "data": {
+        "x": 1830,
+        "y": 867,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656814.8769035,
+      "type": "speech",
+      "data": {
+        "text": "get the"
+      }
+    },
+    {
+      "ts": 1774656820.1581426,
+      "type": "click",
+      "data": {
+        "x": 1280,
+        "y": 677,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656825.7330804,
+      "type": "speech",
+      "data": {
+        "text": "need to get this black sex off so I can reveal the car underneath"
+      }
+    },
+    {
+      "ts": 1774656833.12623,
+      "type": "speech",
+      "data": {
+        "text": "I may have got to the point in the game where I'm stuck"
+      }
+    },
+    {
+      "ts": 1774656836.9237847,
+      "type": "click",
+      "data": {
+        "x": 574,
+        "y": 1094,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656838.115927,
+      "type": "click",
+      "data": {
+        "x": 1803,
+        "y": 920,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656839.3046443,
+      "type": "click",
+      "data": {
+        "x": 1944,
+        "y": 878,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656844.848509,
+      "type": "click",
+      "data": {
+        "x": 1610,
+        "y": 871,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656845.5283947,
+      "type": "click",
+      "data": {
+        "x": 556,
+        "y": 296,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656846.1427867,
+      "type": "click",
+      "data": {
+        "x": 556,
+        "y": 296,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656848.1781318,
+      "type": "click",
+      "data": {
+        "x": 558,
+        "y": 339,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656849.6635242,
+      "type": "click",
+      "data": {
+        "x": 559,
+        "y": 325,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656858.1516714,
+      "type": "click",
+      "data": {
+        "x": 2074,
+        "y": 715,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656861.1580493,
+      "type": "speech",
+      "data": {
+        "text": "oh this is black 7 of clubs can move over to the red 8 of diamonds so I will do that"
+      }
+    },
+    {
+      "ts": 1774656865.7339523,
+      "type": "click",
+      "data": {
+        "x": 2044,
+        "y": 760,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656868.2447338,
+      "type": "speech",
+      "data": {
+        "text": "black flag of Spades she can go on the red 6"
+      }
+    },
+    {
+      "ts": 1774656870.8309798,
+      "type": "click",
+      "data": {
+        "x": 2087,
+        "y": 799,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656875.1134741,
+      "type": "speech",
+      "data": {
+        "text": "2 clubs can go out to the ace or making good progress"
+      }
+    },
+    {
+      "ts": 1774656876.5285127,
+      "type": "click",
+      "data": {
+        "x": 2063,
+        "y": 755,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656878.597797,
+      "type": "click",
+      "data": {
+        "x": 1820,
+        "y": 659,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656879.3001251,
+      "type": "speech",
+      "data": {
+        "text": "God save it up"
+      }
+    },
+    {
+      "ts": 1774656884.8377323,
+      "type": "click",
+      "data": {
+        "x": 554,
+        "y": 1104,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656886.4039927,
+      "type": "click",
+      "data": {
+        "x": 1830,
+        "y": 716,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656891.187493,
+      "type": "click",
+      "data": {
+        "x": 1046,
+        "y": 1240,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656894.754167,
+      "type": "click",
+      "data": {
+        "x": 2029,
+        "y": 816,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656892.201215,
+      "type": "speech",
+      "data": {
+        "text": "I have 3:00 so I can move up to the top row so I'll do that now a black king I'm going to keep going through these cards"
+      }
+    },
+    {
+      "ts": 1774656895.8097758,
+      "type": "click",
+      "data": {
+        "x": 1255,
+        "y": 776,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656896.7620196,
+      "type": "click",
+      "data": {
+        "x": 1062,
+        "y": 1203,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656897.4301186,
+      "type": "click",
+      "data": {
+        "x": 570,
+        "y": 1146,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656898.4500928,
+      "type": "click",
+      "data": {
+        "x": 1999,
+        "y": 945,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656903.6223068,
+      "type": "click",
+      "data": {
+        "x": 604,
+        "y": 974,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656904.3580635,
+      "type": "click",
+      "data": {
+        "x": 2041,
+        "y": 895,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656906.6242368,
+      "type": "click",
+      "data": {
+        "x": 1035,
+        "y": 1206,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656909.0939305,
+      "type": "click",
+      "data": {
+        "x": 1273,
+        "y": 658,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656910.4515567,
+      "type": "click",
+      "data": {
+        "x": 1307,
+        "y": 654,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656921.03833,
+      "type": "click",
+      "data": {
+        "x": 1829,
+        "y": 667,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656919.8253665,
+      "type": "speech",
+      "data": {
+        "text": "build another blank column so I can push move this King on the card"
+      }
+    },
+    {
+      "ts": 1774656930.118069,
+      "type": "click",
+      "data": {
+        "x": 1835,
+        "y": 667,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656932.8199673,
+      "type": "click",
+      "data": {
+        "x": 885,
+        "y": 308,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656931.0736768,
+      "type": "speech",
+      "data": {
+        "text": "I will move it to the black queen I'll just click it"
+      }
+    },
+    {
+      "ts": 1774656933.980219,
+      "type": "click",
+      "data": {
+        "x": 882,
+        "y": 309,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656936.110076,
+      "type": "click",
+      "data": {
+        "x": 2000,
+        "y": 586,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656945.8519301,
+      "type": "click",
+      "data": {
+        "x": 2042,
+        "y": 659,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656944.4042747,
+      "type": "speech",
+      "data": {
+        "text": "click on that Spades with the 7 under it on top of it and I clicked it and moved it to the"
+      }
+    },
+    {
+      "ts": 1774656946.9091082,
+      "type": "click",
+      "data": {
+        "x": 2042,
+        "y": 659,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656948.0340176,
+      "type": "click",
+      "data": {
+        "x": 1116,
+        "y": 1153,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656950.9923623,
+      "type": "click",
+      "data": {
+        "x": 1548,
+        "y": 1144,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656953.2403765,
+      "type": "click",
+      "data": {
+        "x": 545,
+        "y": 1011,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656954.3327615,
+      "type": "click",
+      "data": {
+        "x": 1753,
+        "y": 866,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656955.5119402,
+      "type": "click",
+      "data": {
+        "x": 546,
+        "y": 921,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656956.078322,
+      "type": "click",
+      "data": {
+        "x": 1070,
+        "y": 1084,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656956.660328,
+      "type": "click",
+      "data": {
+        "x": 1489,
+        "y": 1067,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656957.1198926,
+      "type": "click",
+      "data": {
+        "x": 1774,
+        "y": 794,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656958.534201,
+      "type": "click",
+      "data": {
+        "x": 597,
+        "y": 821,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656959.0943627,
+      "type": "click",
+      "data": {
+        "x": 1053,
+        "y": 1021,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656959.6259727,
+      "type": "click",
+      "data": {
+        "x": 1460,
+        "y": 954,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656960.900042,
+      "type": "click",
+      "data": {
+        "x": 551,
+        "y": 788,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656961.4399178,
+      "type": "click",
+      "data": {
+        "x": 1130,
+        "y": 975,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656961.789797,
+      "type": "click",
+      "data": {
+        "x": 1071,
+        "y": 974,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656962.3119726,
+      "type": "click",
+      "data": {
+        "x": 1485,
+        "y": 881,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656962.8660154,
+      "type": "click",
+      "data": {
+        "x": 1823,
+        "y": 660,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656963.5586169,
+      "type": "click",
+      "data": {
+        "x": 983,
+        "y": 919,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656964.1063814,
+      "type": "click",
+      "data": {
+        "x": 554,
+        "y": 706,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656964.5388806,
+      "type": "speech",
+      "data": {
+        "text": "I can quickly kick back through these cards now and they're all going on to that top"
+      }
+    },
+    {
+      "ts": 1774656968.443996,
+      "type": "click",
+      "data": {
+        "x": 791,
+        "y": 905,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656969.0000422,
+      "type": "click",
+      "data": {
+        "x": 998,
+        "y": 843,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656969.6263313,
+      "type": "click",
+      "data": {
+        "x": 1440,
+        "y": 834,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656970.3540745,
+      "type": "click",
+      "data": {
+        "x": 1475,
+        "y": 760,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656970.9663644,
+      "type": "click",
+      "data": {
+        "x": 863,
+        "y": 775,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656971.5459838,
+      "type": "click",
+      "data": {
+        "x": 827,
+        "y": 400,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656972.1261675,
+      "type": "click",
+      "data": {
+        "x": 817,
+        "y": 378,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656972.9279926,
+      "type": "click",
+      "data": {
+        "x": 962,
+        "y": 802,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656973.3805299,
+      "type": "click",
+      "data": {
+        "x": 1193,
+        "y": 690,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656973.8179414,
+      "type": "click",
+      "data": {
+        "x": 1377,
+        "y": 707,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656974.202217,
+      "type": "click",
+      "data": {
+        "x": 1481,
+        "y": 705,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656973.2249677,
+      "type": "speech",
+      "data": {
+        "text": "time is a factor we don't want to waste too much time so"
+      }
+    },
+    {
+      "ts": 1774656975.4424865,
+      "type": "click",
+      "data": {
+        "x": 535,
+        "y": 170,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656975.9703903,
+      "type": "click",
+      "data": {
+        "x": 784,
+        "y": 711,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656976.4778488,
+      "type": "click",
+      "data": {
+        "x": 997,
+        "y": 713,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656977.2680547,
+      "type": "click",
+      "data": {
+        "x": 847,
+        "y": 369,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656977.690326,
+      "type": "click",
+      "data": {
+        "x": 823,
+        "y": 598,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656978.1178153,
+      "type": "click",
+      "data": {
+        "x": 978,
+        "y": 620,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656980.2282972,
+      "type": "click",
+      "data": {
+        "x": 1242,
+        "y": 640,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656986.7341645,
+      "type": "click",
+      "data": {
+        "x": 1484,
+        "y": 722,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774656987.4292612,
+      "type": "speech",
+      "data": {
+        "text": "I'm about to click on the final King and it will move it up to the top row and the game will be completed"
+      }
+    },
+    {
+      "ts": 1774656999.729038,
+      "type": "speech",
+      "data": {
+        "text": "I completed the game there is now an animation of showing me what happens when you complete the game on the top right-hand corner"
+      }
+    },
+    {
+      "ts": 1774657006.5450659,
+      "type": "speech",
+      "data": {
+        "text": "15 minutes and 14 seconds"
+      }
+    },
+    {
+      "ts": 1774657017.922224,
+      "type": "speech",
+      "data": {
+        "text": "a congratulations pop-up is now being displayed with two buttons to start a new game"
+      }
+    },
+    {
+      "ts": 1774657021.6652055,
+      "type": "speech",
+      "data": {
+        "text": "when's the test"
+      }
+    },
+    {
+      "ts": 1774657022.5880513,
+      "type": "click",
+      "data": {
+        "x": 1444,
+        "y": 1566,
+        "button": "Button.left"
+      }
+    },
+    {
+      "ts": 1774657023.8199086,
+      "type": "click",
+      "data": {
+        "x": 314,
+        "y": 589,
+        "button": "Button.left"
+      }
+    }
+  ],
+  "screenshots": [
+    {
+      "ts": 1774655855.9618223,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655859.091073,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655862.2076688,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655865.3361833,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655868.466513,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655871.6031122,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655874.7030385,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655877.831145,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655880.9639747,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655884.166895,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655887.3760273,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655890.5241635,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655893.6799824,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655896.857613,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655899.9865158,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655903.1276803,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655906.2512088,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655909.3789737,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655912.5026171,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655915.6370623,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655918.7691503,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655921.8933904,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655925.0279622,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655928.1919575,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655931.3341897,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655934.4824984,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655937.6202404,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655940.758845,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655943.9011846,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655947.0463884,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655950.1836064,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655953.3440347,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655956.4972908,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655959.624755,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655962.7656355,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655965.8979955,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655969.0492985,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655972.2093005,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655975.3487203,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655978.510149,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655981.6606364,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655984.799965,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655987.9413126,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655991.067215,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655994.2090275,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774655997.3561444,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656000.493572,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656003.6346693,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656006.7855468,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656009.9523008,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656013.14112,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656016.2944212,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656019.445899,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656022.5976977,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656025.7365265,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656028.879834,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656032.026084,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656035.171955,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656038.3246057,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656041.4682999,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656044.604358,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656047.7601116,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656050.9145408,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656054.0716975,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656057.2277935,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656060.3854482,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656063.5396667,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656066.6859317,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656069.8240545,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656072.9732854,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656076.130787,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656079.2706347,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656082.4375365,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656085.6031315,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656088.767929,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656091.9292781,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656095.0791812,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656098.217973,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656101.3596196,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656104.5272815,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656107.6750438,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656110.8178194,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656113.9599628,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656117.1029763,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656120.2480357,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656123.3960376,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656126.5398324,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656129.704649,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656132.8521028,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656136.0071666,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656139.1572146,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656142.2969108,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656145.4585733,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656148.6007977,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656151.7446778,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656154.8849237,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656158.0195076,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656161.1640878,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656164.3142025,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656167.4630868,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656170.624252,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656173.767968,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656176.9072492,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656180.0648432,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656183.2111907,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656186.3581822,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656189.5192628,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656192.6707706,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656195.8204749,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656198.9681818,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656202.1056159,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656205.2556705,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656208.4099448,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656211.5752475,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656214.713689,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656217.86821,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656221.0270915,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656224.166701,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656227.3273945,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656230.4715374,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656233.6303942,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656236.7970188,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656239.929768,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656243.082038,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656246.2456515,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656249.397247,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656252.536541,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656255.6806135,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656258.833326,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656261.9813857,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656265.145108,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656268.2850635,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656271.4400058,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656274.5747783,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656277.740558,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656280.8881323,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656284.050786,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656287.1927757,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656290.3313332,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656293.490769,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656296.6281893,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656299.7709098,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656302.908949,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656306.0658207,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656309.2261262,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656312.3638783,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656315.5036993,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656318.6693795,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656321.8184383,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656324.9574594,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656328.0998068,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656331.2423718,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656334.3953927,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656337.5507414,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656340.71521,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656343.8718586,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656347.0136957,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656350.1600013,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656353.307672,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656356.4596796,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656359.6150162,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656362.7730622,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656365.9130628,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656369.0701423,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656372.2208242,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656375.357813,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656378.5207944,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656381.660198,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656384.8044882,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656387.9465158,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656391.0827296,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656394.2258494,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656397.383904,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656400.533856,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656403.693953,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656406.8348637,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656409.9728756,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656413.110739,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656416.2510502,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656419.413798,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656422.5545986,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656425.686029,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656428.8311124,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656431.9612467,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656435.1209288,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656438.2739904,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656441.41606,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656444.5662148,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656447.7046156,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656450.8547723,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656454.0065637,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656457.1665034,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656460.3213282,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656463.4836636,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656466.6343558,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656469.7807038,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656472.9214487,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656476.0549884,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656479.2106059,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656482.356402,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656485.4868104,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656488.6376452,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656491.7803872,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656494.9249408,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656498.0773695,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656501.2275932,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656504.379052,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656507.5376744,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656510.6956835,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656513.8481257,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656516.9947507,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656520.1475592,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656523.2866006,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656526.4446073,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656529.5734677,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656532.7250333,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656535.8805265,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656539.0255327,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656542.1721265,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656545.3164039,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656548.459946,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656551.623321,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656554.7626178,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656557.9102168,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656561.0624812,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656564.2214587,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656567.3626044,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656570.4890463,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656573.654033,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656576.7911932,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656579.9573004,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656583.106163,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656586.2555082,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656589.392871,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656592.5536697,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656595.6974766,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656598.8444018,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656601.9988627,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656605.1469371,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656608.3057632,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656611.4702027,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656614.6212225,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656617.772289,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656620.9323237,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656624.0909262,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656627.2527506,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656630.391142,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656633.5405273,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656636.6825309,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656639.831845,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656642.9785712,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656646.1392782,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656649.299005,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656652.4582696,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656655.5981896,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656658.7545807,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656661.9138298,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656665.0530863,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656668.201769,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656671.3505795,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656674.5154316,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656677.6754692,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656680.8286612,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656683.9886353,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656687.1466634,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656690.2838838,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656693.4272285,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656696.5667624,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656699.7256603,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656702.8568275,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656706.0152588,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656709.1795137,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656712.344636,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656715.4895613,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656718.6446714,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656721.7855647,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656724.9445827,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656728.0936408,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656731.250227,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656734.3925118,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656737.5534918,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656740.692489,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656743.8371894,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656746.989437,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656750.1451159,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656753.3112931,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656756.4486773,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656759.587873,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656762.7548609,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656765.9094167,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656769.0701215,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656772.2353666,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656775.3770337,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656778.5177133,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656781.6572893,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656784.792258,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656787.9652736,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656791.1167328,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656794.2742293,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656797.4357696,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656800.587474,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656803.7398288,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656806.9051836,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656810.0539224,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656813.1947997,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656816.3361046,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656819.4745712,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656822.6386356,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656825.7905734,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656828.944384,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656832.087019,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656835.2348979,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656838.3633862,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656841.519506,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656844.6747966,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656847.818196,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656850.9716055,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656854.1092467,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656857.2669015,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656860.4036703,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656863.5404723,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656866.6871023,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656869.8497183,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656872.9898467,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656876.1321182,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656879.2902477,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656882.4475884,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656885.589773,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656888.7471118,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656891.884015,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656895.0363262,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656898.1846764,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656901.3472013,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656904.4885194,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656907.6269696,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656910.7815657,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656913.9236429,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656917.072247,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656920.2338412,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656923.399745,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656926.538768,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656929.700613,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656932.8675108,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656936.0202954,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656939.1805472,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656942.3296475,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656945.4715517,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656948.627879,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656951.7710178,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656954.9129379,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656958.0656848,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656961.2095134,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656964.3705623,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656967.5248663,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656970.686703,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656973.8440735,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656976.9848354,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656980.1242068,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656983.2726834,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656986.4384499,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656989.5919187,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656992.7321513,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656995.8916256,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774656999.0385635,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774657002.2016947,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774657005.36815,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774657008.5123963,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774657011.6536179,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774657014.7895033,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774657017.9359007,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774657021.0810852,
+      "window": "unknown"
+    },
+    {
+      "ts": 1774657024.2068574,
+      "window": "unknown"
+    }
+  ],
+  "transcript": "[3s] [Audio recording started \u2014 speak to narrate your actions]\n[13s] I start off by going into the the search bar and type in in Solitaire s o l i\n[27s] eat I see some list of apps I find the app I'm looking for in the list and I click it with the mouse\n[41s] the game solitaire for me I see a list of games Klondike spider FreeCell pyramid TriPeaks some other inter\n[55s] is in full screen if it wasn't a full screen I can click on the taskbar sorry the the\n[67s] what are the keyboard shortcut to make it full screen so I've made it window size now just to show you and now I'm going to move my mouse up to the top\n[80s] full screen mode I see the list of games on the top row I see the game I'm interested in\n[93s] it highlights it and I want to click the mouse the left click Mouse button once and this loads the game as you\n[105s] play that's in progress and it's resume this game I don't want to resume a game I want to start a new game so I\n[117s] medium difficulty the score the timer menu back button I also see a bar at the bottom which I can see different tools\n[130s] I want new so I Mouse over new it highlights that button and click it I\n[142s] 62 end the game or cancel I actually want to end the game so I Mass over that a yellow gold button that says endgame by cricket\n[155s] cream where I can select the difficulty level that I'm interested in I want to play an easy game today medium is currently\n[205s] example of cards to choose from that the face up and then I see you on the top left hand corner the part the deck cards I can turn over and I see Aunt\n[236s] Ace of Spades by click once and it also puts it in the top right for me\n[250s] so for example if I click on this 3:00 it can either go on the floor of diamonds or the four\n[263s] what's the system automatically moved it for me over to the four of diamonds I can also see now the two of diamonds has shown\n[270s] 3 of clubs I'm going to click on the tube\n[281s] that can go on top of the Ace of Spades in the top row because Ace Spade to\n[287s] we moved it up\n[298s] now going to click on each card on this Bottom Road to see if the auto move it so here we go starting with the nine I know that will 9\n[312s] picked on the seven of Spades nothing happened cuz it can't move yet same with the 7 of Clubs\n[323s] 79943 when I clicked on three of clubs and moved it from the four of diamonds over to the 4th hearts\n[337s] volume zero right now I will keep it on the 4th of diamonds I see there's a six of diamonds and I have some black 7s if I click on the\n[343s] and it did so\n[354s] I will just run through each card again clicking on it to see if we can move anywhere on the 6th will go between each of the sevens and that's it\n[366s] I've exhausted all my play options on the face up cards now I only need to reveal more\n[378s] see you at 6:00 if I click that 6666 clubs nothing happens this cannot go anywhere right now so I need to turn over another\n[388s] no but I can also visually tell from myself by looking at all the available cards\n[400s] put it anywhere so you have two options you can either just blindly click on cards and hope that you get lucky or you can determine what's needed blind\n[412s] make it have an algorithm or something that Cycles through every card and clicks it and you should probably balance it out with knowing what you're doing\n[424s] for a while it will the UI will highlight in kind of a yellowish glow what card you should click next so you can see\n[437s] how to click on the top left-hand deck to reveal the next card so I will do this I have a blackjack picking on it\n[449s] nine of Spades in that\n[461s] that's what I'm going to do this black 7 of Spades and the six of diamonds if I click on the seven card it will also move the six cardinal\n[468s] it's revealed seven of diamonds\n[477s] want to click on the deck Now to turn over another card black king I can't go\n[489s] I have at 5:00 clubs that can go to the 6th of diamonds I can now move one of my four red fours over I'm going to choose the four with the\n[501s] I thought this can't see the whole card I can just see the top of it that's fine I click on that top pop and it moves it\n[509s] Hanover and revealing more cards blackjack\n[520s] I don't need so I can visually check to see that that Queen cannot go anywhere so I'm not going to waste my time by clicking it to but you know sometimes\n[530s] Red Jacket free of diamonds\n[535s] three of heart\n[539s] black 10 of Spades\n[548s] that's not too hot can move over to the top row on the Ace of Hearts so I'll click it and it did so\n[559s] make it to the top row nicely done I'll keep going and I'll see you at 8:00\n[570s] that Queen black Queen of Clubs can move down to the Red King so I click on it and use it alternatively I can you can drag card so you can click and drag\n[583s] okay now we see the six of hearts on the top left deck I've turned over by click that hold down the mouse button\n[587s] and where\n[598s] don't want to use the autoclave to move out I can drag it move it and then once I'm over its destination I let go and it popped in place\n[607s] keep going through the motions of Spades can go on the two Spades in the top row\n[622s] by using my eyes I can quickly shift through each card without having to click\n[634s] Ace of Diamonds shown so I will move that up and I will move the two diamonds up there cuz the end of the game is to move all the cards\n[650s] if I was not sure on the rules and I wanted to learn There's an opportunity for you to do this if you click on menu on the top left-hand Corner which I will do now\n[662s] make a pop-up pop-up menu and on the very top the option is how to play with the question mark underneath that is a\n[675s] 21 candy and then you can also load more games below I'm going to click how to play this open the screen giving me a tutorial\n[687s] you could absorb this information and add it to your knowledge base for how to play it shows you the objective\n[699s] you still see The Columns of cards on antique columns mean the stockpile of cards you draw from now to un\n[705s] we can use them two button\n[716s] so there is a tutorial here telling you the rules the scoring is also quick links on the navbar at the top\n[723s] stop this how to play guide I recommend\n[726s] automation\n[734s] so that you can understand how to play\n[740s] you've got to figure out here are some keyboard shortcuts that are useful\n[751s] start a new game the drawers card H is for hint if one brings up this how to play menu statistics in F4\n[763s] full screen f11 open close menu scape you can play a card by hitting the enter key select a column\n[775s] cars with the arrow keys or jump between menus tap so if keyboard shortcuts could be an easier way for you to control this\n[789s] Mouse at the top left and go click on the back button then returns me to the game so now I will continue going through the game\n[802s] you can go on a tent of Hearts below a ticket and the music I can now move my red 8 with diamonds down as well and keep going and now\n[817s] and so I have the empty deck if I click on this blank area and so you can see a circle by click that where the cards were\n[830s] shit out of the cards for me to pick from again now I can repeat the process I see a 6:00 now I can move that down to the seven of diamonds\n[857s] can't do anything right now keep going keep going huh it was a king so I'm going to click on that King and it should go down to the spot that it\n[869s] red Queen's going to black king and here we have a red queen I'll move that car down I will now move\n[881s] types of hearts and this column over to the Blackjack revealing an empty space which another king can now occupy\n[890s] read Jack the red Jack can go on the black queen I want to drag it down you can drag it or click it\n[907s] going three of Hearts I can go to the top row\n[928s] let me just keep playing through these cards\n[936s] Red King I'll move that red King down\n[944s] YouTube channel over again\n[954s] I'm getting to a point now where I'm running out of options\n[959s] get the\n[970s] need to get this black sex off so I can reveal the car underneath\n[977s] I may have got to the point in the game where I'm stuck\n[1005s] oh this is black 7 of clubs can move over to the red 8 of diamonds so I will do that\n[1012s] black flag of Spades she can go on the red 6\n[1019s] 2 clubs can go out to the ace or making good progress\n[1023s] God save it up\n[1036s] I have 3:00 so I can move up to the top row so I'll do that now a black king I'm going to keep going through these cards\n[1064s] build another blank column so I can push move this King on the card\n[1075s] I will move it to the black queen I'll just click it\n[1089s] click on that Spades with the 7 under it on top of it and I clicked it and moved it to the\n[1109s] I can quickly kick back through these cards now and they're all going on to that top\n[1117s] time is a factor we don't want to waste too much time so\n[1132s] I'm about to click on the final King and it will move it up to the top row and the game will be completed\n[1144s] I completed the game there is now an animation of showing me what happens when you complete the game on the top right-hand corner\n[1151s] 15 minutes and 14 seconds\n[1162s] a congratulations pop-up is now being displayed with two buttons to start a new game\n[1166s] when's the test"
+}

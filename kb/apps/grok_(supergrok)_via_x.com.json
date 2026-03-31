@@ -1,0 +1,25 @@
+{
+  "name": "Grok (SuperGrok) via x.com",
+  "exe": "",
+  "versions": {},
+  "shortcuts": {
+    "Submit URL in address bar": "Enter"
+  },
+  "tools": {},
+  "known_issues": [
+    "Navigating to x.com/grok loaded the Grok profile page rather than the Grok app interface — required an extra click on 'SuperGrok' in the sidebar to reach the actual chat",
+    "Processing time for image editing was notably long (~40 seconds of 'thinking')",
+    "The user had to manually browse folders in the file picker to find the image — no recent files shortcut was used"
+  ],
+  "tips": [
+    "Navigate directly to x.com/grok to access Grok, but note it may redirect to the profile page — use the SuperGrok link in the left sidebar instead",
+    "The paperclip icon for file attachment is located on the left side inside the text input box",
+    "The send button (arrow icon) is on the right side of the text input box",
+    "Image generation/editing can take 30-40+ seconds — be patient while Grok processes",
+    "Type your full text prompt before attaching the image so the context is ready",
+    "SuperGrok (paid tier) is required for image editing capabilities on Grok",
+    "Learned sequence: Opened Windows search and typed 'chrome' to find a → Clicked the Chrome URL bar and typed 'x.com/grok'  → Page loaded to the Grok profile page instead of th → Found 'SuperGrok' option on the left-hand sidebar  → In the SuperGrok interface, clicked the 'Ask anyth → Typed the prompt: 'edit this image and create an a → Clicked the paperclip/attachment button on the lef → File browser dialog opened; navigated folders to l"
+  ],
+  "ui_elements": [],
+  "updated": 1774741311.558276
+}
