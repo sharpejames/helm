@@ -31,6 +31,7 @@ from agent.actions import (
     ACTION_REGISTRY, ActionResult, execute_action, get_action_catalog,
     _ask_screen, _screenshot_b64, _get_active_window,
 )
+from core.vision import get_vision
 
 logger = logging.getLogger(__name__)
 
@@ -401,10 +402,47 @@ class StepExecutor:
         action_catalog = get_action_catalog()
         target_app, target_exe = self._detect_target_app(task)
 
+        # ── Load KB context and determine execution mode ──
+        from kb.apps import AppDB
+        app_db = AppDB()
+        kb_context = {}
+        execution_mode = "plan"  # Default: plan-then-execute (Requirement 14.4)
+
+        if target_app:
+            # Try to load app profile from KB
+            kb_context = app_db.get(target_app)
+            if not kb_context.get("name") or kb_context.get("name") == target_app:
+                # Try first word (e.g. "Solitaire" from "Solitaire & Casual Games")
+                first_word = target_app.split()[0]
+                alt = app_db.get(first_word)
+                if alt.get("shortcuts") or alt.get("startup_sequence"):
+                    kb_context = alt
+            # Also try task keywords
+            if not kb_context.get("shortcuts"):
+                for name in app_db.list_apps():
+                    if name.lower() in task.lower():
+                        alt = app_db.get(name)
+                        if alt.get("shortcuts") or alt.get("startup_sequence"):
+                            kb_context = alt
+                            break
+
+            # Read execution_mode from KB app config (Requirement 14.3)
+            execution_mode = kb_context.get("execution_mode", "plan")
+            self._log_event("kb_context", {
+                "app": kb_context.get("name", "?"),
+                "execution_mode": execution_mode,
+                "has_startup": bool(kb_context.get("startup_sequence")),
+            })
+
         # ── Decide mode: hybrid (plan+local) or remote-only ──
         # Hybrid plan-then-execute ONLY works for Paint drawing tasks.
         # All other tasks (games, browsing, general desktop) use remote-only reactive mode.
-        use_hybrid = self.local_llm is not None and target_app == "Paint"
+        # execution_mode from KB: "reactive" forces remote-only, "plan" uses hybrid if available.
+        use_hybrid = (
+            self.local_llm is not None
+            and target_app == "Paint"
+            and execution_mode != "reactive"
+        )
         plan = None
 
         if use_hybrid:
@@ -460,6 +498,10 @@ class StepExecutor:
                     yield {"type": "warning", "data": "Plan failed, falling back to remote-only mode"}
 
         # ── Remote-only reactive mode (games, browsing, general desktop) ──
+        # Used when: execution_mode is "reactive", or hybrid mode not applicable/failed
+        if execution_mode == "reactive":
+            self._log_event("mode_reactive", f"KB says reactive for {target_app}")
+            yield {"type": "step", "data": f"⚡ Reactive mode (KB config) for {target_app or 'task'}"}
         async for event in self._execute_remote_only(task, screen_state, action_catalog,
                                                        target_app, target_exe):
             yield event
@@ -843,6 +885,154 @@ class StepExecutor:
         except Exception as e:
             self._log_event("replan_error", str(e))
         return None
+
+    # ── Batch planning methods (Requirement 6.1–6.5, 14.1–14.5) ──────────
+
+    async def _plan_batch(self, task: str, screen_state: dict, kb_context: dict) -> list[dict]:
+        """Generate a batch Action_Plan using Smart tier.
+
+        Args:
+            task: The user's task description.
+            screen_state: Structured scene description from VisionModule.describe_screen().
+            kb_context: App knowledge dict with shortcuts, startup_sequence, execution_mode, etc.
+
+        Returns:
+            List of action dicts: [{"action": str, "params": dict}, ...]
+            Empty list on failure.
+        """
+        action_catalog = get_action_catalog()
+        app_name = kb_context.get("name", screen_state.get("app", "unknown"))
+        shortcuts = kb_context.get("shortcuts", {})
+        tips = kb_context.get("tips", [])
+        known_issues = kb_context.get("known_issues", [])
+
+        # Build a focused planning prompt with KB context
+        kb_section = ""
+        if shortcuts:
+            kb_section += f"\nKEYBOARD SHORTCUTS for {app_name}: {json.dumps(shortcuts)}"
+        if tips:
+            kb_section += f"\nTIPS: {json.dumps(tips[:5])}"
+        if known_issues:
+            kb_section += f"\nKNOWN ISSUES: {json.dumps(known_issues[:5])}"
+
+        plan_limit = MAX_STEPS - 5
+        system = (
+            f"You are Helm, a desktop automation planner. Given a task and screen state, "
+            f"create a batch action plan as a JSON array.\n\n"
+            f"## ACTIONS AVAILABLE:\n{action_catalog}\n\n"
+            f"## APP KNOWLEDGE:{kb_section}\n\n"
+            f"Return ONLY a JSON object: "
+            f'{{"plan_summary": "...", "steps": [{{"action": "name", "params": {{...}}}}, ...]}}\n'
+            f"Maximum {plan_limit} steps. Prefer keyboard shortcuts when available."
+        )
+
+        screen_desc = (
+            f"App: {screen_state.get('app', '?')}, "
+            f"State: {screen_state.get('state', '?')}, "
+            f"Elements: {screen_state.get('elements', [])}, "
+            f"Description: {screen_state.get('description', '')}"
+        )
+
+        messages = [{"role": "user", "content": (
+            f"TASK: {task}\n\n"
+            f"SCREEN STATE: {screen_desc}\n"
+            f"ACTIVE WINDOW: {_get_active_window()}\n\n"
+            f"Create a batch action plan. Return ONLY the JSON."
+        )}]
+
+        try:
+            raw = await asyncio.to_thread(
+                self._call_remote_llm, system, messages,
+                max_tokens=4096, timeout=90.0, tier=TIER_SMART)
+            if not raw:
+                return []
+            self._log_event("plan_batch_raw", raw[:500])
+            parsed = self._parse_llm_response(raw)
+            if parsed and "steps" in parsed:
+                steps = parsed["steps"]
+                # Validate each step has action + params
+                validated = []
+                for s in steps:
+                    if isinstance(s, dict) and "action" in s:
+                        if "params" not in s:
+                            s["params"] = {}
+                        validated.append(s)
+                return validated[:plan_limit]
+            if parsed and isinstance(parsed.get("plan"), list):
+                return parsed["plan"][:plan_limit]
+        except Exception as e:
+            self._log_event("plan_batch_error", str(e))
+        return []
+
+    async def _execute_batch(self, plan: list[dict]) -> list[ActionResult]:
+        """Execute all actions in a batch sequentially WITHOUT any LLM calls between steps.
+
+        This is the key optimization over the old per-step approach: no LLM latency
+        between actions. Each action is dispatched directly from the plan.
+
+        Args:
+            plan: List of action dicts [{"action": str, "params": dict}, ...]
+
+        Returns:
+            List of ActionResult, one per action in the plan.
+        """
+        results = []
+        for i, step in enumerate(plan):
+            if self._stopped:
+                self._log_event("batch_stopped", f"Stopped at step {i}/{len(plan)}")
+                break
+
+            action_name = step.get("action", "")
+            params = step.get("params", {})
+
+            if action_name in ("DONE", "FAIL"):
+                results.append(ActionResult(True, output=f"Terminal: {action_name}"))
+                break
+
+            self._log_event("batch_exec", {"step": i, "action": action_name}, i)
+            result = await self._execute_with_timeout(action_name, params)
+            results.append(result)
+
+            if not result.ok:
+                self._log_event("batch_step_fail", {
+                    "step": i, "action": action_name,
+                    "error": (result.error or "")[:200],
+                }, i)
+                # Continue executing remaining steps — batch doesn't abort on single failure
+                # The caller (_stream_task_inner) will verify and replan if needed
+
+        return results
+
+    async def _verify_batch(self, before: bytes, after: bytes, expected: str) -> dict:
+        """Use VisionModule to verify the cumulative result of a batch execution.
+
+        Args:
+            before: Screenshot PNG bytes captured before batch execution.
+            after: Screenshot PNG bytes captured after batch execution.
+            expected: Description of what the batch was supposed to accomplish.
+
+        Returns:
+            Dict with {"success": bool, "confidence": float, "changes": str}
+        """
+        try:
+            vision = get_vision()
+            if vision is None:
+                # Fallback to text-based verification via _ask_screen
+                verify_text = _ask_screen(
+                    f"Expected result: '{expected[:100]}'. "
+                    f"Does the screen show this was accomplished? YES or NO with brief reason.",
+                    0.75)
+                success = not verify_text.strip().lower().startswith("no")
+                return {
+                    "success": success,
+                    "confidence": 0.6 if success else 0.4,
+                    "changes": verify_text[:200],
+                }
+            result = await asyncio.to_thread(vision.verify_action, before, after, expected)
+            return result
+        except Exception as e:
+            self._log_event("verify_batch_error", str(e))
+            return {"success": False, "confidence": 0.0, "changes": f"Verification error: {e}"}
 
     async def _execute_remote_only(self, task: str, screen_state: str, action_catalog: str,
                                      target_app: str | None, target_exe: str | None) -> AsyncIterator[dict]:

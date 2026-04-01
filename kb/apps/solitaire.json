@@ -2,6 +2,7 @@
   "name": "Microsoft Solitaire Collection",
   "exe": "shell:appsFolder\\Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe!App",
   "window_title": "Solitaire & Casual Games",
+  "execution_mode": "reactive",
 
   "startup_sequence": [
     {"action": "open_app", "params": {"app_exe": "shell:appsFolder\\Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe!App", "window_title": "Solitaire & Casual Games", "wait_secs": 8}, "note": "Launch Solitaire via UWP URI"},

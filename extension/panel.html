@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Helm Video Vision</title>
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <!-- Connection Status -->
+  <div id="status-bar">
+    <span id="status-dot" class="status-dot disconnected"></span>
+    <span id="status-text">Disconnected</span>
+  </div>
+
+  <!-- Video Selection & Thumbnail -->
+  <section id="video-section">
+    <button id="btn-select-video">Select Video</button>
+    <div id="video-info" class="hidden">
+      <div id="thumbnail-area">
+        <img id="thumbnail-img" alt="Video thumbnail">
+      </div>
+      <span id="video-dims"></span>
+    </div>
+    <p id="no-video-msg" class="hidden">No video elements found on this page.</p>
+  </section>
+
+  <!-- Capture Controls -->
+  <section id="capture-section">
+    <button id="btn-toggle" disabled>Start</button>
+    <div class="slider-row">
+      <label for="fps-slider">FPS:</label>
+      <input type="range" id="fps-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+      <span id="fps-value">1.0</span>
+    </div>
+  </section>
+
+  <!-- Alert Conditions -->
+  <section id="alert-section">
+    <h3>Alert Conditions</h3>
+    <div class="alert-input-row">
+      <input type="text" id="alert-input" placeholder="e.g. person at door">
+      <button id="btn-add-alert">Add</button>
+    </div>
+    <ul id="alert-list"></ul>
+  </section>
+
+  <!-- TTS Controls -->
+  <section id="tts-section">
+    <div class="tts-toggle-row">
+      <label for="tts-toggle">TTS</label>
+      <input type="checkbox" id="tts-toggle">
+    </div>
+    <div class="slider-row">
+      <label for="voice-select">Voice:</label>
+      <select id="voice-select"></select>
+    </div>
+    <div class="slider-row">
+      <label for="rate-slider">Rate:</label>
+      <input type="range" id="rate-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+      <span id="rate-value">1.0</span>
+    </div>
+  </section>
+
+  <!-- Commentary Feed -->
+  <section id="commentary-section">
+    <h3>Commentary</h3>
+    <div id="commentary-feed"></div>
+  </section>
+
+  <script src="panel.js"></script>
+</body>
+</html>

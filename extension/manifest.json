@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Helm Video Vision",
+  "version": "1.0.0",
+  "description": "Real-time AI video description powered by local Helm backend",
+  "permissions": ["sidePanel", "activeTab", "scripting", "notifications"],
+  "host_permissions": ["ws://localhost:8765/*"],
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Helm Video Vision"
+  }
+}

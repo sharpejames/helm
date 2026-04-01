@@ -63,14 +63,30 @@ def create_app(config: dict, scheduler) -> FastAPI:
     app.state.scheduler = scheduler
     app.state.executor = executor
     
+    # Initialize video analysis components
+    from core.vision import get_vision
+    from video.frame_capturer import FrameCapturer
+    from video.event_detector import EventDetector
+    from video.alert_system import AlertSystem
+    from video.commentary import CommentaryStream
+
+    vision = get_vision()
+    app.state.frame_capturer = FrameCapturer(vision) if vision else None
+    app.state.event_detector = EventDetector(vision=vision) if vision else None
+    app.state.alert_system = AlertSystem(db_session_factory=None)
+    app.state.commentary_stream = CommentaryStream()
+
     # Mount routes
     from web.routes import chat, tasks, settings, runs, learn, skills
+    from web.routes import video, alerts
     app.include_router(chat.router, prefix="/api")
     app.include_router(tasks.router, prefix="/api")
     app.include_router(settings.router, prefix="/api")
     app.include_router(runs.router, prefix="/api")
     app.include_router(learn.router, prefix="/api")
     app.include_router(skills.router, prefix="/api")
+    app.include_router(video.router, prefix="/api")
+    app.include_router(alerts.router, prefix="/api")
 
     @app.get("/health")
     async def health():

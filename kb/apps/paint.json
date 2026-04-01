@@ -2,6 +2,12 @@
   "name": "Paint",
   "exe": "mspaint.exe",
   "version_note": "Windows 11 Paint (Cocreator) — NOT classic Paint. Dark mode enabled. No ribbon, minimal toolbar.",
+  "execution_mode": "plan",
+  "startup_sequence": [
+    {"action": "open_app", "params": {"app_exe": "mspaint.exe", "window_title": "Paint", "wait_secs": 8}, "note": "Launch Paint"},
+    {"action": "wait", "params": {"ms": 1000}, "note": "Wait for Paint to load"},
+    {"action": "keyboard_shortcut", "params": {"keys": ["win", "up"]}, "note": "Maximize Paint window"}
+  ],
   "shortcuts": {
     "save_as": "F12",
     "new": "Ctrl+N",

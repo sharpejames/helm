@@ -184,3 +184,186 @@ def _describe_screenshots(recording: Recording, max_screenshots: int = 5) -> str
         lines.append(f"  [{elapsed:.1f}s] {desc[:150]}")
 
     return "\n".join(lines)
+
+
+# ── Action Registry primitives (for LLM prompt context) ─────────────────────
+
+_ACTION_PRIMITIVES = [
+    "open_app(app_exe, window_title, wait_secs)",
+    "focus_app(window_title)",
+    "close_app(window_title)",
+    "open_website(url)",
+    "click_web_element(css_selector, description)",
+    "type_in_web(text, css_selector, description)",
+    "upload_file(filepath, attach_description)",
+    "scroll_page(direction, amount)",
+    "setup_paint()",
+    "paint_color(color_name)",
+    "paint_pencil()",
+    "paint_fill_tool()",
+    "paint_fill_at(x, y)",
+    "paint_draw(points)",
+    "paint_shape_tool(shape_name)",
+    "paint_draw_shape(x1, y1, x2, y2)",
+    "paint_fill_style(style)",
+    "paint_outline_style(style)",
+    "save_file()",
+    "click(x, y)",
+    "double_click(x, y)",
+    "drag(x1, y1, x2, y2)",
+    "type_text(text)",
+    "type_keys(text)",
+    "press_key(keys)",
+    "keyboard_shortcut(keys)",
+    "dom_click(css_selector)",
+    "dom_type(css_selector, text)",
+    "uia_click(name, automation_id, control_type)",
+    "uia_type(name, automation_id, text)",
+    "wait(seconds)",
+    "dismiss_popup()",
+]
+
+
+def recording_to_skill(recording: Recording, app_db: AppDB) -> dict:
+    """Convert a recording into a replayable skill (sequence of Action_Registry primitives).
+
+    Uses Smart tier LLM to interpret raw input events + screenshots into
+    structured action steps that can be replayed via the Action_Registry.
+
+    Args:
+        recording: A Recording from kb/observer.py with events and screenshots.
+        app_db: AppDB instance for storing the resulting skill.
+
+    Returns:
+        {"name": str, "app": str, "steps": [{"action": str, "params": dict}, ...]}
+    """
+    from agent.models import get_router, TIER_SMART
+    import re
+
+    router = get_router()
+    if not router:
+        return {"error": "No LLM router available", "name": "", "app": "", "steps": []}
+
+    # 1. Build event summary (reuse existing helper)
+    events_summary = _summarize_events(recording)
+    screenshot_descriptions = _describe_screenshots(recording)
+    transcript = recording._build_transcript()
+
+    # Determine windows used
+    windows_used = ", ".join(set(recording.active_windows)) if recording.active_windows else "unknown"
+
+    # Build the action primitives list for the prompt
+    primitives_list = "\n".join(f"  - {p}" for p in _ACTION_PRIMITIVES)
+
+    # 2. Send to Smart tier LLM
+    prompt = f"""Convert this recording of human desktop activity into a replayable skill — a sequence of Action_Registry primitives.
+
+RECORDING CONTEXT: {recording.prompt}
+DURATION: {recording.duration_secs():.0f} seconds
+WINDOWS USED: {windows_used}
+
+{f"USER NARRATION:{chr(10)}{transcript}" if transcript else ""}
+
+RAW EVENTS ({len(recording.events)} total):
+{events_summary}
+
+SCREENSHOTS (what was visible at key moments):
+{screenshot_descriptions}
+
+AVAILABLE ACTION PRIMITIVES:
+{primitives_list}
+
+Convert the raw events into a sequence of these primitives. Group related low-level events into single high-level actions. For example:
+- Multiple rapid key presses → type_text("hello world") or press_key(["ctrl", "s"])
+- Click at a known UI element location → uia_click(name="Pencil") or dom_click(css_selector)
+- Mouse drag sequences → drag(x1, y1, x2, y2) or paint_draw(points)
+
+Return a JSON object:
+{{
+  "name": "short_skill_name (snake_case, e.g. draw_red_circle)",
+  "app": "Primary application name (e.g. Paint, Chrome, Solitaire)",
+  "steps": [
+    {{"action": "action_name", "params": {{"param1": "value1"}}}},
+    {{"action": "action_name", "params": {{"param1": "value1"}}}},
+    ...
+  ]
+}}
+
+Rules:
+- Use the EXACT action names from the primitives list above.
+- Each step must have "action" (string) and "params" (dict).
+- Merge consecutive keystrokes into type_text or press_key where appropriate.
+- Use uia_click/dom_click when you can identify the UI element from context.
+- Use click(x, y) only as a last resort when the element can't be identified.
+- Omit redundant or accidental events (e.g. stray clicks, repeated keys).
+- Keep the sequence minimal — only include intentional user actions.
+
+Return ONLY the JSON object."""
+
+    try:
+        raw = router.complete(
+            "You convert recordings of human computer usage into replayable action sequences. "
+            "You output precise, minimal JSON using only the provided action primitives.",
+            [{"role": "user", "content": prompt}],
+            tier=TIER_SMART,
+            max_tokens=4096,
+            timeout=90.0,
+        )
+
+        # 3. Parse the JSON response
+        raw = re.sub(r'```(?:json)?\s*', '', raw).strip().rstrip('`').strip()
+        skill = json.loads(raw)
+
+        # Validate structure
+        if not isinstance(skill.get("steps"), list):
+            skill["steps"] = []
+        if not skill.get("name"):
+            # Generate a name from the prompt
+            slug = recording.prompt[:40].lower().replace(" ", "_")
+            slug = re.sub(r'[^a-z0-9_]', '', slug)
+            skill["name"] = slug or "unnamed_skill"
+        if not skill.get("app"):
+            skill["app"] = windows_used.split(",")[0].strip() if windows_used != "unknown" else "Unknown"
+
+        # Validate each step has the required fields
+        valid_steps = []
+        for step in skill["steps"]:
+            if isinstance(step, dict) and "action" in step:
+                if "params" not in step or not isinstance(step["params"], dict):
+                    step["params"] = {}
+                valid_steps.append({"action": step["action"], "params": step["params"]})
+        skill["steps"] = valid_steps
+
+        # 4. Store the skill in the app DB
+        app_name = skill["app"]
+        if app_name and app_name != "Unknown":
+            app_data = app_db.get(app_name)
+            if "skills" not in app_data:
+                app_data["skills"] = {}
+            app_data["skills"][skill["name"]] = {
+                "steps": skill["steps"],
+                "created": time.time(),
+                "source_prompt": recording.prompt[:200],
+            }
+            app_db._save(app_name, app_data)
+            logger.info(f"Skill saved: '{skill['name']}' for {app_name} "
+                        f"({len(skill['steps'])} steps)")
+
+        return {
+            "name": skill["name"],
+            "app": skill["app"],
+            "steps": skill["steps"],
+        }
+
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse skill JSON from LLM: {e}")
+        return {
+            "error": f"Parse error: {e}",
+            "raw": raw[:500] if 'raw' in dir() else "",
+            "name": "",
+            "app": "",
+            "steps": [],
+        }
+    except Exception as e:
+        logger.error(f"recording_to_skill failed: {e}")
+        return {"error": str(e), "name": "", "app": "", "steps": []}

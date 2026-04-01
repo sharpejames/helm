@@ -85,6 +85,22 @@ class Recording:
                 lines.append(f"[{elapsed:.0f}s] {text}")
         return "\n".join(lines)
 
+    def to_skill(self, app_db=None) -> dict:
+        """Convert this recording to a replayable skill. Delegates to analyzer.
+
+        Args:
+            app_db: Optional AppDB instance. If None, a default one is created.
+
+        Returns:
+            {"name": str, "app": str, "steps": [{"action": str, "params": dict}, ...]}
+        """
+        from kb.analyzer import recording_to_skill
+        from kb.apps import AppDB
+
+        if app_db is None:
+            app_db = AppDB()
+        return recording_to_skill(self, app_db)
+
     def save(self) -> str:
         """Save recording to disk. Returns filepath."""
         RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)

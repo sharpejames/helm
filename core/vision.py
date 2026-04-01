@@ -1,51 +1,81 @@
+import base64
 import json
-import re
-import io
 import logging
-from PIL import Image
+import re
+
+import requests
 
 logger = logging.getLogger(__name__)
 
-class Vision:
+# Default Ollama endpoint
+_OLLAMA_URL = "http://localhost:11434"
+
+# Default model names (overridable via config)
+_DEFAULT_FAST_MODEL = "qwen3.5:0.8b"
+_DEFAULT_DETAILED_MODEL = "qwen3.5:4b"
+
+
+class VisionModule:
+    """Screen understanding via local Qwen models. NOT for click coordinates."""
+
     def __init__(self, config: dict):
         self.config = config
-        self.model_name = config['vision'].get('model', 'gemini-2.5-flash')
-        self._client = None
-        api_key = config['vision'].get('api_key', '')
-        if api_key:
-            from google import genai
-            self._client = genai.Client(api_key=api_key)
-            self._configured = True
-        else:
-            logger.warning("No Gemini API key — vision disabled")
-            self._configured = False
+        vision_cfg = config.get("vision", {})
+        local_cfg = config.get("local_llm", {})
 
-    def _img(self, png_bytes: bytes) -> Image.Image:
-        return Image.open(io.BytesIO(png_bytes))
+        self.ollama_url = local_cfg.get("base_url", _OLLAMA_URL).rstrip("/")
+        self.fast_model = vision_cfg.get("fast_model", _DEFAULT_FAST_MODEL)
+        self.detailed_model = vision_cfg.get("detailed_model", _DEFAULT_DETAILED_MODEL)
+        self.timeout = local_cfg.get("timeout", 60)  # 60s to handle cold model loads
 
-    def _call(self, parts: list) -> str:
-        if not self._client:
-            return "{}"
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _encode_image(self, png_bytes: bytes) -> str:
+        """Base64-encode raw PNG bytes for the Ollama images field."""
+        return base64.b64encode(png_bytes).decode("utf-8")
+
+    def _chat(self, model: str, prompt: str, images: list[str] | None = None,
+              timeout: int | None = None) -> str:
+        """Send a chat completion request to Ollama /api/chat.
+
+        *images* is a list of base64-encoded image strings.
+        Returns the raw assistant text.
+        """
+        messages = [{"role": "user", "content": prompt}]
+        if images:
+            messages[0]["images"] = images
+
+        payload = {
+            "model": model,
+            "messages": messages,
+            "stream": False,
+        }
+
         try:
-            response = self._client.models.generate_content(
-                model=self.model_name,
-                contents=parts
+            resp = requests.post(
+                f"{self.ollama_url}/api/chat",
+                json=payload,
+                timeout=timeout or self.timeout,
             )
-            return response.text
+            resp.raise_for_status()
+            data = resp.json()
+            return data.get("message", {}).get("content", "")
+        except requests.exceptions.Timeout:
+            logger.warning("Ollama request timed out (model=%s)", model)
+            return ""
         except Exception as e:
-            err = str(e).lower()
-            if 'quota' in err or 'rate' in err or '429' in err:
-                logger.warning("Gemini quota/rate limit hit — assuming success defaults")
-                return '{"success": true, "ready": true, "has_blocker": false, "on_target": true, "confidence": 0.5}'
-            logger.error(f"Vision call failed: {e}")
-            return "{}"
+            logger.error("Ollama chat failed (model=%s): %s", model, e)
+            return ""
 
-    def _parse(self, text: str) -> dict:
-        text = re.sub(r'```(?:json)?\s*', '', text).strip().rstrip('`').strip()
+    def _parse_json(self, text: str) -> dict:
+        """Best-effort JSON extraction from LLM output."""
+        text = re.sub(r"```(?:json)?\s*", "", text).strip().rstrip("`").strip()
         try:
             return json.loads(text)
         except Exception:
-            m = re.search(r'\{.*\}', text, re.DOTALL)
+            m = re.search(r"\{.*\}", text, re.DOTALL)
             if m:
                 try:
                     return json.loads(m.group())
@@ -53,48 +83,257 @@ class Vision:
                     pass
         return {}
 
-    def ask(self, screenshot: bytes, prompt: str) -> str:
-        return self._call([prompt, self._img(screenshot)])
+    def _select_model(self, detail: str) -> str:
+        """Pick the Ollama model name based on detail level."""
+        if detail == "detailed":
+            return self.detailed_model
+        return self.fast_model
 
-    def estimate_location(self, screenshot: bytes, target: str) -> tuple[int, int]:
-        prompt = f"""Find the UI element: "{target}"
-Respond JSON only: {{"found": bool, "x": int, "y": int, "confidence": float, "notes": str}}"""
-        result = self._parse(self._call([prompt, self._img(screenshot)]))
-        return result.get('x', 0), result.get('y', 0)
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
 
-    def check_cursor(self, screenshot: bytes, cx: int, cy: int, target: str) -> dict:
-        prompt = f"""Cursor is at ({cx}, {cy}). Target: "{target}"
-Is cursor over the target? Respond JSON only:
-{{"on_target": bool, "confidence": float, "dx": int, "dy": int, "notes": str}}"""
-        return self._parse(self._call([prompt, self._img(screenshot)]))
+    def describe_screen(self, screenshot: bytes, detail: str = "fast") -> dict:
+        """Structured scene description.
+
+        detail="fast"     → Qwen3.5:0.8B (<1 s)
+        detail="detailed" → Qwen3.5:4B  (~5-10 s)
+
+        Returns: {"app": str, "elements": list[str], "state": str, "description": str}
+        """
+        model = self._select_model(detail)
+        prompt = (
+            "Analyze this screenshot. Respond with JSON only, no extra text:\n"
+            '{"app": "<active application name>", '
+            '"elements": ["<visible UI element>", ...], '
+            '"state": "<current application state>", '
+            '"description": "<one-sentence summary of what is on screen>"}'
+        )
+        img_b64 = self._encode_image(screenshot)
+        raw = self._chat(model, prompt, images=[img_b64])
+        result = self._parse_json(raw)
+
+        # Ensure required keys always present
+        return {
+            "app": result.get("app", "unknown"),
+            "elements": result.get("elements", []),
+            "state": result.get("state", "unknown"),
+            "description": result.get("description", ""),
+        }
+
+    def verify_action(self, before: bytes, after: bytes, expected: str) -> dict:
+        """Compare before/after screenshots to verify an action.
+
+        Returns: {"success": bool, "confidence": float, "changes": str}
+        """
+        prompt = (
+            f'Two images: BEFORE (first) and AFTER (second). Expected result: "{expected}"\n'
+            "Did the expected change happen? Respond with JSON only, no extra text:\n"
+            '{"success": true/false, "confidence": 0.0-1.0, "changes": "<description of visible changes>"}'
+        )
+        imgs = [self._encode_image(before), self._encode_image(after)]
+        raw = self._chat(self.fast_model, prompt, images=imgs)
+        result = self._parse_json(raw)
+
+        return {
+            "success": result.get("success", False),
+            "confidence": float(result.get("confidence", 0.5)),
+            "changes": result.get("changes", ""),
+        }
+
+    def describe_frame(self, frame: bytes) -> str:
+        """Single frame description for video analysis. Uses 0.8B for speed.
+
+        Returns plain text description including objects, people, actions, scene context.
+        """
+        prompt = (
+            "Describe this image in one paragraph. Include visible objects, people, "
+            "actions being performed, and scene context. Plain text only, no JSON."
+        )
+        img_b64 = self._encode_image(frame)
+        text = self._chat(self.fast_model, prompt, images=[img_b64])
+        return text.strip() if text else ""
+
+    def compare_frames(self, desc_prev: str, desc_current: str) -> dict:
+        """Compare two frame descriptions (text-only, no images).
+
+        Returns: {"changed": bool, "differences": list[str]}
+        """
+        prompt = (
+            "Compare these two scene descriptions and identify differences.\n\n"
+            f"PREVIOUS:\n{desc_prev}\n\n"
+            f"CURRENT:\n{desc_current}\n\n"
+            "Respond with JSON only, no extra text:\n"
+            '{"changed": true/false, "differences": ["<difference 1>", ...]}'
+        )
+        raw = self._chat(self.fast_model, prompt)
+        result = self._parse_json(raw)
+
+        return {
+            "changed": result.get("changed", False),
+            "differences": result.get("differences", []),
+        }
+
+    # ------------------------------------------------------------------
+    # Legacy compatibility helpers
+    # ------------------------------------------------------------------
 
     def check_state(self, screenshot: bytes) -> dict:
-        prompt = """Analyze screen state. Respond JSON only:
-{"active_app": str, "active_window": str, "description": str, "ready": bool}"""
-        return self._parse(self._call([prompt, self._img(screenshot)]))
+        """Backward-compatible screen state check (delegates to describe_screen)."""
+        desc = self.describe_screen(screenshot, detail="fast")
+        return {
+            "active_app": desc.get("app", ""),
+            "active_window": desc.get("app", ""),
+            "description": desc.get("description", ""),
+            "ready": True,
+        }
 
     def check_blockers(self, screenshot: bytes) -> dict:
-        prompt = """Any modal/dialog/popup blocking the UI? Respond JSON only:
-{"has_blocker": bool, "type": str, "description": str, "dismiss_action": "escape_key"|"close_button"|"accept_button"|"click_outside"|"none", "dismiss_x": int|null, "dismiss_y": int|null}"""
-        return self._parse(self._call([prompt, self._img(screenshot)]))
+        """Check for modal dialogs / popups blocking the UI."""
+        prompt = (
+            "Is there any modal dialog, popup, or blocker covering the main UI? "
+            "Respond with JSON only:\n"
+            '{"has_blocker": true/false, "type": "<dialog/popup/none>", '
+            '"description": "<what the blocker says>", '
+            '"dismiss_action": "escape_key"|"close_button"|"accept_button"|"click_outside"|"none"}'
+        )
+        img_b64 = self._encode_image(screenshot)
+        raw = self._chat(self.fast_model, prompt, images=[img_b64])
+        result = self._parse_json(raw)
+        return {
+            "has_blocker": result.get("has_blocker", False),
+            "type": result.get("type", "none"),
+            "description": result.get("description", ""),
+            "dismiss_action": result.get("dismiss_action", "none"),
+        }
+
+    def check_cursor(self, screenshot: bytes, cx: int, cy: int, target: str) -> dict:
+        """Check if cursor is over the target element (backward compat)."""
+        prompt = (
+            f'Cursor is at ({cx}, {cy}). Target: "{target}"\n'
+            "Is the cursor over the target? Respond with JSON only:\n"
+            '{"on_target": true/false, "confidence": 0.0-1.0, "dx": 0, "dy": 0, "notes": ""}'
+        )
+        img_b64 = self._encode_image(screenshot)
+        raw = self._chat(self.fast_model, prompt, images=[img_b64])
+        result = self._parse_json(raw)
+        return {
+            "on_target": result.get("on_target", False),
+            "confidence": float(result.get("confidence", 0.5)),
+            "dx": result.get("dx", 0),
+            "dy": result.get("dy", 0),
+            "notes": result.get("notes", ""),
+        }
 
     def verify_result(self, before: bytes, after: bytes, expected: str) -> dict:
-        prompt = f"""Two screenshots: BEFORE and AFTER. Expected: "{expected}"
-Did it succeed? Respond JSON only:
-{{"success": bool, "confidence": float, "changes": str, "notes": str}}"""
-        return self._parse(self._call([prompt, self._img(before), self._img(after)]))
+        """Backward-compatible verify (delegates to verify_action)."""
+        result = self.verify_action(before, after, expected)
+        return {
+            "success": result["success"],
+            "confidence": result["confidence"],
+            "changes": result["changes"],
+            "notes": "",
+        }
+
+    def ask(self, screenshot: bytes, prompt: str) -> str:
+        """Free-form question about a screenshot (backward compat)."""
+        img_b64 = self._encode_image(screenshot)
+        return self._chat(self.fast_model, prompt, images=[img_b64])
 
     def extract_url(self, screenshot: bytes) -> str | None:
-        prompt = """What is the current URL in the browser address bar?
-Respond JSON only: {"url": str|null}"""
-        result = self._parse(self._call([prompt, self._img(screenshot)]))
-        return result.get('url')
+        """Extract the current browser URL from a screenshot."""
+        prompt = (
+            "What is the current URL in the browser address bar? "
+            'Respond with JSON only: {"url": "<url or null>"}'
+        )
+        img_b64 = self._encode_image(screenshot)
+        raw = self._chat(self.fast_model, prompt, images=[img_b64])
+        result = self._parse_json(raw)
+        url = result.get("url")
+        return url if url and url != "null" else None
 
-_vision: Vision = None
+
+# ======================================================================
+# Context-aware frame description helper
+# ======================================================================
+
+
+def describe_frame_with_context(
+    vision: VisionModule,
+    frame: bytes,
+    recent_descriptions: list[str],
+) -> str:
+    """Describe a frame with awareness of previous scene state.
+
+    Wraps VisionModule.describe_frame by injecting the last 3 descriptions
+    as context so the model focuses on meaningful changes rather than
+    re-describing the entire scene.
+
+    Args:
+        vision: A VisionModule instance.
+        frame: Raw PNG bytes of the frame to describe.
+        recent_descriptions: The most recent descriptions (up to last 3).
+
+    Returns:
+        Plain text description string.
+    """
+    # Use at most the last 3 descriptions for context
+    context = recent_descriptions[-3:] if recent_descriptions else []
+
+    if not context:
+        # No prior context — detailed activity-focused prompt
+        prompt = (
+            "You are a live video activity narrator. Describe what is happening:\n"
+            "- How many people/animals/vehicles are visible?\n"
+            "- What is each one doing? (walking, running, playing, standing, etc.)\n"
+            "- Where are they in the frame? (foreground, background, left, right)\n"
+            "- What direction are they moving?\n"
+            "If there are NO people, animals, or vehicles and nothing is moving, "
+            "respond with exactly: NO_ACTIVITY\n"
+            "Be specific and concise. 2-3 sentences max. Plain text only."
+        )
+        img_b64 = vision._encode_image(frame)
+        text = vision._chat(vision.fast_model, prompt, images=[img_b64],
+                            timeout=120)
+        return text.strip() if text else ""
+
+    # Build context block from recent descriptions
+    context_block = "\n".join(
+        f"  {i + 1}. {desc}" for i, desc in enumerate(context)
+    )
+
+    prompt = (
+        "You are a live video activity narrator. Previous updates:\n"
+        f"{context_block}\n\n"
+        "Now describe what changed in this frame:\n"
+        "- How many people/animals/vehicles are visible now?\n"
+        "- What is each one doing differently from before?\n"
+        "- Did anyone new appear or leave the frame?\n"
+        "- Did their position or action change?\n"
+        "Do NOT repeat what was already said. Only describe changes and new details. "
+        "If nothing changed at all, respond with exactly: NO_ACTIVITY\n"
+        "Be specific and concise. 2-3 sentences max. Plain text only."
+    )
+
+    img_b64 = vision._encode_image(frame)
+    text = vision._chat(vision.fast_model, prompt, images=[img_b64],
+                        timeout=120)
+    return text.strip() if text else ""
+
+
+# ======================================================================
+# Module-level accessors (preserved from original)
+# ======================================================================
+
+_vision: VisionModule | None = None
+
 
 def init_vision(config: dict):
+    """Initialize the global VisionModule singleton."""
     global _vision
-    _vision = Vision(config)
+    _vision = VisionModule(config)
 
-def get_vision() -> Vision:
+
+def get_vision() -> VisionModule:
+    """Return the global VisionModule instance."""
     return _vision

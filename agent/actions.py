@@ -200,6 +200,45 @@ def _tr():
     return task_runner
 
 
+# ─── Lazy singletons for DOM Inspector and UIA Module ─────────────────────────
+
+_dom_inspector_instance = None
+_uia_module_instance = None
+
+
+def _get_dom_inspector():
+    """Lazy singleton for DOMInspector."""
+    global _dom_inspector_instance
+    if _dom_inspector_instance is None:
+        from core.dom_inspector import DOMInspector
+        _dom_inspector_instance = DOMInspector()
+    return _dom_inspector_instance
+
+
+def _get_uia_module():
+    """Lazy singleton for UIAModule."""
+    global _uia_module_instance
+    if _uia_module_instance is None:
+        from core.uia_module import UIAModule
+        _uia_module_instance = UIAModule()
+    return _uia_module_instance
+
+
+def _run_async(coro):
+    """Run an async coroutine from synchronous code."""
+    import asyncio
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If we're already in an async context, create a new loop in a thread
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                return pool.submit(asyncio.run, coro).result(timeout=30)
+        return loop.run_until_complete(coro)
+    except RuntimeError:
+        return asyncio.run(coro)
+
+
 # ─── Paint state tracking (module-level) ─────────────────────────────────────
 _current_canvas_bounds: tuple[int, int, int, int] | None = None
 _current_paint_tool: str | None = None      # "pencil", "fill", "shape:Ellipse", etc.
@@ -1308,6 +1347,152 @@ def recover_app(app_exe: str, window_title: str, wait_secs: int = 5) -> ActionRe
         return ActionResult(False, error=f"Recovery failed: {e}")
 
 
+# ── DOM / UIA / Keyboard Action Primitives ────────────────────────────────────
+
+def dom_click(css_selector: str) -> ActionResult:
+    """Click a web element by CSS selector using DOM Inspector (CDP).
+    Falls back to UIA, then to vision-guided scene description (no coordinate estimation).
+    Requirement 1.1, 1.2, 2.3, 4.1, 4.2."""
+    try:
+        # --- Attempt 1: DOM Inspector via CDP ---
+        dom = _get_dom_inspector()
+        element = None
+        try:
+            element = _run_async(dom.query_selector_one(css_selector))
+        except Exception as e:
+            logger.warning(f"dom_click: DOM lookup failed for '{css_selector}' — {e}")
+
+        if element:
+            cx = element["x"] + element["width"] // 2
+            cy = element["y"] + element["height"] // 2
+            requests.post(f"{CLAWMETHEUS_URL}/click", json={"x": cx, "y": cy}, timeout=5)
+            time.sleep(0.2)
+            return ActionResult(True, f"DOM click '{css_selector}' at ({cx},{cy})",
+                                state_hint=f"dom_click=({cx},{cy})")
+
+        # --- Attempt 2: UIA fallback (Requirement 1.4) ---
+        logger.info(f"dom_click: DOM miss for '{css_selector}', trying UIA fallback")
+        uia = _get_uia_module()
+        uia_el = uia.find_element(name=css_selector)
+        if uia_el:
+            cx = uia_el["x"] + uia_el["width"] // 2
+            cy = uia_el["y"] + uia_el["height"] // 2
+            requests.post(f"{CLAWMETHEUS_URL}/click", json={"x": cx, "y": cy}, timeout=5)
+            time.sleep(0.2)
+            return ActionResult(True, f"UIA fallback click '{css_selector}' at ({cx},{cy})",
+                                state_hint=f"uia_fallback_click=({cx},{cy})")
+
+        # --- Attempt 3: Vision-guided scene context (NO coordinate estimation per Req 2.3) ---
+        logger.info(f"dom_click: UIA miss for '{css_selector}', using vision scene context")
+        scene = _ask_screen(
+            f"Describe what is on screen. I'm looking for an element matching '{css_selector}'. "
+            f"Is it visible? What is near it? Describe the screen layout."
+        )
+        return ActionResult(False,
+            error=f"Could not find '{css_selector}' via DOM or UIA. Scene context: {scene[:300]}",
+            state_hint=f"vision_scene={scene[:200]}")
+
+    except Exception as e:
+        return ActionResult(False, error=f"dom_click failed: {e}")
+
+
+def dom_type(css_selector: str, text: str) -> ActionResult:
+    """Type text into a web element identified by CSS selector.
+    Focuses the element via dom_click, then types via Clawmetheus.
+    Requirement 1.1, 1.2."""
+    try:
+        # Focus the element first
+        click_result = dom_click(css_selector)
+        if not click_result.ok:
+            return ActionResult(False, error=f"dom_type: could not focus '{css_selector}' — {click_result.error}")
+
+        time.sleep(0.15)
+        # Type via Clawmetheus
+        requests.post(f"{CLAWMETHEUS_URL}/type", json={"text": text}, timeout=10)
+        time.sleep(0.2)
+        return ActionResult(True, f"Typed '{text[:60]}' into '{css_selector}'",
+                            state_hint=f"dom_type={css_selector}")
+    except Exception as e:
+        return ActionResult(False, error=f"dom_type failed: {e}")
+
+
+def uia_click(name: str = None, automation_id: str = None, control_type: str = None) -> ActionResult:
+    """Click a desktop UI element found via Windows UI Automation.
+    Falls back to vision-guided scene description if UIA fails (no coordinate estimation).
+    Requirement 4.1, 4.2, 4.3, 2.3."""
+    try:
+        uia = _get_uia_module()
+        element = uia.find_element(name=name, automation_id=automation_id, control_type=control_type)
+
+        if element:
+            cx = element["x"] + element["width"] // 2
+            cy = element["y"] + element["height"] // 2
+            requests.post(f"{CLAWMETHEUS_URL}/click", json={"x": cx, "y": cy}, timeout=5)
+            time.sleep(0.2)
+            desc = name or automation_id or control_type or "element"
+            return ActionResult(True, f"UIA click '{desc}' at ({cx},{cy})",
+                                state_hint=f"uia_click=({cx},{cy})")
+
+        # Fallback: vision scene context (NO coordinate estimation per Req 2.3)
+        desc = name or automation_id or control_type or "unknown element"
+        logger.info(f"uia_click: UIA miss for '{desc}', using vision scene context")
+        scene = _ask_screen(
+            f"Describe what is on screen. I'm looking for a UI element: name='{name}', "
+            f"automation_id='{automation_id}', control_type='{control_type}'. "
+            f"Is it visible? Describe the screen layout."
+        )
+        return ActionResult(False,
+            error=f"UIA element not found: name={name}, id={automation_id}, type={control_type}. "
+                  f"Scene context: {scene[:300]}",
+            state_hint=f"vision_scene={scene[:200]}")
+
+    except Exception as e:
+        return ActionResult(False, error=f"uia_click failed: {e}")
+
+
+def uia_type(name: str = None, automation_id: str = None, text: str = "") -> ActionResult:
+    """Type text into a desktop UI element found via UIA.
+    Focuses the element via uia_click, then types via Clawmetheus.
+    Requirement 4.1, 4.2."""
+    try:
+        # Focus the element first
+        click_result = uia_click(name=name, automation_id=automation_id)
+        if not click_result.ok:
+            return ActionResult(False, error=f"uia_type: could not focus element — {click_result.error}")
+
+        time.sleep(0.15)
+        # Type via Clawmetheus
+        requests.post(f"{CLAWMETHEUS_URL}/type", json={"text": text}, timeout=10)
+        time.sleep(0.2)
+        desc = name or automation_id or "element"
+        return ActionResult(True, f"Typed '{text[:60]}' into UIA element '{desc}'",
+                            state_hint=f"uia_type={desc}")
+    except Exception as e:
+        return ActionResult(False, error=f"uia_type failed: {e}")
+
+
+def keyboard_shortcut(keys: list[str] = None, **kwargs) -> ActionResult:
+    """Send a keyboard shortcut combo via Clawmetheus.
+    Examples: keyboard_shortcut(["ctrl", "s"]), keyboard_shortcut(["alt", "F4"]).
+    Requirement 3.1, 3.3."""
+    try:
+        if keys is None:
+            keys = kwargs.get("keys", [])
+        if isinstance(keys, str):
+            keys = [keys]
+        if not keys:
+            return ActionResult(False, error="No keys specified for keyboard_shortcut")
+
+        # Use Clawmetheus key endpoint
+        requests.post(f"{CLAWMETHEUS_URL}/key", json={"keys": keys}, timeout=5)
+        time.sleep(0.2)
+        combo = "+".join(keys)
+        return ActionResult(True, f"Keyboard shortcut: {combo}",
+                            state_hint=f"shortcut={combo}")
+    except Exception as e:
+        return ActionResult(False, error=f"keyboard_shortcut failed: {e}")
+
+
 # ── Action Registry ───────────────────────────────────────────────────────────
 
 ACTION_REGISTRY = {
@@ -1358,6 +1543,13 @@ ACTION_REGISTRY = {
     "handle_unexpected": handle_unexpected,
     "check_app_health": check_app_health,
     "recover_app": recover_app,
+
+    # DOM / UIA / Keyboard primitives
+    "dom_click": dom_click,
+    "dom_type": dom_type,
+    "uia_click": uia_click,
+    "uia_type": uia_type,
+    "keyboard_shortcut": keyboard_shortcut,
 }
 
 

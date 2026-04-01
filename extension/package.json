@@ -1,0 +1,12 @@
+{
+  "name": "helm-video-vision-extension-tests",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "jest --run"
+  },
+  "devDependencies": {
+    "fast-check": "^3.15.0",
+    "jest": "^29.7.0"
+  }
+}
