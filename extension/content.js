@@ -22,13 +22,12 @@
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   function clampFps(value) {
-    return Math.min(2.0, Math.max(0.5, value));
+    return Math.min(2.0, Math.max(0.1, value));
   }
 
-  // Max 512px longest side — 4x less pixels than 1024, encodes much faster,
-  // and the 4B vision model doesn't need more detail than this.
+  // Max 384px longest side — good balance of detail and speed.
   function computeResizedDimensions(videoWidth, videoHeight) {
-    const MAX_DIM = 512;
+    const MAX_DIM = 384;
     if (videoWidth <= 0 || videoHeight <= 0) {
       return { width: videoWidth, height: videoHeight };
     }
@@ -117,7 +116,7 @@
       const d = computeResizedDimensions(video.videoWidth, video.videoHeight);
       c.width = d.width; c.height = d.height;
       c.getContext("2d").drawImage(video, 0, 0, d.width, d.height);
-      thumbnail = c.toDataURL("image/jpeg", 0.5).replace(/^data:image\/\w+;base64,/, "");
+      thumbnail = c.toDataURL("image/jpeg", 0.4).replace(/^data:image\/\w+;base64,/, "");
     } catch (_e) {}
 
     safeSend({ type: "videoSelected", width: video.videoWidth, height: video.videoHeight, thumbnail });
@@ -184,7 +183,7 @@
         captureCanvas = document.createElement("canvas");
         captureCanvas.width = dims.width;
         captureCanvas.height = dims.height;
-        captureCtx = captureCanvas.getContext("2d");
+        captureCtx = captureCanvas.getContext("2d", { willReadFrequently: true });
       }
 
       captureCtx.drawImage(selectedVideo, 0, 0, dims.width, dims.height);
@@ -207,7 +206,7 @@
         return;
       }
 
-      const dataUrl = captureCanvas.toDataURL("image/jpeg", 0.5);
+      const dataUrl = captureCanvas.toDataURL("image/jpeg", 0.4);
       const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, "");
 
       console.log("[HelmVision] sending canvas frame:", Math.round(base64.length / 1024), "KB");
@@ -231,22 +230,21 @@
     if (!selectedVideo) return;
 
     const rect = selectedVideo.getBoundingClientRect();
-    // Convert from viewport coords to screen coords
-    const screenX = Math.round(rect.left + window.screenX + (window.outerWidth - window.innerWidth));
-    const screenY = Math.round(rect.top + window.screenY + (window.outerHeight - window.innerHeight));
-    const width = Math.round(rect.width);
-    const height = Math.round(rect.height);
-
-    // Account for device pixel ratio (high-DPI displays)
+    // screenLeft/screenTop give the viewport origin on screen (not the window frame)
+    // This is more reliable than screenX + chrome offset calculations
     const dpr = window.devicePixelRatio || 1;
+    const screenX = Math.round((window.screenLeft + rect.left) * dpr);
+    const screenY = Math.round((window.screenTop + rect.top) * dpr);
+    const width = Math.round(rect.width * dpr);
+    const height = Math.round(rect.height * dpr);
 
-    console.log("[HelmVision] sending region capture:", screenX, screenY, width, height, "dpr:", dpr);
+    console.log("[HelmVision] sending region capture: screen=", screenX, screenY, "size=", width, height, "dpr:", dpr);
     safeSend({
       type: "regionCapture",
-      x: Math.round(screenX * dpr),
-      y: Math.round(screenY * dpr),
-      width: Math.round(width * dpr),
-      height: Math.round(height * dpr),
+      x: screenX,
+      y: screenY,
+      width: width,
+      height: height,
       timestamp: Date.now() / 1000,
     });
   }
@@ -304,6 +302,86 @@
     selectedVideo = null;
   }
 
+  // ── Region Selector ────────────────────────────────────────────────────────
+
+  function activateRegionSelector() {
+    // Create full-screen overlay for click-drag region selection
+    const overlay = document.createElement("div");
+    overlay.id = "helm-region-overlay";
+    overlay.style.cssText = "position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:2147483647;cursor:crosshair;background:rgba(0,0,0,0.15);";
+
+    const rect = document.createElement("div");
+    rect.style.cssText = "position:absolute;border:2px dashed #00e1ff;background:rgba(0,225,255,0.1);display:none;pointer-events:none;";
+    overlay.appendChild(rect);
+
+    let startX = 0, startY = 0, dragging = false;
+
+    overlay.addEventListener("mousedown", (e) => {
+      startX = e.clientX;
+      startY = e.clientY;
+      dragging = true;
+      rect.style.left = startX + "px";
+      rect.style.top = startY + "px";
+      rect.style.width = "0px";
+      rect.style.height = "0px";
+      rect.style.display = "block";
+      e.preventDefault();
+    });
+
+    overlay.addEventListener("mousemove", (e) => {
+      if (!dragging) return;
+      const x = Math.min(e.clientX, startX);
+      const y = Math.min(e.clientY, startY);
+      const w = Math.abs(e.clientX - startX);
+      const h = Math.abs(e.clientY - startY);
+      rect.style.left = x + "px";
+      rect.style.top = y + "px";
+      rect.style.width = w + "px";
+      rect.style.height = h + "px";
+    });
+
+    overlay.addEventListener("mouseup", (e) => {
+      if (!dragging) return;
+      dragging = false;
+
+      const x = Math.min(e.clientX, startX);
+      const y = Math.min(e.clientY, startY);
+      const w = Math.abs(e.clientX - startX);
+      const h = Math.abs(e.clientY - startY);
+
+      // Remove overlay
+      overlay.remove();
+
+      if (w < 10 || h < 10) return; // Too small, ignore
+
+      // Convert to screen coordinates
+      const dpr = window.devicePixelRatio || 1;
+      const screenRegionX = Math.round((window.screenLeft + x) * dpr);
+      const screenRegionY = Math.round((window.screenTop + y) * dpr);
+      const screenW = Math.round(w * dpr);
+      const screenH = Math.round(h * dpr);
+
+      safeSend({
+        type: "regionSelected",
+        x: screenRegionX,
+        y: screenRegionY,
+        width: screenW,
+        height: screenH,
+      });
+    });
+
+    // Allow escape to cancel
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        overlay.remove();
+        document.removeEventListener("keydown", onKeyDown);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+
+    document.body.appendChild(overlay);
+  }
+
   // ── Message Listener ───────────────────────────────────────────────────────
 
   chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
@@ -312,6 +390,7 @@
     try {
       switch (message.action) {
         case "activateSelector": activateSelector(); break;
+        case "activateRegionSelector": activateRegionSelector(); break;
         case "startCapture": startCapture(message.fps); break;
         case "stopCapture": stopCapture(); break;
         case "cleanup": cleanup(); break;

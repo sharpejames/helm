@@ -21,7 +21,9 @@ let alertConditions = [];
 // ── DOM References ───────────────────────────────────────────────────────────
 
 const btnSelectVideo = document.getElementById("btn-select-video");
+const btnSelectRegion = document.getElementById("btn-select-region");
 const btnToggle = document.getElementById("btn-toggle");
+const modeSelect = document.getElementById("mode-select");
 const fpsSlider = document.getElementById("fps-slider");
 const fpsValue = document.getElementById("fps-value");
 const statusDot = document.getElementById("status-dot");
@@ -45,7 +47,7 @@ const rateValue = document.getElementById("rate-value");
  * Clamp a numeric value to [0.5, 2.0].
  */
 function clampRange(value) {
-  return Math.min(2.0, Math.max(0.5, Number(value) || 1.0));
+  return Math.min(2.0, Math.max(0.1, Number(value) || 0.5));
 }
 
 /**
@@ -72,6 +74,7 @@ function transitionTo(newState) {
 function updateUI() {
   // Select Video button
   btnSelectVideo.disabled = (currentState === STATES.STREAMING || currentState === STATES.SELECTING);
+  btnSelectRegion.disabled = (currentState === STATES.STREAMING || currentState === STATES.SELECTING);
 
   // Start/Stop toggle
   switch (currentState) {
@@ -117,6 +120,7 @@ function connectToBackground() {
       case "commentary": handleCommentary(message); break;
       case "status": handleStatus(message); break;
       case "captureError": handleCaptureError(message); break;
+      case "regionSelected": handleRegionSelected(message); break;
     }
   });
 
@@ -188,6 +192,16 @@ function handleCaptureError(msg) {
   // Always go back to Idle so user can re-select a video
   videoInfo.classList.add("hidden");
   transitionTo(STATES.IDLE);
+}
+
+function handleRegionSelected(msg) {
+  console.log("[HelmPanel] regionSelected:", msg.x, msg.y, msg.width, msg.height);
+  videoInfo.classList.remove("hidden");
+  noVideoMsg.classList.add("hidden");
+  thumbnailImg.src = "";
+  videoDims.textContent = `Region: ${msg.width} × ${msg.height}`;
+  updateConnectionStatus("disconnected");
+  transitionTo(STATES.VIDEO_SELECTED);
 }
 
 // ── Connection Status ────────────────────────────────────────────────────────
@@ -302,13 +316,23 @@ btnSelectVideo.addEventListener("click", () => {
   sendToBackground({ type: "requestVideoSelect" });
 });
 
+btnSelectRegion.addEventListener("click", () => {
+  if (currentState === STATES.STREAMING) return;
+  noVideoMsg.classList.add("hidden");
+  updateConnectionStatus("disconnected");
+  transitionTo(STATES.SELECTING);
+  sendToBackground({ type: "requestRegionSelect" });
+});
+
 btnToggle.addEventListener("click", () => {
   if (currentState === STATES.VIDEO_SELECTED || currentState === STATES.ERROR) {
     // Start capture
     const fps = clampRange(fpsSlider.value);
+    const mode = modeSelect.value;
     sendToBackground({
       type: "startCapture",
       fps: fps,
+      mode: mode,
       conditions: [...alertConditions],
     });
     transitionTo(STATES.STREAMING);

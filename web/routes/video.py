@@ -225,13 +225,15 @@ def _mss_capture_region(x: int, y: int, w: int, h: int) -> bytes:
     from PIL import Image
     import io
 
+    logger.info("mss capturing region: x=%d y=%d w=%d h=%d", x, y, w, h)
+
     with mss.mss() as sct:
         region = {"left": x, "top": y, "width": w, "height": h}
         shot = sct.grab(region)
         img = Image.frombytes("RGB", shot.size, shot.bgra, "raw", "BGRX")
 
-        # Resize to max 512px longest side (same as canvas capture)
-        max_dim = 512
+        # Resize to max 384px longest side
+        max_dim = 384
         if img.width > max_dim or img.height > max_dim:
             scale = max_dim / max(img.width, img.height)
             new_w = max(1, round(img.width * scale))
@@ -253,10 +255,13 @@ async def _process_frame(
     alert_system: AlertSystem | None,
     vision_pool: ThreadPoolExecutor,
     session_active: bool,
+    mode: str = "surveillance",
 ) -> None:
     """Shared frame processing: vision → commentary → alerts → response."""
+    logger.info("Processing frame: %d bytes, mode=%s", len(frame_bytes), mode)
     vision = get_vision()
     if vision is None:
+        logger.warning("Vision module not available")
         await websocket.send_json(
             {"type": "error", "message": "Vision module not available"}
         )
@@ -265,11 +270,16 @@ async def _process_frame(
     try:
         loop = asyncio.get_event_loop()
         context = list(description_history)[-3:]
+        logger.info("Calling vision model (context=%d descriptions)...", len(context))
+        import time as _time
+        t0 = _time.time()
         description = await loop.run_in_executor(
             vision_pool,
             describe_frame_with_context,
-            vision, frame_bytes, context,
+            vision, frame_bytes, context, mode,
         )
+        elapsed = _time.time() - t0
+        logger.info("Vision returned in %.1fs: %s", elapsed, (description or "")[:100])
     except Exception:
         logger.exception("Vision analysis failed")
         await websocket.send_json(
@@ -280,13 +290,19 @@ async def _process_frame(
     if not session_active:
         return
 
-    if not description or not description.strip():
+    # Clean up think tags and normalize
+    import re as _re
+    description = _re.sub(r"</?think>", "", description or "").strip()
+
+    if not description:
         await websocket.send_json(
             {"type": "no_activity", "timestamp": timestamp}
         )
         return
 
-    if description.strip().upper() == "NO_ACTIVITY":
+    # Filter out NO_ACTIVITY variations
+    desc_upper = description.upper()
+    if "NO_ACTIVITY" in desc_upper or "NO ACTIVITY" in desc_upper or desc_upper.startswith("0 PEOPLE") or "REMAINS UNCHANGED" in desc_upper or "NO CHANGES" in desc_upper:
         await websocket.send_json(
             {"type": "no_activity", "timestamp": timestamp}
         )
@@ -339,6 +355,7 @@ async def extension_stream(websocket: WebSocket):
     commentary = CommentaryStream()
     description_history: deque[str] = deque(maxlen=10)
     session_active = True
+    session_mode = "surveillance"
 
     # Thread pool for blocking vision calls — 1 thread since we process
     # one frame at a time anyway
@@ -378,13 +395,21 @@ async def extension_stream(websocket: WebSocket):
                 break
 
             # ----------------------------------------------------------
+            # PING message — keep-alive
+            # ----------------------------------------------------------
+            elif msg_type == "ping":
+                await websocket.send_json({"type": "pong"})
+
+            # ----------------------------------------------------------
             # CONFIGURE message
             # ----------------------------------------------------------
             elif msg_type == "configure":
                 conditions = msg.get("conditions", [])
+                session_mode = msg.get("mode", "surveillance")
                 detector.set_conditions(conditions)
                 logger.info(
-                    "Extension stream configured conditions: %s", conditions
+                    "Extension stream configured conditions: %s mode: %s",
+                    conditions, session_mode,
                 )
 
             # ----------------------------------------------------------
@@ -407,6 +432,7 @@ async def extension_stream(websocket: WebSocket):
                     websocket, frame_bytes, timestamp,
                     description_history, detector, commentary,
                     alert_system, vision_pool, session_active,
+                    mode=session_mode,
                 )
 
             # ----------------------------------------------------------
@@ -442,6 +468,7 @@ async def extension_stream(websocket: WebSocket):
                     websocket, frame_bytes, timestamp,
                     description_history, detector, commentary,
                     alert_system, vision_pool, session_active,
+                    mode=session_mode,
                 )
 
             else:

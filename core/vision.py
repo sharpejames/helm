@@ -37,10 +37,11 @@ class VisionModule:
         return base64.b64encode(png_bytes).decode("utf-8")
 
     def _chat(self, model: str, prompt: str, images: list[str] | None = None,
-              timeout: int | None = None) -> str:
+              timeout: int | None = None, num_predict: int | None = None) -> str:
         """Send a chat completion request to Ollama /api/chat.
 
         *images* is a list of base64-encoded image strings.
+        *num_predict* caps the max output tokens (speeds up generation).
         Returns the raw assistant text.
         """
         messages = [{"role": "user", "content": prompt}]
@@ -51,7 +52,10 @@ class VisionModule:
             "model": model,
             "messages": messages,
             "stream": False,
+            "options": {"num_predict": num_predict} if num_predict else {},
         }
+        # Disable thinking mode for qwen models (much faster)
+        payload["think"] = False
 
         try:
             resp = requests.post(
@@ -262,6 +266,7 @@ def describe_frame_with_context(
     vision: VisionModule,
     frame: bytes,
     recent_descriptions: list[str],
+    mode: str = "surveillance",
 ) -> str:
     """Describe a frame with awareness of previous scene state.
 
@@ -273,29 +278,65 @@ def describe_frame_with_context(
         vision: A VisionModule instance.
         frame: Raw PNG bytes of the frame to describe.
         recent_descriptions: The most recent descriptions (up to last 3).
+        mode: Commentary mode — "surveillance", "audio_description", or "sports".
 
     Returns:
         Plain text description string.
     """
-    # Use at most the last 3 descriptions for context
-    context = recent_descriptions[-3:] if recent_descriptions else []
+    # Use only the last description for context (limits hallucination snowball)
+    context = recent_descriptions[-1:] if recent_descriptions else []
+
+    # Mode-specific prompts
+    if mode == "audio_description":
+        base_prompt = (
+            "Describe exactly what you see in this image. Do NOT guess or assume. "
+            "Include: the setting/location, any people or animals (describe their size accurately — "
+            "a small insect is not a person), objects, colors, and actions happening. "
+            "Use present tense. Be precise and literal. "
+            "Respond in 2-3 sentences. Plain text only."
+        )
+        context_prompt_suffix = (
+            "Describe what changed from the previous scene. Be precise and literal — "
+            "do NOT assume something is a person unless it is clearly human-shaped and human-sized. "
+            "Small creatures are insects or animals, not children. "
+            "Describe new actions, movements, scene changes. Do NOT repeat unchanged details. "
+            "Respond in 2-3 sentences. Plain text only."
+        )
+    elif mode == "sports":
+        base_prompt = (
+            "You are a sports commentator. Identify the sport, teams/players if visible, "
+            "describe the current action, score if visible, and key moments. "
+            "Be energetic and specific. Only describe what you actually see. "
+            "Respond in 1-2 sentences. Plain text only."
+        )
+        context_prompt_suffix = (
+            "Continue commentary. Focus on new plays, scoring, player movements. "
+            "Do NOT repeat what was already said. "
+            "Respond in 1-2 sentences. Plain text only."
+        )
+    else:
+        # surveillance — security-focused, only noteworthy events
+        base_prompt = (
+            "You are monitoring a security camera. Report ONLY security-relevant activity: "
+            "people (describe: adult/child, clothing, what they're carrying), "
+            "vehicles (type, color, direction), pets or wildlife (species, size), "
+            "or anything unusual (packages left, doors opening, lights). "
+            "Be precise — a small animal is NOT a person. "
+            "If nothing security-relevant is visible, respond: NO_ACTIVITY\n"
+            "Respond in 1-2 sentences. Plain text only."
+        )
+        context_prompt_suffix = (
+            "Report ONLY new security-relevant changes: someone arriving or leaving, "
+            "a vehicle appearing, an animal approaching, a package being delivered. "
+            "If nothing changed, respond: NO_ACTIVITY\n"
+            "Respond in 1-2 sentences. Plain text only."
+        )
 
     if not context:
-        # No prior context — detailed activity-focused prompt
-        prompt = (
-            "You are a live video activity narrator. Describe what is happening:\n"
-            "- How many people/animals/vehicles are visible?\n"
-            "- What is each one doing? (walking, running, playing, standing, etc.)\n"
-            "- Where are they in the frame? (foreground, background, left, right)\n"
-            "- What direction are they moving?\n"
-            "If there are NO people, animals, or vehicles and nothing is moving, "
-            "respond with exactly: NO_ACTIVITY\n"
-            "Be specific and concise. 2-3 sentences max. Plain text only."
-        )
         img_b64 = vision._encode_image(frame)
-        text = vision._chat(vision.fast_model, prompt, images=[img_b64],
+        text = vision._chat(vision.fast_model, base_prompt, images=[img_b64],
                             timeout=120)
-        return text.strip() if text else ""
+        return (text or "").strip()
 
     # Build context block from recent descriptions
     context_block = "\n".join(
@@ -303,22 +344,14 @@ def describe_frame_with_context(
     )
 
     prompt = (
-        "You are a live video activity narrator. Previous updates:\n"
-        f"{context_block}\n\n"
-        "Now describe what changed in this frame:\n"
-        "- How many people/animals/vehicles are visible now?\n"
-        "- What is each one doing differently from before?\n"
-        "- Did anyone new appear or leave the frame?\n"
-        "- Did their position or action change?\n"
-        "Do NOT repeat what was already said. Only describe changes and new details. "
-        "If nothing changed at all, respond with exactly: NO_ACTIVITY\n"
-        "Be specific and concise. 2-3 sentences max. Plain text only."
+        f"Previous updates:\n{context_block}\n\n"
+        f"{context_prompt_suffix}"
     )
 
     img_b64 = vision._encode_image(frame)
     text = vision._chat(vision.fast_model, prompt, images=[img_b64],
                         timeout=120)
-    return text.strip() if text else ""
+    return (text or "").strip()
 
 
 # ======================================================================

@@ -67,8 +67,14 @@ section h3 {
 
 /* ── Video Section ──────────────────────────────────────────────────────── */
 
-#btn-select-video {
-  width: 100%;
+.button-row {
+  display: flex;
+  gap: 6px;
+}
+
+#btn-select-video,
+#btn-select-region {
+  flex: 1;
   padding: 8px;
   cursor: pointer;
   border: 1px solid #3b82f6;
@@ -78,8 +84,16 @@ section h3 {
   font-size: 13px;
 }
 
-#btn-select-video:hover { background: #2563eb; }
-#btn-select-video:disabled { opacity: 0.5; cursor: default; }
+#btn-select-video:hover,
+#btn-select-region:hover { background: #2563eb; }
+#btn-select-video:disabled,
+#btn-select-region:disabled { opacity: 0.5; cursor: default; }
+
+#btn-select-region {
+  background: #6366f1;
+  border-color: #6366f1;
+}
+#btn-select-region:hover { background: #4f46e5; }
 
 #video-info {
   margin-top: 8px;
@@ -161,6 +175,15 @@ section h3 {
   flex: 1;
   font-size: 12px;
   padding: 2px 4px;
+}
+
+#mode-select {
+  flex: 1;
+  font-size: 12px;
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
 }
 
 /* ── Alert Section ──────────────────────────────────────────────────────── */

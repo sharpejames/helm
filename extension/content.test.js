@@ -7,7 +7,7 @@ const { computeResizedDimensions, clampFps, buildFrameMessage } = require("./con
 // ── Property 2: Frame resize preserves aspect ratio with max dimension ───────
 // **Validates: Requirements 2.6**
 describe("Property 2: Frame resize preserves aspect ratio with max dimension", () => {
-  test("resized dimensions satisfy max(outW, outH) <= 1024 and aspect ratio preserved", () => {
+  test("resized dimensions satisfy max(outW, outH) <= 384 and aspect ratio preserved", () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 1, max: 10000 }),
@@ -15,20 +15,20 @@ describe("Property 2: Frame resize preserves aspect ratio with max dimension", (
         (width, height) => {
           const { width: outW, height: outH } = computeResizedDimensions(width, height);
 
-          // Max dimension must be <= 512
-          expect(Math.max(outW, outH)).toBeLessThanOrEqual(512);
+          // Max dimension must be <= 384
+          expect(Math.max(outW, outH)).toBeLessThanOrEqual(384);
 
           // Dimensions must be positive
           expect(outW).toBeGreaterThan(0);
           expect(outH).toBeGreaterThan(0);
 
           // If no resize was needed, dimensions should be unchanged
-          if (width <= 512 && height <= 512) {
+          if (width <= 384 && height <= 384) {
             expect(outW).toBe(width);
             expect(outH).toBe(height);
           } else {
             // Verify the resize used the correct scale factor
-            const scale = 512 / Math.max(width, height);
+            const scale = 384 / Math.max(width, height);
             expect(outW).toBe(Math.max(1, Math.round(width * scale)));
             expect(outH).toBe(Math.max(1, Math.round(height * scale)));
           }
@@ -38,11 +38,11 @@ describe("Property 2: Frame resize preserves aspect ratio with max dimension", (
     );
   });
 
-  test("no resize needed when both dimensions <= 512", () => {
+  test("no resize needed when both dimensions <= 384", () => {
     fc.assert(
       fc.property(
-        fc.integer({ min: 1, max: 512 }),
-        fc.integer({ min: 1, max: 512 }),
+        fc.integer({ min: 1, max: 384 }),
+        fc.integer({ min: 1, max: 384 }),
         (width, height) => {
           const { width: outW, height: outH } = computeResizedDimensions(width, height);
           expect(outW).toBe(width);

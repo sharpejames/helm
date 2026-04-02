@@ -7,16 +7,16 @@
  * Clamp a numeric value to [0.5, 2.0].
  */
 function clampFps(value) {
-  return Math.min(2.0, Math.max(0.5, value));
+  return Math.min(2.0, Math.max(0.1, value));
 }
 
 /**
  * Compute the canvas dimensions for a given video, capping the longest side
- * at 1024 px while preserving the aspect ratio.
+ * at 384 px while preserving the aspect ratio.
  * Returns { width, height }.
  */
 function computeResizedDimensions(videoWidth, videoHeight) {
-  const MAX_DIM = 512;
+  const MAX_DIM = 384;
   if (videoWidth <= 0 || videoHeight <= 0) {
     return { width: videoWidth, height: videoHeight };
   }

@@ -12,8 +12,13 @@ let reconnectTimeoutId = null;
 let activeTabId = null;
 let sessionConditions = [];
 let sessionFps = 1.0;
+let sessionMode = "surveillance";
 let wsSendBusy = false;
 let wsBusyTimeoutId = null;
+let pingIntervalId = null;
+let storedRegion = null;
+let regionCaptureIntervalId = null;
+let isRegionMode = false;
 
 // Port-based connection to side panel (reliable, no message loss)
 let panelPort = null;
@@ -74,8 +79,19 @@ function openWebSocket() {
     reconnectAttempts = 0;
     wsSendBusy = false;
     setConnectionStatus("connected");
-    try { ws.send(JSON.stringify({ type: "configure", conditions: sessionConditions })); } catch (_e) {}
-    sendToContentScript({ action: "startCapture", fps: sessionFps });
+    try { ws.send(JSON.stringify({ type: "configure", conditions: sessionConditions, mode: sessionMode })); } catch (_e) {}
+    // Start keep-alive pings
+    clearPingInterval();
+    pingIntervalId = setInterval(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        try { ws.send(JSON.stringify({ type: "ping" })); } catch (_e) {}
+      }
+    }, 30000);
+    if (isRegionMode && storedRegion) {
+      startRegionCaptureTimer();
+    } else {
+      sendToContentScript({ action: "startCapture", fps: sessionFps });
+    }
   };
 
   ws.onmessage = (event) => {
@@ -85,14 +101,52 @@ function openWebSocket() {
   ws.onclose = () => {
     ws = null;
     wsSendBusy = false;
+    clearPingInterval();
     if (connectionStatus === "connected" || connectionStatus === "connecting") attemptReconnect();
   };
 
   ws.onerror = () => {};
 }
 
+function clearPingInterval() {
+  if (pingIntervalId !== null) { clearInterval(pingIntervalId); pingIntervalId = null; }
+}
+
+function startRegionCaptureTimer() {
+  stopRegionCaptureTimer();
+  if (!storedRegion) return;
+  const intervalMs = 1000 / sessionFps;
+  sendRegionCaptureFromBackground();
+  regionCaptureIntervalId = setInterval(() => {
+    if (!wsSendBusy) sendRegionCaptureFromBackground();
+  }, intervalMs);
+}
+
+function stopRegionCaptureTimer() {
+  if (regionCaptureIntervalId !== null) { clearInterval(regionCaptureIntervalId); regionCaptureIntervalId = null; }
+}
+
+function sendRegionCaptureFromBackground() {
+  if (!ws || ws.readyState !== WebSocket.OPEN || wsSendBusy || !storedRegion) return;
+  wsSendBusy = true;
+  try {
+    ws.send(JSON.stringify({
+      type: "region_capture",
+      x: storedRegion.x,
+      y: storedRegion.y,
+      width: storedRegion.width,
+      height: storedRegion.height,
+      timestamp: Date.now() / 1000,
+    }));
+    if (wsBusyTimeoutId) clearTimeout(wsBusyTimeoutId);
+    wsBusyTimeoutId = setTimeout(() => { if (wsSendBusy) { wsSendBusy = false; } }, 120000);
+  } catch (_e) { wsSendBusy = false; }
+}
+
 function closeWebSocket() {
   clearReconnectTimeout();
+  clearPingInterval();
+  stopRegionCaptureTimer();
   reconnectAttempts = 0;
   wsSendBusy = false;
   if (ws) {
@@ -123,6 +177,11 @@ function clearReconnectTimeout() {
 function handleWebSocketMessage(data) {
   if (wsBusyTimeoutId) { clearTimeout(wsBusyTimeoutId); wsBusyTimeoutId = null; }
 
+  if (data.type === "pong") {
+    // Keep-alive response, nothing to do
+    return;
+  }
+
   if (data.type === "commentary") {
     sendToPanel({
       type: "commentary",
@@ -132,14 +191,14 @@ function handleWebSocketMessage(data) {
     });
     if (data.alert) triggerAlertNotification(data.description, data.alert.condition);
     wsSendBusy = false;
-    sendToContentScript({ action: "readyForFrame" });
+    if (!isRegionMode) sendToContentScript({ action: "readyForFrame" });
   } else if (data.type === "no_activity") {
     wsSendBusy = false;
-    sendToContentScript({ action: "readyForFrame" });
+    if (!isRegionMode) sendToContentScript({ action: "readyForFrame" });
   } else if (data.type === "error") {
     sendToPanel({ type: "status", connection: connectionStatus, message: data.message || "Backend error" });
     wsSendBusy = false;
-    sendToContentScript({ action: "readyForFrame" });
+    if (!isRegionMode) sendToContentScript({ action: "readyForFrame" });
   }
 }
 
@@ -171,7 +230,15 @@ function handleContentScriptMessage(message) {
   switch (message.type) {
     case "videoSelected":
       console.log("[HelmBG] videoSelected:", message.width, "x", message.height);
+      isRegionMode = false;
+      storedRegion = null;
       sendToPanel({ type: "videoInfo", width: message.width, height: message.height, thumbnail: message.thumbnail });
+      break;
+    case "regionSelected":
+      console.log("[HelmBG] regionSelected:", message.x, message.y, message.width, message.height);
+      isRegionMode = true;
+      storedRegion = { x: message.x, y: message.y, width: message.width, height: message.height };
+      sendToPanel({ type: "regionSelected", x: message.x, y: message.y, width: message.width, height: message.height });
       break;
     case "frameData":
       if (!ws || ws.readyState !== WebSocket.OPEN || wsSendBusy) {
@@ -214,11 +281,13 @@ function handlePanelMessage(message) {
     case "startCapture":
       sessionFps = message.fps || 1.0;
       sessionConditions = message.conditions || [];
+      sessionMode = message.mode || "surveillance";
       wsSendBusy = false;
       if (wsBusyTimeoutId) { clearTimeout(wsBusyTimeoutId); wsBusyTimeoutId = null; }
       openWebSocket();
       break;
     case "stopCapture":
+      stopRegionCaptureTimer();
       sendToContentScript({ action: "stopCapture" });
       closeWebSocket();
       break;
@@ -227,6 +296,21 @@ function handlePanelMessage(message) {
         if (tabs && tabs.length > 0) injectContentScriptAndSelect(tabs[0].id);
       });
       break;
+    case "requestRegionSelect":
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs && tabs.length > 0) injectContentScriptAndActivateRegion(tabs[0].id);
+      });
+      break;
+  }
+}
+
+async function injectContentScriptAndActivateRegion(tabId) {
+  activeTabId = tabId;
+  try {
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["content.js"] });
+    sendToContentScript({ action: "activateRegionSelector" });
+  } catch (_e) {
+    sendToPanel({ type: "status", connection: connectionStatus, message: "Cannot access this page" });
   }
 }
 
