@@ -216,7 +216,7 @@ class StreamSummarizer:
             "messages": [{"role": "user", "content": prompt}],
             "stream": False,
             "think": False,
-            "options": {"num_predict": 200},
+            "options": {},
         }
         resp = requests.post(
             f"{self.ollama_url}/api/chat",
