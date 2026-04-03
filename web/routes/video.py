@@ -358,25 +358,30 @@ async def _process_frame(
 
     await websocket.send_json(response)
 
-    # Tier 2: Feed to summarizer, trigger summary if batch is ready
+    # Tier 2: Feed to summarizer, trigger summary if batch is ready (fire-and-forget)
     if summarizer and summarizer_pool:
         should_summarize = summarizer.add_description(timestamp, description)
         if should_summarize:
-            try:
-                logger.info("Triggering summarizer (batch of %d)...", summarizer.batch_size)
-                t0 = _time.time()
-                summary = await loop.run_in_executor(summarizer_pool, summarizer.summarize)
-                elapsed = _time.time() - t0
-                logger.info("Summarizer returned in %.1fs: %s", elapsed, (summary or "")[:100])
-                if summary:
-                    await websocket.send_json({
-                        "type": "summary",
-                        "summary": summary,
-                        "key_events": summarizer.get_key_events_text(),
-                        "timestamp": timestamp,
-                    })
-            except Exception:
-                logger.exception("Summarizer failed")
+            # Run summarizer in background — don't block frame processing
+            async def _run_summarizer():
+                try:
+                    _loop = asyncio.get_event_loop()
+                    import time as _t
+                    t0 = _t.time()
+                    logger.info("Triggering summarizer (batch of %d)...", summarizer.batch_size)
+                    summary = await _loop.run_in_executor(summarizer_pool, summarizer.summarize)
+                    elapsed = _t.time() - t0
+                    logger.info("Summarizer returned in %.1fs: %s", elapsed, (summary or "")[:100])
+                    if summary:
+                        await websocket.send_json({
+                            "type": "summary",
+                            "summary": summary,
+                            "key_events": summarizer.get_key_events_text(),
+                            "timestamp": timestamp,
+                        })
+                except Exception:
+                    logger.exception("Summarizer failed")
+            asyncio.create_task(_run_summarizer())
 
 
 # ---------------------------------------------------------------------------
@@ -469,7 +474,7 @@ async def extension_stream(websocket: WebSocket):
                 # Create/recreate summarizer with current settings
                 summarizer = StreamSummarizer(
                     ollama_url="http://localhost:11434",
-                    summarizer_model="qwen3.5:4b",
+                    summarizer_model="qwen3.5:0.8b",
                     batch_size=5,
                     mode=session_mode,
                     user_context=session_user_context,

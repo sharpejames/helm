@@ -295,7 +295,7 @@ def describe_frame_with_context(
 
     vision_model = "qwen3-vl:2b"
     img_b64 = vision._encode_image(frame)
-    text = vision._chat(vision_model, prompt, images=[img_b64], timeout=30)
+    text = vision._chat(vision_model, prompt, images=[img_b64], timeout=30, num_predict=100)
     return (text or "").strip()
 
 
