@@ -563,7 +563,10 @@ async def extension_stream(websocket: WebSocket):
                     continue
 
                 frame_buffer.append((frame_bytes, timestamp))
-                if len(frame_buffer) >= BATCH_SIZE:
+                if len(frame_buffer) < BATCH_SIZE:
+                    # Need more frames — tell extension to send next
+                    await websocket.send_json({"type": "need_frame"})
+                else:
                     batch = frame_buffer[:]
                     frame_buffer.clear()
                     await _process_frame_batch(

@@ -211,7 +211,12 @@ function handleWebSocketMessage(data) {
   } else if (data.type === "need_frame") {
     // Backend needs more frames for the batch — release busy and request next
     wsSendBusy = false;
-    if (!isRegionMode) sendToContentScript({ action: "readyForFrame" });
+    if (isRegionMode) {
+      // For region mode, immediately capture and send another frame
+      sendRegionCaptureFromBackground();
+    } else {
+      sendToContentScript({ action: "readyForFrame" });
+    }
   } else if (data.type === "summary") {
     sendToPanel({
       type: "summary",
