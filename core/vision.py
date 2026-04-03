@@ -278,9 +278,14 @@ def describe_frame_with_context(
     if user_context:
         ctx = f" Context: {user_context}."
 
+    # For audio description, include last description to avoid repetition
+    last_desc = ""
+    if recent_descriptions and mode == "audio_description":
+        last_desc = f' Previous: "{recent_descriptions[-1][:80]}" — say something NEW.'
+
     if mode == "audio_description":
         prompt = (
-            f"Describe this scene: subjects, actions, setting, mood.{ctx} 1-2 sentences."
+            f"Describe what's happening NOW: actions, subjects, changes.{ctx}{last_desc} 1 sentence only."
         )
     elif mode == "sports":
         prompt = (
@@ -297,6 +302,7 @@ def describe_frame_with_context(
     img_b64 = vision._encode_image(frame)
     text = vision._chat(vision_model, prompt, images=[img_b64], timeout=30)
     return (text or "").strip()
+
 
 
 # ======================================================================
