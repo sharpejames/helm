@@ -139,16 +139,18 @@ class StreamSummarizer:
         elif self.mode == "sports":
             return (
                 "You are a sports commentary summarizer. "
-                "Below are recent play-by-play observations.\n"
+                "Below are recent play-by-play observations from a live game.\n"
                 f"{user_ctx}{events_ctx}\n"
                 f"Observations:\n{raw_text}\n\n"
                 "Tasks:\n"
-                "1. SUMMARY: Write an exciting 1-2 sentence summary of the current action.\n"
-                "2. KEY_EVENTS: List any new notable game moments (goals, cards, "
-                "substitutions, penalties, injuries, half-time). One per line, format: "
+                "1. SUMMARY: Summarize the current game action in 1-2 exciting sentences. "
+                "Focus on gameplay: passes, shots, goals, fouls, possession. "
+                "If a score was reported, include it. Ignore replays, ads, crowd shots.\n"
+                "2. KEY_EVENTS: List any confirmed game events (goals, cards, "
+                "substitutions, penalties, score changes). One per line, format: "
                 "- [time] event description\n"
+                "Only include events clearly stated in the observations. Do NOT invent anything.\n"
                 "If no new key events, write: - none\n"
-                "Only include events you can confirm from the observations. Do NOT invent scores.\n"
                 "Respond with:\nSUMMARY: ...\nKEY_EVENTS:\n- ..."
             )
         else:

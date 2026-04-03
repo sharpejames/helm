@@ -279,8 +279,10 @@ def describe_frame_with_context(
         prompt = "Describe this image: setting, subjects, actions, colors. 1-2 sentences."
     elif mode == "sports":
         prompt = (
-            "Describe the sports action: players, ball position, any visible scoreboard text. "
-            "Only state what you see. 1 sentence."
+            "Live sports: describe the play happening NOW — who has the ball, passes, shots, fouls, goals. "
+            "If a scoreboard is visible (usually top-left), read the exact score. "
+            "If this looks like a slow-motion replay, say REPLAY. "
+            "Ignore ads, logos, crowd, background signs. 1 sentence."
         )
     else:
         # surveillance — ultra brief
