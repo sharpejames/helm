@@ -41,6 +41,7 @@ const ttsToggle = document.getElementById("tts-toggle");
 const voiceSelect = document.getElementById("voice-select");
 const rateSlider = document.getElementById("rate-slider");
 const rateValue = document.getElementById("rate-value");
+const userContext = document.getElementById("user-context");
 
 // ── Utility ──────────────────────────────────────────────────────────────────
 
@@ -372,11 +373,13 @@ btnToggle.addEventListener("click", () => {
     // Start capture
     const fps = clampRange(fpsSlider.value);
     const mode = modeSelect.value;
+    const context = (userContext.value || "").trim();
     sendToBackground({
       type: "startCapture",
       fps: fps,
       mode: mode,
       conditions: [...alertConditions],
+      userContext: context,
     });
     transitionTo(STATES.STREAMING);
   } else if (currentState === STATES.STREAMING) {

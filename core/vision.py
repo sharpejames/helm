@@ -267,57 +267,60 @@ def describe_frame_with_context(
     frame: bytes,
     recent_descriptions: list[str],
     mode: str = "surveillance",
+    user_context: str = "",
 ) -> str:
-    """Describe a frame with awareness of previous scene state.
-
-    Wraps VisionModule.describe_frame by injecting the last 3 descriptions
-    as context so the model focuses on meaningful changes rather than
-    re-describing the entire scene.
+    """Describe a frame with mode-specific prompting and optional user context.
 
     Args:
         vision: A VisionModule instance.
-        frame: Raw PNG bytes of the frame to describe.
+        frame: Raw PNG/JPEG bytes of the frame to describe.
         recent_descriptions: The most recent descriptions (up to last 3).
         mode: Commentary mode — "surveillance", "audio_description", or "sports".
+        user_context: Optional user-provided context to enrich descriptions.
 
     Returns:
         Plain text description string.
     """
-    # Use only the last description for context (limits hallucination snowball)
-    context = recent_descriptions[-1:] if recent_descriptions else []
+    # Build the prompt based on mode
+    context_line = ""
+    if user_context:
+        context_line = f"\nContext: {user_context}\n"
 
-    # Mode-specific prompts
     if mode == "audio_description":
-        base_prompt = (
-            "Describe exactly what you see: setting, subjects, actions, colors. One sentence. Plain text."
-        )
-        context_prompt_suffix = (
-            "What changed from before? New actions or subjects only. One sentence. Plain text."
+        prompt = (
+            "You are an audio describer for visually impaired viewers. "
+            "Describe this scene richly: the setting, lighting, colors, "
+            "who or what is visible, their appearance, clothing, expressions, "
+            "what actions are happening, and the mood of the scene. "
+            "Be vivid and paint a picture with words. 2-3 sentences."
+            f"{context_line}"
         )
     elif mode == "sports":
-        base_prompt = (
-            "Sports commentary: identify the sport, teams, score if visible, current action. "
-            "Read any scoreboard text exactly as shown (left team score - right team score). One sentence. Plain text."
-        )
-        context_prompt_suffix = (
-            "What changed? New plays, goals, score changes only. One sentence. Plain text."
+        prompt = (
+            "You are an enthusiastic sports commentator calling a live game. "
+            "Describe the current action with energy: what play is happening, "
+            "which players are involved, ball/puck position, any scores visible "
+            "on the scoreboard (read them exactly as shown: left team score - right team score). "
+            "Do NOT invent scores or events you cannot see. Only describe what is visible. "
+            "Be exciting but factual. 1-2 sentences."
+            f"{context_line}"
         )
     else:
         # surveillance
-        base_prompt = (
-            "Security camera: report people (clothing, actions), vehicles (type, color), "
-            "animals (species, size), or unusual activity. If empty scene: NO_ACTIVITY. One sentence. Plain text."
-        )
-        context_prompt_suffix = (
-            "New security events only: arrivals, departures, vehicles, animals. "
-            "If nothing changed: NO_ACTIVITY. One sentence. Plain text."
+        prompt = (
+            "You are a security camera monitor. Report only what matters for safety: "
+            "people (count, clothing, actions like walking/running/loitering), "
+            "vehicles (type, color, arriving/departing), "
+            "animals (species, size, behavior), "
+            "deliveries, packages, unusual activity. "
+            "If the scene is empty with no people, animals, or vehicles: respond with only NO_ACTIVITY. "
+            "Keep it brief and factual. 1 sentence."
+            f"{context_line}"
         )
 
-    # qwen3-vl works best with fresh context per frame — no history
     vision_model = "qwen3-vl:2b"
-
     img_b64 = vision._encode_image(frame)
-    text = vision._chat(vision_model, base_prompt, images=[img_b64], timeout=60)
+    text = vision._chat(vision_model, prompt, images=[img_b64], timeout=60)
     return (text or "").strip()
 
 

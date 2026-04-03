@@ -20,6 +20,7 @@ let storedRegion = null;
 let regionCaptureIntervalId = null;
 let isRegionMode = false;
 let userRequestedStop = false; // true only when user clicks Stop
+let sessionUserContext = "";
 
 // Port-based connection to side panel (reliable, no message loss)
 let panelPort = null;
@@ -81,7 +82,7 @@ function openWebSocket() {
     reconnectAttempts = 0;
     wsSendBusy = false;
     setConnectionStatus("connected");
-    try { ws.send(JSON.stringify({ type: "configure", conditions: sessionConditions, mode: sessionMode })); } catch (_e) {}
+    try { ws.send(JSON.stringify({ type: "configure", conditions: sessionConditions, mode: sessionMode, userContext: sessionUserContext })); } catch (_e) {}
     // Start keep-alive pings
     clearPingInterval();
     pingIntervalId = setInterval(() => {
@@ -286,6 +287,7 @@ function handlePanelMessage(message) {
       sessionFps = message.fps || 1.0;
       sessionConditions = message.conditions || [];
       sessionMode = message.mode || "surveillance";
+      sessionUserContext = message.userContext || "";
       wsSendBusy = false;
       if (wsBusyTimeoutId) { clearTimeout(wsBusyTimeoutId); wsBusyTimeoutId = null; }
       openWebSocket();

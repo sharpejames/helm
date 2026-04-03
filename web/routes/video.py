@@ -256,6 +256,7 @@ async def _process_frame(
     vision_pool: ThreadPoolExecutor,
     session_active: bool,
     mode: str = "surveillance",
+    user_context: str = "",
 ) -> None:
     """Shared frame processing: vision → commentary → alerts → response."""
     logger.info("Processing frame: %d bytes, mode=%s", len(frame_bytes), mode)
@@ -297,7 +298,7 @@ async def _process_frame(
         description = await loop.run_in_executor(
             vision_pool,
             describe_frame_with_context,
-            vision, frame_bytes, context, mode,
+            vision, frame_bytes, context, mode, user_context,
         )
         elapsed = _time.time() - t0
         logger.info("Vision returned in %.1fs: %s", elapsed, (description or "")[:100])
@@ -381,6 +382,7 @@ async def extension_stream(websocket: WebSocket):
     description_history: deque[str] = deque(maxlen=10)
     session_active = True
     session_mode = "surveillance"
+    session_user_context = ""
 
     # Thread pool for blocking vision calls — 1 thread since we process
     # one frame at a time anyway
@@ -431,10 +433,11 @@ async def extension_stream(websocket: WebSocket):
             elif msg_type == "configure":
                 conditions = msg.get("conditions", [])
                 session_mode = msg.get("mode", "surveillance")
+                session_user_context = msg.get("userContext", "")
                 detector.set_conditions(conditions)
                 logger.info(
-                    "Extension stream configured conditions: %s mode: %s",
-                    conditions, session_mode,
+                    "Extension stream configured conditions: %s mode: %s context: %s",
+                    conditions, session_mode, session_user_context[:80] if session_user_context else "(none)",
                 )
 
             # ----------------------------------------------------------
@@ -458,6 +461,7 @@ async def extension_stream(websocket: WebSocket):
                     description_history, detector, commentary,
                     alert_system, vision_pool, session_active,
                     mode=session_mode,
+                    user_context=session_user_context,
                 )
 
             # ----------------------------------------------------------
@@ -494,6 +498,7 @@ async def extension_stream(websocket: WebSocket):
                     description_history, detector, commentary,
                     alert_system, vision_pool, session_active,
                     mode=session_mode,
+                    user_context=session_user_context,
                 )
 
             else:
