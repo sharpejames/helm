@@ -2,7 +2,7 @@
 "use strict";
 
 const WS_URL = "ws://localhost:8765/api/video/extension-stream";
-const MAX_RECONNECT_ATTEMPTS = 5;
+const MAX_RECONNECT_ATTEMPTS = Infinity; // Keep reconnecting until user presses Stop
 
 // ── State ────────────────────────────────────────────────────────────────────
 let ws = null;
@@ -19,6 +19,7 @@ let pingIntervalId = null;
 let storedRegion = null;
 let regionCaptureIntervalId = null;
 let isRegionMode = false;
+let userRequestedStop = false; // true only when user clicks Stop
 
 // Port-based connection to side panel (reliable, no message loss)
 let panelPort = null;
@@ -71,6 +72,7 @@ chrome.runtime.onConnect.addListener((port) => {
 
 function openWebSocket() {
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+  userRequestedStop = false; // Starting a new session
 
   setConnectionStatus("connecting");
   try { ws = new WebSocket(WS_URL); } catch (_e) { setConnectionStatus("error", "Failed to create WebSocket"); return; }
@@ -102,7 +104,8 @@ function openWebSocket() {
     ws = null;
     wsSendBusy = false;
     clearPingInterval();
-    if (connectionStatus === "connected" || connectionStatus === "connecting") attemptReconnect();
+    // Only reconnect if user didn't explicitly stop
+    if (!userRequestedStop) attemptReconnect();
   };
 
   ws.onerror = () => {};
@@ -139,11 +142,12 @@ function sendRegionCaptureFromBackground() {
       timestamp: Date.now() / 1000,
     }));
     if (wsBusyTimeoutId) clearTimeout(wsBusyTimeoutId);
-    wsBusyTimeoutId = setTimeout(() => { if (wsSendBusy) { wsSendBusy = false; } }, 120000);
+    wsBusyTimeoutId = setTimeout(() => { if (wsSendBusy) { wsSendBusy = false; } }, 30000);
   } catch (_e) { wsSendBusy = false; }
 }
 
 function closeWebSocket() {
+  userRequestedStop = true; // Mark as intentional disconnect
   clearReconnectTimeout();
   clearPingInterval();
   stopRegionCaptureTimer();
@@ -158,13 +162,9 @@ function closeWebSocket() {
 
 function attemptReconnect() {
   reconnectAttempts++;
-  if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
-    setConnectionStatus("error", "Cannot reach Helm backend after 5 attempts");
-    sendToContentScript({ action: "stopCapture" });
-    return;
-  }
-  const delay = getBackoffDelay(reconnectAttempts);
-  setConnectionStatus("connecting", `Reconnecting in ${delay / 1000}s (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+  // Cap backoff at 30 seconds so we don't wait forever
+  const delay = Math.min(getBackoffDelay(reconnectAttempts), 30000);
+  setConnectionStatus("connecting", `Reconnecting in ${delay / 1000}s (attempt ${reconnectAttempts})`);
   reconnectTimeoutId = setTimeout(() => { reconnectTimeoutId = null; openWebSocket(); }, delay);
 }
 
@@ -249,7 +249,7 @@ function handleContentScriptMessage(message) {
       try {
         ws.send(JSON.stringify({ type: "frame", data: message.frame, timestamp: message.timestamp }));
         if (wsBusyTimeoutId) clearTimeout(wsBusyTimeoutId);
-        wsBusyTimeoutId = setTimeout(() => { if (wsSendBusy) { wsSendBusy = false; sendToContentScript({ action: "readyForFrame" }); } }, 120000);
+        wsBusyTimeoutId = setTimeout(() => { if (wsSendBusy) { wsSendBusy = false; sendToContentScript({ action: "readyForFrame" }); } }, 30000);
       } catch (_e) { wsSendBusy = false; sendToContentScript({ action: "readyForFrame" }); }
       break;
     case "regionCapture":
@@ -262,7 +262,7 @@ function handleContentScriptMessage(message) {
       try {
         ws.send(JSON.stringify({ type: "region_capture", x: message.x, y: message.y, width: message.width, height: message.height, timestamp: message.timestamp }));
         if (wsBusyTimeoutId) clearTimeout(wsBusyTimeoutId);
-        wsBusyTimeoutId = setTimeout(() => { if (wsSendBusy) { wsSendBusy = false; sendToContentScript({ action: "readyForFrame" }); } }, 120000);
+        wsBusyTimeoutId = setTimeout(() => { if (wsSendBusy) { wsSendBusy = false; sendToContentScript({ action: "readyForFrame" }); } }, 30000);
       } catch (_e) { wsSendBusy = false; sendToContentScript({ action: "readyForFrame" }); }
       break;
     case "captureError":

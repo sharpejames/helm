@@ -17,6 +17,7 @@ const STATES = {
 let currentState = STATES.IDLE;
 let commentaryHistory = [];
 let alertConditions = [];
+let lastSpokenText = "";
 
 // ── DOM References ───────────────────────────────────────────────────────────
 
@@ -171,16 +172,34 @@ function handleCommentary(msg) {
   // Render in feed
   appendCommentaryEntry(entry);
 
-  // TTS
+  // TTS — skip near-duplicate descriptions
   if (ttsToggle.checked) {
-    speakText(entry.description);
+    const isDuplicate = lastSpokenText &&
+      entry.description.substring(0, 30) === lastSpokenText.substring(0, 30);
+    if (!isDuplicate) {
+      speakText(entry.description);
+      lastSpokenText = entry.description;
+    }
+  }
+
+  // Update last frame time indicator
+  const lastFrameTime = document.getElementById("last-frame-time");
+  if (lastFrameTime) {
+    lastFrameTime.textContent = `Last update: ${formatTimestamp(entry.timestamp)}`;
+    lastFrameTime.classList.remove("hidden");
   }
 }
 
 function handleStatus(msg) {
   updateConnectionStatus(msg.connection, msg.message);
 
-  // Handle connection failure while streaming
+  // Resume streaming state when reconnection succeeds
+  if (msg.connection === "connected" && (currentState === STATES.ERROR || currentState === STATES.STREAMING)) {
+    transitionTo(STATES.STREAMING);
+  }
+
+  // Handle connection failure while streaming — show error but don't stop
+  // (background will keep reconnecting)
   if (msg.connection === "error" && currentState === STATES.STREAMING) {
     transitionTo(STATES.ERROR);
   }
@@ -290,6 +309,8 @@ function populateVoices() {
 }
 
 function speakText(text) {
+  // Cancel any queued speech to stay current
+  window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   const voices = window.speechSynthesis.getVoices();
   const selectedIndex = parseInt(voiceSelect.value, 10);
@@ -311,6 +332,10 @@ if (window.speechSynthesis) {
 btnSelectVideo.addEventListener("click", () => {
   if (currentState === STATES.STREAMING) return;
   noVideoMsg.classList.add("hidden");
+  commentaryFeed.innerHTML = "";
+  commentaryHistory = [];
+  lastSpokenText = "";
+  window.speechSynthesis.cancel();
   updateConnectionStatus("disconnected"); // Clear any error status
   transitionTo(STATES.SELECTING);
   sendToBackground({ type: "requestVideoSelect" });
@@ -319,6 +344,10 @@ btnSelectVideo.addEventListener("click", () => {
 btnSelectRegion.addEventListener("click", () => {
   if (currentState === STATES.STREAMING) return;
   noVideoMsg.classList.add("hidden");
+  commentaryFeed.innerHTML = "";
+  commentaryHistory = [];
+  lastSpokenText = "";
+  window.speechSynthesis.cancel();
   updateConnectionStatus("disconnected");
   transitionTo(STATES.SELECTING);
   sendToBackground({ type: "requestRegionSelect" });
@@ -339,7 +368,8 @@ btnToggle.addEventListener("click", () => {
   } else if (currentState === STATES.STREAMING) {
     // Stop capture
     sendToBackground({ type: "stopCapture" });
-    transitionTo(STATES.VIDEO_SELECTED);
+    window.speechSynthesis.cancel();
+    transitionTo(STATES.IDLE);
   }
 });
 

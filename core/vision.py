@@ -289,68 +289,35 @@ def describe_frame_with_context(
     # Mode-specific prompts
     if mode == "audio_description":
         base_prompt = (
-            "Describe exactly what you see in this image. Do NOT guess or assume. "
-            "Include: the setting/location, any people or animals (describe their size accurately — "
-            "a small insect is not a person), objects, colors, and actions happening. "
-            "Use present tense. Be precise and literal. "
-            "Respond in 2-3 sentences. Plain text only."
+            "Describe exactly what you see: setting, subjects, actions, colors. One sentence. Plain text."
         )
         context_prompt_suffix = (
-            "Describe what changed from the previous scene. Be precise and literal — "
-            "do NOT assume something is a person unless it is clearly human-shaped and human-sized. "
-            "Small creatures are insects or animals, not children. "
-            "Describe new actions, movements, scene changes. Do NOT repeat unchanged details. "
-            "Respond in 2-3 sentences. Plain text only."
+            "What changed from before? New actions or subjects only. One sentence. Plain text."
         )
     elif mode == "sports":
         base_prompt = (
-            "You are a sports commentator. Identify the sport, teams/players if visible, "
-            "describe the current action, score if visible, and key moments. "
-            "Be energetic and specific. Only describe what you actually see. "
-            "Respond in 1-2 sentences. Plain text only."
+            "Sports commentary: identify the sport, teams, score if visible, current action. "
+            "Read any scoreboard text exactly as shown (left team score - right team score). One sentence. Plain text."
         )
         context_prompt_suffix = (
-            "Continue commentary. Focus on new plays, scoring, player movements. "
-            "Do NOT repeat what was already said. "
-            "Respond in 1-2 sentences. Plain text only."
+            "What changed? New plays, goals, score changes only. One sentence. Plain text."
         )
     else:
-        # surveillance — security-focused, only noteworthy events
+        # surveillance
         base_prompt = (
-            "You are monitoring a security camera. Report ONLY security-relevant activity: "
-            "people (describe: adult/child, clothing, what they're carrying), "
-            "vehicles (type, color, direction), pets or wildlife (species, size), "
-            "or anything unusual (packages left, doors opening, lights). "
-            "Be precise — a small animal is NOT a person. "
-            "If nothing security-relevant is visible, respond: NO_ACTIVITY\n"
-            "Respond in 1-2 sentences. Plain text only."
+            "Security camera: report people (clothing, actions), vehicles (type, color), "
+            "animals (species, size), or unusual activity. If empty scene: NO_ACTIVITY. One sentence. Plain text."
         )
         context_prompt_suffix = (
-            "Report ONLY new security-relevant changes: someone arriving or leaving, "
-            "a vehicle appearing, an animal approaching, a package being delivered. "
-            "If nothing changed, respond: NO_ACTIVITY\n"
-            "Respond in 1-2 sentences. Plain text only."
+            "New security events only: arrivals, departures, vehicles, animals. "
+            "If nothing changed: NO_ACTIVITY. One sentence. Plain text."
         )
 
-    if not context:
-        img_b64 = vision._encode_image(frame)
-        text = vision._chat(vision.fast_model, base_prompt, images=[img_b64],
-                            timeout=120)
-        return (text or "").strip()
-
-    # Build context block from recent descriptions
-    context_block = "\n".join(
-        f"  {i + 1}. {desc}" for i, desc in enumerate(context)
-    )
-
-    prompt = (
-        f"Previous updates:\n{context_block}\n\n"
-        f"{context_prompt_suffix}"
-    )
+    # qwen3-vl works best with fresh context per frame — no history
+    vision_model = "qwen3-vl:2b"
 
     img_b64 = vision._encode_image(frame)
-    text = vision._chat(vision.fast_model, prompt, images=[img_b64],
-                        timeout=120)
+    text = vision._chat(vision_model, base_prompt, images=[img_b64], timeout=60)
     return (text or "").strip()
 
 
