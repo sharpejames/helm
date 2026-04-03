@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
-from core.vision import describe_frame_with_context, get_vision
+from core.vision import describe_frame_with_context, describe_frame_batch, get_vision
 from video.frame_capturer import FrameCapturer
 from video.event_detector import EventDetector
 from video.alert_system import AlertSystem
@@ -246,10 +246,9 @@ def _mss_capture_region(x: int, y: int, w: int, h: int) -> bytes:
         return buf.getvalue()
 
 
-async def _process_frame(
+async def _process_frame_batch(
     websocket: WebSocket,
-    frame_bytes: bytes,
-    timestamp: float,
+    frame_batch: list[tuple[bytes, float]],
     description_history: deque,
     detector: EventDetector,
     commentary: CommentaryStream,
@@ -261,15 +260,21 @@ async def _process_frame(
     mode: str = "surveillance",
     user_context: str = "",
 ) -> None:
-    """Shared frame processing: vision → commentary → summarizer → response."""
-    logger.info("Processing frame: %d bytes, mode=%s", len(frame_bytes), mode)
+    """Process a batch of frames with multi-image vision call."""
+    if not frame_batch:
+        return
 
-    # Generate a small JPEG thumbnail for the panel (non-blocking)
+    frames = [f for f, _ in frame_batch]
+    timestamp = frame_batch[-1][1]  # Use latest timestamp
+
+    logger.info("Processing batch of %d frames, mode=%s", len(frames), mode)
+
+    # Generate thumbnail from the latest frame
     thumbnail_b64 = ""
     try:
         from PIL import Image
         import io as _io
-        img = Image.open(_io.BytesIO(frame_bytes))
+        img = Image.open(_io.BytesIO(frames[-1]))
         max_thumb = 160
         if img.width > max_thumb or img.height > max_thumb:
             scale = max_thumb / max(img.width, img.height)
@@ -285,30 +290,28 @@ async def _process_frame(
 
     vision = get_vision()
     if vision is None:
-        logger.warning("Vision module not available")
-        await websocket.send_json(
-            {"type": "error", "message": "Vision module not available"}
-        )
+        await websocket.send_json({"type": "error", "message": "Vision module not available"})
         return
 
-    # Tier 1: Fast vision description (no context)
     try:
         loop = asyncio.get_event_loop()
-        logger.info("Calling vision model...")
         import time as _time
         t0 = _time.time()
-        description = await loop.run_in_executor(
-            vision_pool,
-            describe_frame_with_context,
-            vision, frame_bytes, list(description_history)[-1:], mode, user_context,
-        )
+        if len(frames) == 1:
+            description = await loop.run_in_executor(
+                vision_pool, describe_frame_with_context,
+                vision, frames[0], [], mode, user_context,
+            )
+        else:
+            description = await loop.run_in_executor(
+                vision_pool, describe_frame_batch,
+                vision, frames, mode, user_context,
+            )
         elapsed = _time.time() - t0
-        logger.info("Vision returned in %.1fs: %s", elapsed, (description or "")[:100])
+        logger.info("Vision returned in %.1fs (%d frames): %s", elapsed, len(frames), (description or "")[:100])
     except Exception:
         logger.exception("Vision analysis failed")
-        await websocket.send_json(
-            {"type": "error", "message": "Vision analysis failed"}
-        )
+        await websocket.send_json({"type": "error", "message": "Vision analysis failed"})
         return
 
     if not session_active:
@@ -317,7 +320,6 @@ async def _process_frame(
     # Clean up think tags
     import re as _re
     description = _re.sub(r"</?think>", "", description or "").strip()
-    # Also strip <|channel>thought\n...<channel|> blocks (gemma4 style)
     description = _re.sub(r"<\|channel>thought.*?<channel\|>", "", description, flags=_re.DOTALL).strip()
 
     if not description:
@@ -327,7 +329,7 @@ async def _process_frame(
         )
         return
 
-    # Filter out NO_ACTIVITY variations
+    # Filter NO_ACTIVITY
     desc_upper = description.upper()
     if "NO_ACTIVITY" in desc_upper or "NO ACTIVITY" in desc_upper or desc_upper.startswith("0 PEOPLE") or "REMAINS UNCHANGED" in desc_upper or "NO CHANGES" in desc_upper:
         await websocket.send_json(
@@ -339,13 +341,12 @@ async def _process_frame(
     description_history.append(description)
     commentary.push(description, timestamp)
 
-    events = detector.process_frame(description, timestamp, frame_bytes)
+    events = detector.process_frame(description, timestamp, frames[-1])
 
     if alert_system and events:
         for event in events:
             await alert_system.trigger(event)
 
-    # Send raw description immediately (for the feed)
     response: dict = {
         "type": "commentary",
         "description": description,
@@ -358,17 +359,16 @@ async def _process_frame(
 
     await websocket.send_json(response)
 
-    # Tier 2: Feed to summarizer, trigger summary if batch is ready (fire-and-forget)
+    # Tier 2: Summarizer (fire-and-forget)
     if summarizer and summarizer_pool:
         should_summarize = summarizer.add_description(timestamp, description)
         if should_summarize:
-            # Run summarizer in background — don't block frame processing
             async def _run_summarizer():
                 try:
                     _loop = asyncio.get_event_loop()
                     import time as _t
                     t0 = _t.time()
-                    logger.info("Triggering summarizer (batch of %d)...", summarizer.batch_size)
+                    logger.info("Triggering summarizer...")
                     summary = await _loop.run_in_executor(summarizer_pool, summarizer.summarize)
                     elapsed = _t.time() - t0
                     logger.info("Summarizer returned in %.1fs: %s", elapsed, (summary or "")[:100])
@@ -414,6 +414,10 @@ async def extension_stream(websocket: WebSocket):
     session_mode = "surveillance"
     session_user_context = ""
 
+    # Frame buffer for multi-frame batch processing
+    BATCH_SIZE = 3
+    frame_buffer: list[tuple[bytes, float]] = []
+
     # Thread pool for blocking vision calls — 1 thread since we process
     # one frame at a time anyway
     vision_pool = ThreadPoolExecutor(max_workers=1)
@@ -454,6 +458,19 @@ async def extension_stream(websocket: WebSocket):
             # ----------------------------------------------------------
             if msg_type == "stop":
                 logger.info("Extension stream received stop message")
+                # Process any remaining buffered frames
+                if frame_buffer:
+                    batch = frame_buffer[:]
+                    frame_buffer.clear()
+                    await _process_frame_batch(
+                        websocket, batch,
+                        description_history, detector, commentary,
+                        alert_system, vision_pool,
+                        summarizer, summarizer_pool,
+                        session_active,
+                        mode=session_mode,
+                        user_context=session_user_context,
+                    )
                 session_active = False
                 break
 
@@ -491,7 +508,6 @@ async def extension_stream(websocket: WebSocket):
                 data_b64 = msg.get("data", "")
                 timestamp = msg.get("timestamp", time.time())
 
-                # Decode base64
                 try:
                     frame_bytes = base64.b64decode(data_b64)
                 except (binascii.Error, Exception):
@@ -500,15 +516,22 @@ async def extension_stream(websocket: WebSocket):
                     )
                     continue
 
-                await _process_frame(
-                    websocket, frame_bytes, timestamp,
-                    description_history, detector, commentary,
-                    alert_system, vision_pool,
-                    summarizer, summarizer_pool,
-                    session_active,
-                    mode=session_mode,
-                    user_context=session_user_context,
-                )
+                frame_buffer.append((frame_bytes, timestamp))
+                if len(frame_buffer) < BATCH_SIZE:
+                    # Immediately ask for next frame to fill the batch
+                    await websocket.send_json({"type": "need_frame"})
+                else:
+                    batch = frame_buffer[:]
+                    frame_buffer.clear()
+                    await _process_frame_batch(
+                        websocket, batch,
+                        description_history, detector, commentary,
+                        alert_system, vision_pool,
+                        summarizer, summarizer_pool,
+                        session_active,
+                        mode=session_mode,
+                        user_context=session_user_context,
+                    )
 
             # ----------------------------------------------------------
             # REGION_CAPTURE message — mss fallback for DRM/cross-origin
@@ -539,15 +562,19 @@ async def extension_stream(websocket: WebSocket):
                     )
                     continue
 
-                await _process_frame(
-                    websocket, frame_bytes, timestamp,
-                    description_history, detector, commentary,
-                    alert_system, vision_pool,
-                    summarizer, summarizer_pool,
-                    session_active,
-                    mode=session_mode,
-                    user_context=session_user_context,
-                )
+                frame_buffer.append((frame_bytes, timestamp))
+                if len(frame_buffer) >= BATCH_SIZE:
+                    batch = frame_buffer[:]
+                    frame_buffer.clear()
+                    await _process_frame_batch(
+                        websocket, batch,
+                        description_history, detector, commentary,
+                        alert_system, vision_pool,
+                        summarizer, summarizer_pool,
+                        session_active,
+                        mode=session_mode,
+                        user_context=session_user_context,
+                    )
 
             else:
                 await websocket.send_json(

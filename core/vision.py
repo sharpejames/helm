@@ -269,38 +269,74 @@ def describe_frame_with_context(
     mode: str = "surveillance",
     user_context: str = "",
 ) -> str:
-    """Fast frame description — short prompt with user context for relevance.
-
-    The vision model describes what it sees, guided by user context so it
-    focuses on what matters. Summarization happens in tier 2.
-    """
+    """Fast single-frame description — minimal prompt, maximum speed."""
     ctx = ""
     if user_context:
         ctx = f" Context: {user_context}."
 
-    # For audio description, include last description to avoid repetition
-    last_desc = ""
-    if recent_descriptions and mode == "audio_description":
-        last_desc = f' Previous: "{recent_descriptions[-1][:50]}" — describe NEW changes only.'
-
     if mode == "audio_description":
-        prompt = (
-            f"Describe what's happening NOW: actions, subjects, changes.{ctx}{last_desc} 1 sentence only."
-        )
+        prompt = f"Describe what's happening: subjects, actions, changes.{ctx} 1 sentence."
     elif mode == "sports":
         prompt = (
-            f"Live sports play-by-play: current action, ball position, players involved. "
-            f"Read any visible scoreboard exactly. If replay, say REPLAY.{ctx} 1 sentence."
+            f"Play-by-play: current action, ball, players. "
+            f"Read any scoreboard. If replay say REPLAY.{ctx} 1 sentence."
         )
     else:
         prompt = (
-            f"Security camera: people, vehicles, animals, activity. "
+            f"Security: people, vehicles, animals, activity. "
             f"If empty: NO_ACTIVITY.{ctx} 1 sentence."
         )
 
     vision_model = "qwen3-vl:2b"
     img_b64 = vision._encode_image(frame)
     text = vision._chat(vision_model, prompt, images=[img_b64], timeout=30)
+    return (text or "").strip()
+
+
+def describe_frame_batch(
+    vision: VisionModule,
+    frames: list[bytes],
+    mode: str = "surveillance",
+    user_context: str = "",
+) -> str:
+    """Describe a batch of frames (multi-image) in one model call.
+
+    Sends multiple frames as separate images to the vision model,
+    giving it temporal context to understand the flow of action.
+    Much more efficient than N separate calls.
+    """
+    if not frames:
+        return ""
+
+    ctx = ""
+    if user_context:
+        ctx = f" Context: {user_context}."
+
+    n = len(frames)
+
+    if mode == "audio_description":
+        prompt = (
+            f"These {n} images are consecutive video frames. "
+            f"Describe what's happening across the sequence: actions, changes, movement.{ctx} "
+            f"1-2 sentences covering the whole sequence."
+        )
+    elif mode == "sports":
+        prompt = (
+            f"These {n} images are consecutive frames from a live sports broadcast. "
+            f"Describe the play: ball movement, passes, shots, fouls. "
+            f"Read any visible scoreboard exactly. If replay, say REPLAY.{ctx} "
+            f"1-2 sentences."
+        )
+    else:
+        prompt = (
+            f"These {n} images are consecutive security camera frames. "
+            f"Report people, vehicles, animals, movement, arrivals, departures. "
+            f"If nothing happening: NO_ACTIVITY.{ctx} 1 sentence."
+        )
+
+    vision_model = "qwen3-vl:2b"
+    img_list = [vision._encode_image(f) for f in frames]
+    text = vision._chat(vision_model, prompt, images=img_list, timeout=45)
     return (text or "").strip()
 
 

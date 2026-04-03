@@ -208,6 +208,10 @@ function handleWebSocketMessage(data) {
     if (data.alert) triggerAlertNotification(data.description, data.alert.condition);
     wsSendBusy = false;
     if (!isRegionMode) sendToContentScript({ action: "readyForFrame" });
+  } else if (data.type === "need_frame") {
+    // Backend needs more frames for the batch — release busy and request next
+    wsSendBusy = false;
+    if (!isRegionMode) sendToContentScript({ action: "readyForFrame" });
   } else if (data.type === "summary") {
     sendToPanel({
       type: "summary",
