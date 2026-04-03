@@ -300,7 +300,7 @@ async def _process_frame(
         description = await loop.run_in_executor(
             vision_pool,
             describe_frame_with_context,
-            vision, frame_bytes, list(description_history)[-3:], mode, user_context,
+            vision, frame_bytes, list(description_history)[-1:], mode, user_context,
         )
         elapsed = _time.time() - t0
         logger.info("Vision returned in %.1fs: %s", elapsed, (description or "")[:100])
@@ -338,16 +338,6 @@ async def _process_frame(
 
     description_history.append(description)
     commentary.push(description, timestamp)
-
-    # Skip near-duplicate descriptions (first 40 chars match last sent)
-    if len(description_history) >= 2:
-        prev = description_history[-2]
-        if description[:40] == prev[:40]:
-            logger.info("Skipping near-duplicate description")
-            # Still feed to summarizer but don't send to panel
-            if summarizer and summarizer_pool:
-                summarizer.add_description(timestamp, description)
-            return
 
     events = detector.process_frame(description, timestamp, frame_bytes)
 

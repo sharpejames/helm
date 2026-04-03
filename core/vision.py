@@ -281,7 +281,7 @@ def describe_frame_with_context(
     # For audio description, include last description to avoid repetition
     last_desc = ""
     if recent_descriptions and mode == "audio_description":
-        last_desc = f' Previous: "{recent_descriptions[-1][:80]}" — say something NEW.'
+        last_desc = f' Previous: "{recent_descriptions[-1][:50]}" — describe NEW changes only.'
 
     if mode == "audio_description":
         prompt = (
