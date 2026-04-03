@@ -415,7 +415,7 @@ async def extension_stream(websocket: WebSocket):
     session_user_context = ""
 
     # Frame buffer for multi-frame batch processing
-    BATCH_SIZE = 3
+    BATCH_SIZE = 1  # Single frame for speed — increase for temporal context
     frame_buffer: list[tuple[bytes, float]] = []
 
     # Thread pool for blocking vision calls — 1 thread since we process
@@ -488,14 +488,14 @@ async def extension_stream(websocket: WebSocket):
                 session_mode = msg.get("mode", "surveillance")
                 session_user_context = msg.get("userContext", "")
                 detector.set_conditions(conditions)
-                # Create/recreate summarizer with current settings
-                summarizer = StreamSummarizer(
-                    ollama_url="http://localhost:11434",
-                    summarizer_model="qwen3.5:0.8b",
-                    batch_size=5,
-                    mode=session_mode,
-                    user_context=session_user_context,
-                )
+                # Summarizer disabled for now — VRAM model swap kills speed
+                # summarizer = StreamSummarizer(
+                #     ollama_url="http://localhost:11434",
+                #     summarizer_model="qwen3.5:0.8b",
+                #     batch_size=5,
+                #     mode=session_mode,
+                #     user_context=session_user_context,
+                # )
                 logger.info(
                     "Extension stream configured conditions: %s mode: %s context: %s",
                     conditions, session_mode, session_user_context[:80] if session_user_context else "(none)",
