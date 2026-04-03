@@ -122,6 +122,7 @@ function connectToBackground() {
       case "status": handleStatus(message); break;
       case "captureError": handleCaptureError(message); break;
       case "regionSelected": handleRegionSelected(message); break;
+      case "thumbnail": handleThumbnailUpdate(message); break;
     }
   });
 
@@ -166,6 +167,12 @@ function handleCommentary(msg) {
     alert: msg.alert || null,
   };
 
+  // Update thumbnail if provided
+  if (msg.thumbnail) {
+    thumbnailImg.src = "data:image/jpeg;base64," + msg.thumbnail;
+    videoInfo.classList.remove("hidden");
+  }
+
   // Add to history
   commentaryHistory.push(entry);
 
@@ -187,6 +194,13 @@ function handleCommentary(msg) {
   if (lastFrameTime) {
     lastFrameTime.textContent = `Last update: ${formatTimestamp(entry.timestamp)}`;
     lastFrameTime.classList.remove("hidden");
+  }
+}
+
+function handleThumbnailUpdate(msg) {
+  if (msg.thumbnail) {
+    thumbnailImg.src = "data:image/jpeg;base64," + msg.thumbnail;
+    videoInfo.classList.remove("hidden");
   }
 }
 

@@ -230,11 +230,13 @@
     if (!selectedVideo) return;
 
     const rect = selectedVideo.getBoundingClientRect();
-    // screenLeft/screenTop give the viewport origin on screen (not the window frame)
-    // This is more reliable than screenX + chrome offset calculations
     const dpr = window.devicePixelRatio || 1;
-    const screenX = Math.round((window.screenLeft + rect.left) * dpr);
-    const screenY = Math.round((window.screenTop + rect.top) * dpr);
+    // screenX/screenY = window outer position (physical pixels on Windows)
+    // Calculate viewport origin on screen
+    const chromeLeft = window.screenX + Math.round((window.outerWidth - window.innerWidth) / 2);
+    const chromeTop = window.screenY + (window.outerHeight - window.innerHeight);
+    const screenX = Math.round(chromeLeft + rect.left * dpr);
+    const screenY = Math.round(chromeTop + rect.top * dpr);
     const width = Math.round(rect.width * dpr);
     const height = Math.round(rect.height * dpr);
 
@@ -354,12 +356,21 @@
 
       if (w < 10 || h < 10) return; // Too small, ignore
 
-      // Convert to screen coordinates
+      // Convert to screen coordinates for mss.
+      // screenX/screenY = window outer position (physical pixels on Windows)
+      // outerWidth - innerWidth = horizontal chrome (borders)
+      // outerHeight - innerHeight = vertical chrome (title bar + tabs + address bar)
+      // clientX/clientY are CSS pixels from viewport origin
       const dpr = window.devicePixelRatio || 1;
-      const screenRegionX = Math.round((window.screenLeft + x) * dpr);
-      const screenRegionY = Math.round((window.screenTop + y) * dpr);
+      const chromeLeft = window.screenX + Math.round((window.outerWidth - window.innerWidth) / 2);
+      const chromeTop = window.screenY + (window.outerHeight - window.innerHeight);
+      const screenRegionX = Math.round(chromeLeft + x * dpr);
+      const screenRegionY = Math.round(chromeTop + y * dpr);
       const screenW = Math.round(w * dpr);
       const screenH = Math.round(h * dpr);
+
+      console.log("[HelmVision] region selected: chrome offset=", chromeLeft, chromeTop,
+        "region=", screenRegionX, screenRegionY, screenW, screenH, "dpr:", dpr);
 
       safeSend({
         type: "regionSelected",

@@ -187,12 +187,16 @@ function handleWebSocketMessage(data) {
       type: "commentary",
       description: data.description,
       timestamp: data.timestamp,
+      ...(data.thumbnail ? { thumbnail: data.thumbnail } : {}),
       ...(data.alert ? { alert: data.alert } : {}),
     });
     if (data.alert) triggerAlertNotification(data.description, data.alert.condition);
     wsSendBusy = false;
     if (!isRegionMode) sendToContentScript({ action: "readyForFrame" });
   } else if (data.type === "no_activity") {
+    if (data.thumbnail) {
+      sendToPanel({ type: "thumbnail", thumbnail: data.thumbnail });
+    }
     wsSendBusy = false;
     if (!isRegionMode) sendToContentScript({ action: "readyForFrame" });
   } else if (data.type === "error") {

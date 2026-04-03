@@ -259,6 +259,27 @@ async def _process_frame(
 ) -> None:
     """Shared frame processing: vision → commentary → alerts → response."""
     logger.info("Processing frame: %d bytes, mode=%s", len(frame_bytes), mode)
+
+    # Generate a small JPEG thumbnail for the panel (non-blocking)
+    thumbnail_b64 = ""
+    try:
+        from PIL import Image
+        import io as _io
+        img = Image.open(_io.BytesIO(frame_bytes))
+        # Resize to max 160px for thumbnail
+        max_thumb = 160
+        if img.width > max_thumb or img.height > max_thumb:
+            scale = max_thumb / max(img.width, img.height)
+            img = img.resize(
+                (max(1, round(img.width * scale)), max(1, round(img.height * scale))),
+                Image.LANCZOS,
+            )
+        buf = _io.BytesIO()
+        img.save(buf, format="JPEG", quality=50)
+        thumbnail_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+    except Exception:
+        pass  # Thumbnail is optional, don't fail the whole frame
+
     vision = get_vision()
     if vision is None:
         logger.warning("Vision module not available")
@@ -296,7 +317,8 @@ async def _process_frame(
 
     if not description:
         await websocket.send_json(
-            {"type": "no_activity", "timestamp": timestamp}
+            {"type": "no_activity", "timestamp": timestamp,
+             **({"thumbnail": thumbnail_b64} if thumbnail_b64 else {})}
         )
         return
 
@@ -304,7 +326,8 @@ async def _process_frame(
     desc_upper = description.upper()
     if "NO_ACTIVITY" in desc_upper or "NO ACTIVITY" in desc_upper or desc_upper.startswith("0 PEOPLE") or "REMAINS UNCHANGED" in desc_upper or "NO CHANGES" in desc_upper:
         await websocket.send_json(
-            {"type": "no_activity", "timestamp": timestamp}
+            {"type": "no_activity", "timestamp": timestamp,
+             **({"thumbnail": thumbnail_b64} if thumbnail_b64 else {})}
         )
         return
 
@@ -322,6 +345,8 @@ async def _process_frame(
         "description": description,
         "timestamp": timestamp,
     }
+    if thumbnail_b64:
+        response["thumbnail"] = thumbnail_b64
     if events:
         response["alert"] = {"condition": events[0].matched_condition}
 
