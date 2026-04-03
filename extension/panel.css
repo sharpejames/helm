@@ -331,3 +331,34 @@ section h3 {
 #user-context::placeholder {
   color: #aaa;
 }
+
+/* ── Summary & Raw Entries ──────────────────────────────────────────────── */
+
+.commentary-entry.raw {
+  opacity: 0.6;
+  border-left-color: #9ca3af;
+  font-size: 11px;
+}
+
+.commentary-entry.summary {
+  background: #eff6ff;
+  border-left-color: #2563eb;
+  font-weight: 500;
+}
+
+/* ── Key Events ─────────────────────────────────────────────────────────── */
+
+#key-events-section {
+  max-height: 120px;
+  overflow: hidden;
+}
+
+#key-events-content {
+  font-size: 11px;
+  line-height: 1.5;
+  color: #444;
+  white-space: pre-wrap;
+  margin: 0;
+  max-height: 100px;
+  overflow-y: auto;
+}

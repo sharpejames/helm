@@ -27,6 +27,7 @@ from video.frame_capturer import FrameCapturer
 from video.event_detector import EventDetector
 from video.alert_system import AlertSystem
 from video.commentary import CommentaryStream
+from video.summarizer import StreamSummarizer
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -254,11 +255,13 @@ async def _process_frame(
     commentary: CommentaryStream,
     alert_system: AlertSystem | None,
     vision_pool: ThreadPoolExecutor,
+    summarizer: StreamSummarizer | None,
+    summarizer_pool: ThreadPoolExecutor | None,
     session_active: bool,
     mode: str = "surveillance",
     user_context: str = "",
 ) -> None:
-    """Shared frame processing: vision → commentary → alerts → response."""
+    """Shared frame processing: vision → commentary → summarizer → response."""
     logger.info("Processing frame: %d bytes, mode=%s", len(frame_bytes), mode)
 
     # Generate a small JPEG thumbnail for the panel (non-blocking)
@@ -267,7 +270,6 @@ async def _process_frame(
         from PIL import Image
         import io as _io
         img = Image.open(_io.BytesIO(frame_bytes))
-        # Resize to max 160px for thumbnail
         max_thumb = 160
         if img.width > max_thumb or img.height > max_thumb:
             scale = max_thumb / max(img.width, img.height)
@@ -279,7 +281,7 @@ async def _process_frame(
         img.save(buf, format="JPEG", quality=50)
         thumbnail_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
     except Exception:
-        pass  # Thumbnail is optional, don't fail the whole frame
+        pass
 
     vision = get_vision()
     if vision is None:
@@ -289,16 +291,16 @@ async def _process_frame(
         )
         return
 
+    # Tier 1: Fast vision description (no context)
     try:
         loop = asyncio.get_event_loop()
-        context = list(description_history)[-3:]
-        logger.info("Calling vision model (context=%d descriptions)...", len(context))
+        logger.info("Calling vision model...")
         import time as _time
         t0 = _time.time()
         description = await loop.run_in_executor(
             vision_pool,
             describe_frame_with_context,
-            vision, frame_bytes, context, mode, user_context,
+            vision, frame_bytes, [], mode, user_context,
         )
         elapsed = _time.time() - t0
         logger.info("Vision returned in %.1fs: %s", elapsed, (description or "")[:100])
@@ -312,9 +314,11 @@ async def _process_frame(
     if not session_active:
         return
 
-    # Clean up think tags and normalize
+    # Clean up think tags
     import re as _re
     description = _re.sub(r"</?think>", "", description or "").strip()
+    # Also strip <|channel>thought\n...<channel|> blocks (gemma4 style)
+    description = _re.sub(r"<\|channel>thought.*?<channel\|>", "", description, flags=_re.DOTALL).strip()
 
     if not description:
         await websocket.send_json(
@@ -341,6 +345,7 @@ async def _process_frame(
         for event in events:
             await alert_system.trigger(event)
 
+    # Send raw description immediately (for the feed)
     response: dict = {
         "type": "commentary",
         "description": description,
@@ -352,6 +357,26 @@ async def _process_frame(
         response["alert"] = {"condition": events[0].matched_condition}
 
     await websocket.send_json(response)
+
+    # Tier 2: Feed to summarizer, trigger summary if batch is ready
+    if summarizer and summarizer_pool:
+        should_summarize = summarizer.add_description(timestamp, description)
+        if should_summarize:
+            try:
+                logger.info("Triggering summarizer (batch of %d)...", summarizer.batch_size)
+                t0 = _time.time()
+                summary = await loop.run_in_executor(summarizer_pool, summarizer.summarize)
+                elapsed = _time.time() - t0
+                logger.info("Summarizer returned in %.1fs: %s", elapsed, (summary or "")[:100])
+                if summary:
+                    await websocket.send_json({
+                        "type": "summary",
+                        "summary": summary,
+                        "key_events": summarizer.get_key_events_text(),
+                        "timestamp": timestamp,
+                    })
+            except Exception:
+                logger.exception("Summarizer failed")
 
 
 # ---------------------------------------------------------------------------
@@ -387,6 +412,12 @@ async def extension_stream(websocket: WebSocket):
     # Thread pool for blocking vision calls — 1 thread since we process
     # one frame at a time anyway
     vision_pool = ThreadPoolExecutor(max_workers=1)
+
+    # Separate thread pool for summarizer (runs concurrently with vision)
+    summarizer_pool = ThreadPoolExecutor(max_workers=1)
+
+    # Summarizer will be created on configure
+    summarizer: StreamSummarizer | None = None
 
     # Shared alert system for desktop notifications
     alert_system: AlertSystem | None = getattr(
@@ -435,6 +466,14 @@ async def extension_stream(websocket: WebSocket):
                 session_mode = msg.get("mode", "surveillance")
                 session_user_context = msg.get("userContext", "")
                 detector.set_conditions(conditions)
+                # Create/recreate summarizer with current settings
+                summarizer = StreamSummarizer(
+                    ollama_url="http://localhost:11434",
+                    summarizer_model="qwen3.5:4b",
+                    batch_size=5,
+                    mode=session_mode,
+                    user_context=session_user_context,
+                )
                 logger.info(
                     "Extension stream configured conditions: %s mode: %s context: %s",
                     conditions, session_mode, session_user_context[:80] if session_user_context else "(none)",
@@ -459,7 +498,9 @@ async def extension_stream(websocket: WebSocket):
                 await _process_frame(
                     websocket, frame_bytes, timestamp,
                     description_history, detector, commentary,
-                    alert_system, vision_pool, session_active,
+                    alert_system, vision_pool,
+                    summarizer, summarizer_pool,
+                    session_active,
                     mode=session_mode,
                     user_context=session_user_context,
                 )
@@ -496,7 +537,9 @@ async def extension_stream(websocket: WebSocket):
                 await _process_frame(
                     websocket, frame_bytes, timestamp,
                     description_history, detector, commentary,
-                    alert_system, vision_pool, session_active,
+                    alert_system, vision_pool,
+                    summarizer, summarizer_pool,
+                    session_active,
                     mode=session_mode,
                     user_context=session_user_context,
                 )
@@ -514,6 +557,7 @@ async def extension_stream(websocket: WebSocket):
         # Clean up session resources
         session_active = False
         vision_pool.shutdown(wait=False)
+        summarizer_pool.shutdown(wait=False)
         commentary.stop()
         description_history.clear()
         logger.info("Extension stream session cleaned up")

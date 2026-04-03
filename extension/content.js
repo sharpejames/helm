@@ -142,10 +142,15 @@
   // ── Frame Capture (minimal — no motion detection on client) ────────────────
 
   function startCapture(fps) {
-    if (!selectedVideo) { safeSend({ type: "captureError", reason: "No video selected" }); return; }
+    if (!selectedVideo) {
+      console.log("[HelmVision] startCapture: no selectedVideo");
+      safeSend({ type: "captureError", reason: "No video selected" });
+      return;
+    }
     stopCapture();
     captureFps = clampFps(fps);
     captureActive = true;
+    console.log("[HelmVision] startCapture: fps=", captureFps);
     captureAndSendFrame();
   }
 

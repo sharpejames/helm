@@ -269,58 +269,29 @@ def describe_frame_with_context(
     mode: str = "surveillance",
     user_context: str = "",
 ) -> str:
-    """Describe a frame with mode-specific prompting and optional user context.
+    """Fast frame description — minimal prompt, no context, maximum speed.
 
-    Args:
-        vision: A VisionModule instance.
-        frame: Raw PNG/JPEG bytes of the frame to describe.
-        recent_descriptions: The most recent descriptions (up to last 3).
-        mode: Commentary mode — "surveillance", "audio_description", or "sports".
-        user_context: Optional user-provided context to enrich descriptions.
-
-    Returns:
-        Plain text description string.
+    The vision model's job is just to describe what it sees. Contextualization
+    and summarization happen in the second tier (StreamSummarizer).
     """
-    # Build the prompt based on mode
-    context_line = ""
-    if user_context:
-        context_line = f"\nContext: {user_context}\n"
-
+    # Minimal mode-specific prompts — keep them SHORT for speed
     if mode == "audio_description":
-        prompt = (
-            "You are an audio describer for visually impaired viewers. "
-            "Describe this scene richly: the setting, lighting, colors, "
-            "who or what is visible, their appearance, clothing, expressions, "
-            "what actions are happening, and the mood of the scene. "
-            "Be vivid and paint a picture with words. 2-3 sentences."
-            f"{context_line}"
-        )
+        prompt = "Describe this image: setting, subjects, actions, colors. 1-2 sentences."
     elif mode == "sports":
         prompt = (
-            "You are an enthusiastic sports commentator calling a live game. "
-            "Describe the current action with energy: what play is happening, "
-            "which players are involved, ball/puck position, any scores visible "
-            "on the scoreboard (read them exactly as shown: left team score - right team score). "
-            "Do NOT invent scores or events you cannot see. Only describe what is visible. "
-            "Be exciting but factual. 1-2 sentences."
-            f"{context_line}"
+            "Describe the sports action: players, ball position, any visible scoreboard text. "
+            "Only state what you see. 1 sentence."
         )
     else:
-        # surveillance
+        # surveillance — ultra brief
         prompt = (
-            "You are a security camera monitor. Report only what matters for safety: "
-            "people (count, clothing, actions like walking/running/loitering), "
-            "vehicles (type, color, arriving/departing), "
-            "animals (species, size, behavior), "
-            "deliveries, packages, unusual activity. "
-            "If the scene is empty with no people, animals, or vehicles: respond with only NO_ACTIVITY. "
-            "Keep it brief and factual. 1 sentence."
-            f"{context_line}"
+            "Security camera: list people, vehicles, animals, activity. "
+            "If empty scene: NO_ACTIVITY. 1 sentence."
         )
 
     vision_model = "qwen3-vl:2b"
     img_b64 = vision._encode_image(frame)
-    text = vision._chat(vision_model, prompt, images=[img_b64], timeout=60)
+    text = vision._chat(vision_model, prompt, images=[img_b64], timeout=30)
     return (text or "").strip()
 
 

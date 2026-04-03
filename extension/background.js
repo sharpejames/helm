@@ -34,8 +34,8 @@ function sendToPanel(message) {
 }
 
 function sendToContentScript(message) {
-  if (activeTabId == null) return;
-  try { chrome.tabs.sendMessage(activeTabId, message).catch(() => {}); } catch (_e) {}
+  if (activeTabId == null) { console.log("[HelmBG] sendToContentScript: no activeTabId"); return; }
+  try { chrome.tabs.sendMessage(activeTabId, message).catch((e) => { console.log("[HelmBG] sendToContentScript failed:", e.message); }); } catch (_e) {}
 }
 
 function getBackoffDelay(attempt) {
@@ -93,7 +93,21 @@ function openWebSocket() {
     if (isRegionMode && storedRegion) {
       startRegionCaptureTimer();
     } else {
-      sendToContentScript({ action: "startCapture", fps: sessionFps });
+      // Ensure we have an active tab to send to
+      if (activeTabId == null) {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs && tabs.length > 0) {
+            activeTabId = tabs[0].id;
+            console.log("[HelmBG] Recovered activeTabId:", activeTabId);
+            sendToContentScript({ action: "startCapture", fps: sessionFps });
+          } else {
+            console.log("[HelmBG] No active tab found for startCapture");
+          }
+        });
+      } else {
+        console.log("[HelmBG] Sending startCapture to tab:", activeTabId);
+        sendToContentScript({ action: "startCapture", fps: sessionFps });
+      }
     }
   };
 
@@ -194,6 +208,14 @@ function handleWebSocketMessage(data) {
     if (data.alert) triggerAlertNotification(data.description, data.alert.condition);
     wsSendBusy = false;
     if (!isRegionMode) sendToContentScript({ action: "readyForFrame" });
+  } else if (data.type === "summary") {
+    sendToPanel({
+      type: "summary",
+      summary: data.summary,
+      key_events: data.key_events || "",
+      timestamp: data.timestamp,
+    });
+    // Don't set wsSendBusy=false here — summary comes after commentary
   } else if (data.type === "no_activity") {
     if (data.thumbnail) {
       sendToPanel({ type: "thumbnail", thumbnail: data.thumbnail });

@@ -120,6 +120,7 @@ function connectToBackground() {
       case "videoInfo": handleVideoInfo(message); break;
       case "noVideo": handleNoVideo(); break;
       case "commentary": handleCommentary(message); break;
+      case "summary": handleSummary(message); break;
       case "status": handleStatus(message); break;
       case "captureError": handleCaptureError(message); break;
       case "regionSelected": handleRegionSelected(message); break;
@@ -177,17 +178,12 @@ function handleCommentary(msg) {
   // Add to history
   commentaryHistory.push(entry);
 
-  // Render in feed
+  // Render raw description in feed (dimmed style — summaries are the main output)
   appendCommentaryEntry(entry);
 
-  // TTS — skip near-duplicate descriptions
-  if (ttsToggle.checked) {
-    const isDuplicate = lastSpokenText &&
-      entry.description.substring(0, 30) === lastSpokenText.substring(0, 30);
-    if (!isDuplicate) {
-      speakText(entry.description);
-      lastSpokenText = entry.description;
-    }
+  // Alerts still get TTS immediately
+  if (ttsToggle.checked && entry.alert) {
+    speakText("Alert: " + entry.description);
   }
 
   // Update last frame time indicator
@@ -195,6 +191,34 @@ function handleCommentary(msg) {
   if (lastFrameTime) {
     lastFrameTime.textContent = `Last update: ${formatTimestamp(entry.timestamp)}`;
     lastFrameTime.classList.remove("hidden");
+  }
+}
+
+function handleSummary(msg) {
+  // Summary is the contextualized output — this is what TTS reads
+  const summaryEntry = {
+    description: "📋 " + msg.summary,
+    timestamp: msg.timestamp,
+    alert: null,
+    isSummary: true,
+  };
+
+  commentaryHistory.push(summaryEntry);
+  appendSummaryEntry(summaryEntry);
+
+  // TTS reads summaries
+  if (ttsToggle.checked) {
+    const isDuplicate = lastSpokenText &&
+      msg.summary.substring(0, 30) === lastSpokenText.substring(0, 30);
+    if (!isDuplicate) {
+      speakText(msg.summary);
+      lastSpokenText = msg.summary;
+    }
+  }
+
+  // Update key events display
+  if (msg.key_events) {
+    updateKeyEvents(msg.key_events);
   }
 }
 
@@ -222,8 +246,7 @@ function handleStatus(msg) {
 
 function handleCaptureError(msg) {
   console.log("[HelmPanel] captureError:", msg.reason);
-  updateConnectionStatus("disconnected", msg.reason);
-  // Always go back to Idle so user can re-select a video
+  updateConnectionStatus("error", "Capture error: " + msg.reason);
   videoInfo.classList.add("hidden");
   transitionTo(STATES.IDLE);
 }
@@ -258,7 +281,7 @@ function updateConnectionStatus(connection, message) {
 
 function appendCommentaryEntry(entry) {
   const div = document.createElement("div");
-  div.className = "commentary-entry" + (entry.alert ? " alert" : "");
+  div.className = "commentary-entry" + (entry.alert ? " alert" : "") + " raw";
 
   let html = `<span class="timestamp">${formatTimestamp(entry.timestamp)}</span>`;
   if (entry.alert) {
@@ -268,9 +291,27 @@ function appendCommentaryEntry(entry) {
 
   div.innerHTML = html;
   commentaryFeed.appendChild(div);
-
-  // Auto-scroll to bottom
   commentaryFeed.scrollTop = commentaryFeed.scrollHeight;
+}
+
+function appendSummaryEntry(entry) {
+  const div = document.createElement("div");
+  div.className = "commentary-entry summary";
+
+  let html = `<span class="timestamp">${formatTimestamp(entry.timestamp)}</span>`;
+  html += `<span class="description">${escapeHtml(entry.description)}</span>`;
+
+  div.innerHTML = html;
+  commentaryFeed.appendChild(div);
+  commentaryFeed.scrollTop = commentaryFeed.scrollHeight;
+}
+
+function updateKeyEvents(eventsText) {
+  let eventsEl = document.getElementById("key-events-content");
+  if (!eventsEl) return;
+  const section = document.getElementById("key-events-section");
+  if (section) section.classList.remove("hidden");
+  eventsEl.textContent = eventsText;
 }
 
 function escapeHtml(text) {
