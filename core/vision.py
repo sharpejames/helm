@@ -270,22 +270,16 @@ def describe_frame_with_context(
     user_context: str = "",
 ) -> str:
     """Fast single-frame description — minimal prompt, maximum speed."""
-    ctx = ""
-    if user_context:
-        ctx = f" Context: {user_context}."
-
     if mode == "audio_description":
-        prompt = f"Describe what's happening: subjects, actions, changes.{ctx} 1 sentence."
+        prompt = "What is happening in this image? 1 sentence."
     elif mode == "sports":
-        prompt = (
-            f"Play-by-play: current action, ball, players. "
-            f"Read any scoreboard. If replay say REPLAY.{ctx} 1 sentence."
-        )
+        prompt = "Sports: current play, score if visible. 1 sentence."
     else:
-        prompt = (
-            f"Security: people, vehicles, animals, activity. "
-            f"If empty: NO_ACTIVITY.{ctx} 1 sentence."
-        )
+        prompt = "Security: people, vehicles, animals. If empty: NO_ACTIVITY."
+
+    # Append context as a brief hint, not as content to describe
+    if user_context:
+        prompt += f"\n(Note: {user_context[:60]})"
 
     vision_model = "qwen3-vl:2b"
     img_b64 = vision._encode_image(frame)
