@@ -18,6 +18,8 @@ let currentState = STATES.IDLE;
 let commentaryHistory = [];
 let alertConditions = [];
 let lastSpokenText = "";
+let selectedRegion = null; // {x, y, width, height} if region mode
+let isVideoMode = false;   // true if a video element was selected
 
 // ── DOM References ───────────────────────────────────────────────────────────
 
@@ -152,7 +154,9 @@ function handleVideoInfo(msg) {
   noVideoMsg.classList.add("hidden");
   thumbnailImg.src = msg.thumbnail ? ("data:image/jpeg;base64," + msg.thumbnail) : "";
   videoDims.textContent = `${msg.width} × ${msg.height}`;
-  updateConnectionStatus("disconnected"); // Reset status — not connected yet, just selected
+  updateConnectionStatus("disconnected");
+  isVideoMode = true;
+  selectedRegion = null;
   transitionTo(STATES.VIDEO_SELECTED);
 }
 
@@ -258,6 +262,8 @@ function handleRegionSelected(msg) {
   thumbnailImg.src = "";
   videoDims.textContent = `Region: ${msg.width} × ${msg.height}`;
   updateConnectionStatus("disconnected");
+  isVideoMode = false;
+  selectedRegion = { x: msg.x, y: msg.y, width: msg.width, height: msg.height };
   transitionTo(STATES.VIDEO_SELECTED);
 }
 
@@ -415,13 +421,18 @@ btnToggle.addEventListener("click", () => {
     const fps = clampRange(fpsSlider.value);
     const mode = modeSelect.value;
     const context = (userContext.value || "").trim();
-    sendToBackground({
+    const msg = {
       type: "startCapture",
       fps: fps,
       mode: mode,
       conditions: [...alertConditions],
       userContext: context,
-    });
+    };
+    // Include region info so background can restore it after service worker restart
+    if (selectedRegion) {
+      msg.region = selectedRegion;
+    }
+    sendToBackground(msg);
     transitionTo(STATES.STREAMING);
   } else if (currentState === STATES.STREAMING) {
     // Stop capture

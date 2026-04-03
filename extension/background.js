@@ -310,6 +310,14 @@ function handlePanelMessage(message) {
       sessionConditions = message.conditions || [];
       sessionMode = message.mode || "surveillance";
       sessionUserContext = message.userContext || "";
+      // Restore region info from panel (survives service worker restarts)
+      if (message.region) {
+        isRegionMode = true;
+        storedRegion = message.region;
+        console.log("[HelmBG] startCapture with region:", storedRegion);
+      } else {
+        console.log("[HelmBG] startCapture in video mode");
+      }
       wsSendBusy = false;
       if (wsBusyTimeoutId) { clearTimeout(wsBusyTimeoutId); wsBusyTimeoutId = null; }
       openWebSocket();
