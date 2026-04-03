@@ -179,18 +179,20 @@ function handleCommentary(msg) {
     videoInfo.classList.remove("hidden");
   }
 
-  // Add to history
   commentaryHistory.push(entry);
-
-  // Render raw description in feed (dimmed style — summaries are the main output)
   appendCommentaryEntry(entry);
 
-  // Alerts still get TTS immediately
-  if (ttsToggle.checked && entry.alert) {
-    speakText("Alert: " + entry.description);
+  // TTS for raw descriptions (quick commentator)
+  if (ttsToggle.checked) {
+    const isDuplicate = lastSpokenText &&
+      entry.description.substring(0, 30) === lastSpokenText.substring(0, 30);
+    if (!isDuplicate) {
+      speakText(entry.description);
+      lastSpokenText = entry.description;
+    }
   }
 
-  // Update last frame time indicator
+  // Update last frame time
   const lastFrameTime = document.getElementById("last-frame-time");
   if (lastFrameTime) {
     lastFrameTime.textContent = `Last update: ${formatTimestamp(entry.timestamp)}`;
@@ -199,7 +201,6 @@ function handleCommentary(msg) {
 }
 
 function handleSummary(msg) {
-  // Summary is the contextualized output — this is what TTS reads
   const summaryEntry = {
     description: "📋 " + msg.summary,
     timestamp: msg.timestamp,
@@ -210,17 +211,17 @@ function handleSummary(msg) {
   commentaryHistory.push(summaryEntry);
   appendSummaryEntry(summaryEntry);
 
-  // TTS reads summaries
-  if (ttsToggle.checked) {
+  // Summary TTS — interrupts any ongoing raw description (priority commentator)
+  if (ttsToggle.checked && msg.summary) {
     const isDuplicate = lastSpokenText &&
       msg.summary.substring(0, 30) === lastSpokenText.substring(0, 30);
     if (!isDuplicate) {
+      window.speechSynthesis.cancel(); // Interrupt raw description
       speakText(msg.summary);
       lastSpokenText = msg.summary;
     }
   }
 
-  // Update key events display
   if (msg.key_events) {
     updateKeyEvents(msg.key_events);
   }

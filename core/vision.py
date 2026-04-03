@@ -269,26 +269,28 @@ def describe_frame_with_context(
     mode: str = "surveillance",
     user_context: str = "",
 ) -> str:
-    """Fast frame description — minimal prompt, no context, maximum speed.
+    """Fast frame description — short prompt with user context for relevance.
 
-    The vision model's job is just to describe what it sees. Contextualization
-    and summarization happen in the second tier (StreamSummarizer).
+    The vision model describes what it sees, guided by user context so it
+    focuses on what matters. Summarization happens in tier 2.
     """
-    # Minimal mode-specific prompts — keep them SHORT for speed
+    ctx = ""
+    if user_context:
+        ctx = f" Context: {user_context}."
+
     if mode == "audio_description":
-        prompt = "Describe this image: setting, subjects, actions, colors. 1-2 sentences."
+        prompt = (
+            f"Describe this scene: subjects, actions, setting, mood.{ctx} 1-2 sentences."
+        )
     elif mode == "sports":
         prompt = (
-            "Live sports: describe the play happening NOW — who has the ball, passes, shots, fouls, goals. "
-            "If a scoreboard is visible (usually top-left), read the exact score. "
-            "If this looks like a slow-motion replay, say REPLAY. "
-            "Ignore ads, logos, crowd, background signs. 1 sentence."
+            f"Live sports play-by-play: current action, ball position, players involved. "
+            f"Read any visible scoreboard exactly. If replay, say REPLAY.{ctx} 1 sentence."
         )
     else:
-        # surveillance — ultra brief
         prompt = (
-            "Security camera: list people, vehicles, animals, activity. "
-            "If empty scene: NO_ACTIVITY. 1 sentence."
+            f"Security camera: people, vehicles, animals, activity. "
+            f"If empty: NO_ACTIVITY.{ctx} 1 sentence."
         )
 
     vision_model = "qwen3-vl:2b"
