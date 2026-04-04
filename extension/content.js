@@ -15,6 +15,8 @@
   let captureActive = false;
   let captureFps = 1.0;
   let useMssFallback = false; // true if canvas capture fails (DRM/cross-origin)
+  let lastFrameData = null;   // ImageData of last sent frame for keyframe detection
+  const CHANGE_THRESHOLD = 0.05; // 5% pixel change = keyframe
 
   const HIGHLIGHT_STYLE = "3px solid #00e1ff";
   let highlightedEl = null;
@@ -211,6 +213,29 @@
         return;
       }
 
+      // Keyframe detection — only send if enough pixels changed
+      const currentData = captureCtx.getImageData(0, 0, dims.width, dims.height);
+      if (lastFrameData && lastFrameData.width === currentData.width && lastFrameData.height === currentData.height) {
+        let diffCount = 0;
+        const totalPixels = currentData.data.length / 4;
+        const cur = currentData.data;
+        const prev = lastFrameData.data;
+        // Sample every 8th pixel for speed
+        for (let i = 0; i < cur.length; i += 32) {
+          const dr = Math.abs(cur[i] - prev[i]);
+          const dg = Math.abs(cur[i+1] - prev[i+1]);
+          const db = Math.abs(cur[i+2] - prev[i+2]);
+          if (dr + dg + db > 40) diffCount++;
+        }
+        const changeRatio = diffCount / (totalPixels / 8);
+        if (changeRatio < CHANGE_THRESHOLD) {
+          // Not enough change — skip this frame, try again soon
+          captureIntervalId = setTimeout(captureAndSendFrame, 300);
+          return;
+        }
+      }
+      lastFrameData = currentData;
+
       const dataUrl = captureCanvas.toDataURL("image/jpeg", 0.4);
       const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, "");
 
@@ -265,6 +290,7 @@
   function stopCapture() {
     captureActive = false;
     useMssFallback = false;
+    lastFrameData = null;
     if (captureIntervalId !== null) {
       clearTimeout(captureIntervalId);
       captureIntervalId = null;

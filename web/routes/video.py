@@ -415,7 +415,7 @@ async def extension_stream(websocket: WebSocket):
     session_user_context = ""
 
     # Frame buffer for multi-frame batch processing
-    BATCH_SIZE = 2  # 2 frames for motion detection
+    BATCH_SIZE = 1  # Single keyframe — client-side change detection filters duplicates
     frame_buffer: list[tuple[bytes, float]] = []
 
     # Thread pool for blocking vision calls — 1 thread since we process
@@ -522,8 +522,6 @@ async def extension_stream(websocket: WebSocket):
 
                 frame_buffer.append((frame_bytes, timestamp))
                 if len(frame_buffer) < BATCH_SIZE:
-                    # Delay before requesting next frame — gives more visual difference
-                    await asyncio.sleep(0.5)
                     await websocket.send_json({"type": "need_frame"})
                 else:
                     batch = frame_buffer[:]
@@ -569,7 +567,6 @@ async def extension_stream(websocket: WebSocket):
 
                 frame_buffer.append((frame_bytes, timestamp))
                 if len(frame_buffer) < BATCH_SIZE:
-                    await asyncio.sleep(0.5)
                     await websocket.send_json({"type": "need_frame"})
                 else:
                     batch = frame_buffer[:]
