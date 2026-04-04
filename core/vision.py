@@ -307,11 +307,8 @@ def describe_frame_with_context(
         prompt = "What is the current action? Score if visible. 1 sentence."
     else:
         prompt = (
-            "Describe only what you see. Count people, note clothing and uniforms "
-            "(postal worker, delivery driver, police). Describe their actions. "
-            "Note vehicles, animals, packages being carried or left. "
-            "Flag dangers: coyotes, bears, fights, break-ins. "
-            "Only mention what is present. If empty scene: NO_ACTIVITY. 1-2 sentences."
+            "Security camera. What do you see? Never list what is absent. "
+            "If nothing notable: NO_ACTIVITY. 1-2 sentences."
         )
 
     vision_model = "qwen3-vl:2b"
@@ -341,11 +338,8 @@ def describe_frame_batch(
         prompt = "What is happening? Describe the action, movement, score if visible. 1 sentence."
     else:
         prompt = (
-            "Describe only what you see. Count people, note clothing and uniforms "
-            "(postal worker, delivery driver, police). Describe their actions. "
-            "Note vehicles, animals, packages being carried or left. "
-            "Flag dangers: coyotes, bears, fights, break-ins. "
-            "Only mention what is present. If empty scene: NO_ACTIVITY. 1-2 sentences."
+            "Security camera. What do you see? Never list what is absent. "
+            "If nothing notable: NO_ACTIVITY. 1-2 sentences."
         )
 
     vision_model = "qwen3-vl:2b"
