@@ -302,9 +302,9 @@ def describe_frame_with_context(
         frame = _burn_context_on_image(frame, user_context)
 
     if mode == "audio_description":
-        prompt = "What is happening in this image? 1 sentence."
+        prompt = "What is happening? 1 sentence."
     elif mode == "sports":
-        prompt = "Sports: current play, score if visible. 1 sentence."
+        prompt = "What is the current action? Score if visible. 1 sentence."
     else:
         prompt = "Security: people, vehicles, animals. If empty: NO_ACTIVITY."
 
