@@ -306,7 +306,12 @@ def describe_frame_with_context(
     elif mode == "sports":
         prompt = "What is the current action? Score if visible. 1 sentence."
     else:
-        prompt = "Security: people, vehicles, animals. If empty: NO_ACTIVITY."
+        prompt = (
+            "Describe the scene: how many people, what they are wearing, uniforms, "
+            "what they are doing, vehicles, animals, packages, deliveries. "
+            "Note anything concerning: wildlife like coyotes or bears, fights, "
+            "suspicious activity, long queues, messes. If nothing: NO_ACTIVITY. 1-2 sentences."
+        )
 
     vision_model = "qwen3-vl:2b"
     img_b64 = vision._encode_image(frame)
@@ -334,7 +339,12 @@ def describe_frame_batch(
     elif mode == "sports":
         prompt = "What is happening? Describe the action, movement, score if visible. 1 sentence."
     else:
-        prompt = "Security: people, vehicles, animals, movement. If empty: NO_ACTIVITY."
+        prompt = (
+            "Describe the scene: how many people, what they are wearing, uniforms, "
+            "what they are doing, vehicles, animals, packages, deliveries. "
+            "Note anything concerning: wildlife like coyotes or bears, fights, "
+            "suspicious activity, long queues, messes. If nothing: NO_ACTIVITY. 1-2 sentences."
+        )
 
     vision_model = "qwen3-vl:2b"
     img_list = [vision._encode_image(f) for f in frames]
