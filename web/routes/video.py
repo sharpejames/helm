@@ -259,6 +259,7 @@ async def _process_frame_batch(
     session_active: bool,
     mode: str = "surveillance",
     user_context: str = "",
+    context_overlay: bool = False,
 ) -> None:
     """Process a batch of frames with multi-image vision call."""
     if not frame_batch:
@@ -298,9 +299,11 @@ async def _process_frame_batch(
         import time as _time
         t0 = _time.time()
         if len(frames) == 1:
+            # Pass last description for context overlay (burned into image)
+            prev_descs = list(description_history)[-1:] if context_overlay else []
             description = await loop.run_in_executor(
                 vision_pool, describe_frame_with_context,
-                vision, frames[0], [], mode, user_context,
+                vision, frames[0], prev_descs, mode, user_context,
             )
         else:
             description = await loop.run_in_executor(
@@ -468,9 +471,7 @@ async def extension_stream(websocket: WebSocket):
                         alert_system, vision_pool,
                         summarizer, summarizer_pool,
                         session_active,
-                        mode=session_mode,
-                        user_context=session_user_context,
-                    )
+                        mode=session_mode,`n                        user_context=session_user_context,`n                        context_overlay=enable_context_overlay,`n                    )
                 session_active = False
                 break
 
@@ -488,15 +489,14 @@ async def extension_stream(websocket: WebSocket):
                 session_mode = msg.get("mode", "surveillance")
                 session_user_context = msg.get("userContext", "")
                 enable_summarizer = msg.get("enableSummarizer", False)
+                enable_context_overlay = msg.get("enableContextOverlay", False)
                 detector.set_conditions(conditions)
                 if enable_summarizer:
                     summarizer = StreamSummarizer(
                         ollama_url="http://localhost:11434",
                         summarizer_model="qwen3.5:0.8b",
                         batch_size=5,
-                        mode=session_mode,
-                        user_context=session_user_context,
-                    )
+                        mode=session_mode,`n                        user_context=session_user_context,`n                        context_overlay=enable_context_overlay,`n                    )
                 else:
                     summarizer = None
                 logger.info(
@@ -532,9 +532,7 @@ async def extension_stream(websocket: WebSocket):
                         alert_system, vision_pool,
                         summarizer, summarizer_pool,
                         session_active,
-                        mode=session_mode,
-                        user_context=session_user_context,
-                    )
+                        mode=session_mode,`n                        user_context=session_user_context,`n                        context_overlay=enable_context_overlay,`n                    )
 
             # ----------------------------------------------------------
             # REGION_CAPTURE message — mss fallback for DRM/cross-origin
@@ -577,9 +575,7 @@ async def extension_stream(websocket: WebSocket):
                         alert_system, vision_pool,
                         summarizer, summarizer_pool,
                         session_active,
-                        mode=session_mode,
-                        user_context=session_user_context,
-                    )
+                        mode=session_mode,`n                        user_context=session_user_context,`n                        context_overlay=enable_context_overlay,`n                    )
 
             else:
                 await websocket.send_json(

@@ -45,6 +45,7 @@ const rateSlider = document.getElementById("rate-slider");
 const rateValue = document.getElementById("rate-value");
 const userContext = document.getElementById("user-context");
 const summarizerToggle = document.getElementById("summarizer-toggle");
+const contextOverlayToggle = document.getElementById("context-overlay-toggle");
 
 // ── Utility ──────────────────────────────────────────────────────────────────
 
@@ -473,6 +474,7 @@ btnToggle.addEventListener("click", () => {
       conditions: [...alertConditions],
       userContext: context,
       enableSummarizer: summarizerToggle.checked,
+      enableContextOverlay: contextOverlayToggle.checked,
     };
     // Include region info so background can restore it after service worker restart
     if (selectedRegion) {

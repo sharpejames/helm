@@ -262,27 +262,30 @@ class VisionModule:
 # ======================================================================
 
 
-def _burn_context_on_image(frame: bytes, context: str) -> bytes:
-    """Overlay user context text onto the top of the image so the vision model reads it via OCR."""
+def _burn_context_on_image(frame: bytes, context: str, position: str = "top") -> bytes:
+    """Overlay text onto the image so the vision model reads it via OCR."""
     from PIL import Image, ImageDraw, ImageFont
     import io
 
     img = Image.open(io.BytesIO(frame)).convert("RGB")
     draw = ImageDraw.Draw(img)
 
-    # Use a small font — just enough for OCR
     try:
         font = ImageFont.truetype("arial.ttf", 12)
     except Exception:
         font = ImageFont.load_default()
 
-    # Truncate context to fit
     text = context[:80]
-    # Draw black background strip then white text
     bbox = draw.textbbox((0, 0), text, font=font)
     text_h = bbox[3] - bbox[1] + 4
-    draw.rectangle([(0, 0), (img.width, text_h)], fill="black")
-    draw.text((2, 2), text, fill="white", font=font)
+
+    if position == "bottom":
+        y = img.height - text_h
+        draw.rectangle([(0, y), (img.width, img.height)], fill="black")
+        draw.text((2, y + 2), text, fill="white", font=font)
+    else:
+        draw.rectangle([(0, 0), (img.width, text_h)], fill="black")
+        draw.text((2, 2), text, fill="white", font=font)
 
     buf = io.BytesIO()
     img.save(buf, format="PNG")
@@ -300,6 +303,10 @@ def describe_frame_with_context(
     # Burn context into image so model reads it via OCR (no extra text tokens in prompt)
     if user_context:
         frame = _burn_context_on_image(frame, user_context)
+    # Burn previous description for scene continuity
+    if recent_descriptions:
+        prev = recent_descriptions[-1][:60]
+        frame = _burn_context_on_image(frame, f"Previously: {prev}", position="bottom")
 
     if mode == "audio_description":
         prompt = "What is happening? 1 sentence."
