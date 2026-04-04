@@ -329,31 +329,12 @@ def describe_frame_batch(
     if not frames:
         return ""
 
-    ctx = ""
-    if user_context:
-        ctx = f" Context: {user_context}."
-
-    n = len(frames)
-
     if mode == "audio_description":
-        prompt = (
-            f"These {n} images are consecutive video frames. "
-            f"Describe what's happening across the sequence: actions, changes, movement.{ctx} "
-            f"1-2 sentences covering the whole sequence."
-        )
+        prompt = "What is happening? Describe actions, movement, and changes. 1 sentence."
     elif mode == "sports":
-        prompt = (
-            f"These {n} images are consecutive frames from a live sports broadcast. "
-            f"Describe the play: ball movement, passes, shots, fouls. "
-            f"Read any visible scoreboard exactly. If replay, say REPLAY.{ctx} "
-            f"1-2 sentences."
-        )
+        prompt = "Sports: describe the current play, movement, score if visible. 1 sentence."
     else:
-        prompt = (
-            f"These {n} images are consecutive security camera frames. "
-            f"Report people, vehicles, animals, movement, arrivals, departures. "
-            f"If nothing happening: NO_ACTIVITY.{ctx} 1 sentence."
-        )
+        prompt = "Security: people, vehicles, animals, movement. If empty: NO_ACTIVITY."
 
     vision_model = "qwen3-vl:2b"
     img_list = [vision._encode_image(f) for f in frames]
