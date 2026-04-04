@@ -262,6 +262,33 @@ class VisionModule:
 # ======================================================================
 
 
+def _burn_context_on_image(frame: bytes, context: str) -> bytes:
+    """Overlay user context text onto the top of the image so the vision model reads it via OCR."""
+    from PIL import Image, ImageDraw, ImageFont
+    import io
+
+    img = Image.open(io.BytesIO(frame)).convert("RGB")
+    draw = ImageDraw.Draw(img)
+
+    # Use a small font — just enough for OCR
+    try:
+        font = ImageFont.truetype("arial.ttf", 12)
+    except Exception:
+        font = ImageFont.load_default()
+
+    # Truncate context to fit
+    text = context[:80]
+    # Draw black background strip then white text
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_h = bbox[3] - bbox[1] + 4
+    draw.rectangle([(0, 0), (img.width, text_h)], fill="black")
+    draw.text((2, 2), text, fill="white", font=font)
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
 def describe_frame_with_context(
     vision: VisionModule,
     frame: bytes,
@@ -269,17 +296,17 @@ def describe_frame_with_context(
     mode: str = "surveillance",
     user_context: str = "",
 ) -> str:
-    """Fast single-frame description — minimal prompt, maximum speed."""
+    """Fast single-frame description — minimal prompt, context burned into image."""
+    # Burn context into image so model reads it via OCR (no extra text tokens in prompt)
+    if user_context:
+        frame = _burn_context_on_image(frame, user_context)
+
     if mode == "audio_description":
         prompt = "What is happening in this image? 1 sentence."
     elif mode == "sports":
         prompt = "Sports: current play, score if visible. 1 sentence."
     else:
         prompt = "Security: people, vehicles, animals. If empty: NO_ACTIVITY."
-
-    # Append context as a brief hint, not as content to describe
-    if user_context:
-        prompt += f"\n(Note: {user_context[:60]})"
 
     vision_model = "qwen3-vl:2b"
     img_b64 = vision._encode_image(frame)

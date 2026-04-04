@@ -487,18 +487,22 @@ async def extension_stream(websocket: WebSocket):
                 conditions = msg.get("conditions", [])
                 session_mode = msg.get("mode", "surveillance")
                 session_user_context = msg.get("userContext", "")
+                enable_summarizer = msg.get("enableSummarizer", False)
                 detector.set_conditions(conditions)
-                # Summarizer disabled for now — VRAM model swap kills speed
-                # summarizer = StreamSummarizer(
-                #     ollama_url="http://localhost:11434",
-                #     summarizer_model="qwen3.5:0.8b",
-                #     batch_size=5,
-                #     mode=session_mode,
-                #     user_context=session_user_context,
-                # )
+                if enable_summarizer:
+                    summarizer = StreamSummarizer(
+                        ollama_url="http://localhost:11434",
+                        summarizer_model="qwen3.5:0.8b",
+                        batch_size=5,
+                        mode=session_mode,
+                        user_context=session_user_context,
+                    )
+                else:
+                    summarizer = None
                 logger.info(
-                    "Extension stream configured conditions: %s mode: %s context: %s",
-                    conditions, session_mode, session_user_context[:80] if session_user_context else "(none)",
+                    "Extension stream configured conditions: %s mode: %s summarizer: %s context: %s",
+                    conditions, session_mode, enable_summarizer,
+                    session_user_context[:80] if session_user_context else "(none)",
                 )
 
             # ----------------------------------------------------------
