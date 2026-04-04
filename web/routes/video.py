@@ -471,7 +471,10 @@ async def extension_stream(websocket: WebSocket):
                         alert_system, vision_pool,
                         summarizer, summarizer_pool,
                         session_active,
-                        mode=session_mode,`n                        user_context=session_user_context,`n                        context_overlay=enable_context_overlay,`n                    )
+                        mode=session_mode,
+                        user_context=session_user_context,
+                        context_overlay=enable_context_overlay,
+                    )
                 session_active = False
                 break
 
@@ -496,7 +499,9 @@ async def extension_stream(websocket: WebSocket):
                         ollama_url="http://localhost:11434",
                         summarizer_model="qwen3.5:0.8b",
                         batch_size=5,
-                        mode=session_mode,`n                        user_context=session_user_context,`n                        context_overlay=enable_context_overlay,`n                    )
+                        mode=session_mode,
+                        user_context=session_user_context,
+                    )
                 else:
                     summarizer = None
                 logger.info(
@@ -532,7 +537,10 @@ async def extension_stream(websocket: WebSocket):
                         alert_system, vision_pool,
                         summarizer, summarizer_pool,
                         session_active,
-                        mode=session_mode,`n                        user_context=session_user_context,`n                        context_overlay=enable_context_overlay,`n                    )
+                        mode=session_mode,
+                        user_context=session_user_context,
+                        context_overlay=enable_context_overlay,
+                    )
 
             # ----------------------------------------------------------
             # REGION_CAPTURE message — mss fallback for DRM/cross-origin
@@ -575,7 +583,10 @@ async def extension_stream(websocket: WebSocket):
                         alert_system, vision_pool,
                         summarizer, summarizer_pool,
                         session_active,
-                        mode=session_mode,`n                        user_context=session_user_context,`n                        context_overlay=enable_context_overlay,`n                    )
+                        mode=session_mode,
+                        user_context=session_user_context,
+                        context_overlay=enable_context_overlay,
+                    )
 
             else:
                 await websocket.send_json(
