@@ -332,7 +332,7 @@ def describe_frame_batch(
     if mode == "audio_description":
         prompt = "What is happening? Describe actions, movement, and changes. 1 sentence."
     elif mode == "sports":
-        prompt = "Sports: describe the current play, movement, score if visible. 1 sentence."
+        prompt = "What is happening? Describe the action, movement, score if visible. 1 sentence."
     else:
         prompt = "Security: people, vehicles, animals, movement. If empty: NO_ACTIVITY."
 
