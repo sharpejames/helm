@@ -415,7 +415,7 @@ async def extension_stream(websocket: WebSocket):
     session_user_context = ""
 
     # Frame buffer for multi-frame batch processing
-    BATCH_SIZE = 1  # Single frame for speed — increase for temporal context
+    BATCH_SIZE = 2  # 2 frames for motion detection
     frame_buffer: list[tuple[bytes, float]] = []
 
     # Thread pool for blocking vision calls — 1 thread since we process

@@ -362,3 +362,15 @@ section h3 {
   max-height: 100px;
   overflow-y: auto;
 }
+
+/* ── TTS Speaking Highlight ─────────────────────────────────────────────── */
+
+.commentary-entry.speaking {
+  background: #dbeafe;
+  border-left-color: #3b82f6;
+  opacity: 1;
+}
+
+.commentary-entry.raw.speaking {
+  opacity: 1;
+}

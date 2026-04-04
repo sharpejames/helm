@@ -174,26 +174,17 @@ function handleCommentary(msg) {
     alert: msg.alert || null,
   };
 
-  // Update thumbnail if provided
   if (msg.thumbnail) {
     thumbnailImg.src = "data:image/jpeg;base64," + msg.thumbnail;
     videoInfo.classList.remove("hidden");
   }
 
   commentaryHistory.push(entry);
-  appendCommentaryEntry(entry);
+  const el = appendCommentaryEntry(entry);
 
-  // TTS for raw descriptions (quick commentator)
-  if (ttsToggle.checked) {
-    const isDuplicate = lastSpokenText &&
-      entry.description.substring(0, 30) === lastSpokenText.substring(0, 30);
-    if (!isDuplicate) {
-      speakText(entry.description);
-      lastSpokenText = entry.description;
-    }
-  }
+  // Queue for TTS (won't interrupt current speech)
+  queueTTS(entry.description, el);
 
-  // Update last frame time
   const lastFrameTime = document.getElementById("last-frame-time");
   if (lastFrameTime) {
     lastFrameTime.textContent = `Last update: ${formatTimestamp(entry.timestamp)}`;
@@ -210,17 +201,11 @@ function handleSummary(msg) {
   };
 
   commentaryHistory.push(summaryEntry);
-  appendSummaryEntry(summaryEntry);
+  const el = appendSummaryEntry(summaryEntry);
 
-  // Summary TTS — interrupts any ongoing raw description (priority commentator)
+  // Summaries jump the queue — interrupt current speech
   if (ttsToggle.checked && msg.summary) {
-    const isDuplicate = lastSpokenText &&
-      msg.summary.substring(0, 30) === lastSpokenText.substring(0, 30);
-    if (!isDuplicate) {
-      window.speechSynthesis.cancel(); // Interrupt raw description
-      speakText(msg.summary);
-      lastSpokenText = msg.summary;
-    }
+    jumpToTTS(msg.summary, el);
   }
 
   if (msg.key_events) {
@@ -298,8 +283,11 @@ function appendCommentaryEntry(entry) {
   html += `<span class="description">${escapeHtml(entry.description)}</span>`;
 
   div.innerHTML = html;
+  div.style.cursor = "pointer";
+  div.addEventListener("click", () => jumpToTTS(entry.description, div));
   commentaryFeed.appendChild(div);
   commentaryFeed.scrollTop = commentaryFeed.scrollHeight;
+  return div;
 }
 
 function appendSummaryEntry(entry) {
@@ -310,8 +298,11 @@ function appendSummaryEntry(entry) {
   html += `<span class="description">${escapeHtml(entry.description)}</span>`;
 
   div.innerHTML = html;
+  div.style.cursor = "pointer";
+  div.addEventListener("click", () => jumpToTTS(entry.description, div));
   commentaryFeed.appendChild(div);
   commentaryFeed.scrollTop = commentaryFeed.scrollHeight;
+  return div;
 }
 
 function updateKeyEvents(eventsText) {
@@ -360,6 +351,10 @@ function renderAlertList() {
 
 // ── TTS (Web Speech API) ────────────────────────────────────────────────────
 
+let ttsQueue = [];       // Queue of {text, element} waiting to be spoken
+let ttsSpeaking = false; // Is TTS currently speaking?
+let ttsCurrentEl = null; // Currently highlighted element
+
 function populateVoices() {
   const voices = window.speechSynthesis.getVoices();
   voiceSelect.innerHTML = "";
@@ -372,17 +367,65 @@ function populateVoices() {
   });
 }
 
-function speakText(text) {
-  // Cancel any queued speech to stay current
+function queueTTS(text, element) {
+  if (!ttsToggle.checked) return;
+  // Dedup — skip if same as last queued or currently speaking
+  const last = ttsQueue.length > 0 ? ttsQueue[ttsQueue.length - 1].text : lastSpokenText;
+  if (last && text.substring(0, 30) === last.substring(0, 30)) return;
+
+  ttsQueue.push({ text, element });
+  if (!ttsSpeaking) processNextTTS();
+}
+
+function jumpToTTS(text, element) {
+  // User clicked — cancel current, clear queue, speak this immediately
   window.speechSynthesis.cancel();
+  ttsQueue = [];
+  ttsSpeaking = false;
+  clearTTSHighlight();
+  speakNow(text, element);
+}
+
+function processNextTTS() {
+  if (ttsQueue.length === 0) { ttsSpeaking = false; return; }
+  const next = ttsQueue.shift();
+  speakNow(next.text, next.element);
+}
+
+function speakNow(text, element) {
+  ttsSpeaking = true;
+  clearTTSHighlight();
+
+  // Highlight current
+  if (element) {
+    element.classList.add("speaking");
+    ttsCurrentEl = element;
+  }
+
   const utterance = new SpeechSynthesisUtterance(text);
   const voices = window.speechSynthesis.getVoices();
   const selectedIndex = parseInt(voiceSelect.value, 10);
-  if (voices[selectedIndex]) {
-    utterance.voice = voices[selectedIndex];
-  }
+  if (voices[selectedIndex]) utterance.voice = voices[selectedIndex];
   utterance.rate = clampRange(rateSlider.value);
+
+  utterance.onend = () => {
+    lastSpokenText = text;
+    clearTTSHighlight();
+    processNextTTS();
+  };
+  utterance.onerror = () => {
+    clearTTSHighlight();
+    processNextTTS();
+  };
+
   window.speechSynthesis.speak(utterance);
+}
+
+function clearTTSHighlight() {
+  if (ttsCurrentEl) {
+    ttsCurrentEl.classList.remove("speaking");
+    ttsCurrentEl = null;
+  }
 }
 
 // Populate voices on load and when they change
@@ -441,6 +484,9 @@ btnToggle.addEventListener("click", () => {
     // Stop capture
     sendToBackground({ type: "stopCapture" });
     window.speechSynthesis.cancel();
+    ttsQueue = [];
+    ttsSpeaking = false;
+    clearTTSHighlight();
     transitionTo(STATES.IDLE);
   }
 });
