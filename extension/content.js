@@ -25,9 +25,9 @@
     return Math.min(2.0, Math.max(0.1, value));
   }
 
-  // Max 512px longest side — better text/detail recognition.
+  // Max 384px longest side.
   function computeResizedDimensions(videoWidth, videoHeight) {
-    const MAX_DIM = 512;
+    const MAX_DIM = 384;
     if (videoWidth <= 0 || videoHeight <= 0) {
       return { width: videoWidth, height: videoHeight };
     }
