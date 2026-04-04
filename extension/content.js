@@ -16,7 +16,9 @@
   let captureFps = 1.0;
   let useMssFallback = false; // true if canvas capture fails (DRM/cross-origin)
   let lastFrameData = null;   // ImageData of last sent frame for keyframe detection
+  let lastSentTime = 0;       // Timestamp of last frame sent (for minimum 1fps)
   const CHANGE_THRESHOLD = 0.05; // 5% pixel change = keyframe
+  const MIN_INTERVAL_MS = 1000;  // Force send at least every 1 second
 
   const HIGHLIGHT_STYLE = "3px solid #00e1ff";
   let highlightedEl = null;
@@ -213,9 +215,13 @@
         return;
       }
 
-      // Keyframe detection — only send if enough pixels changed
+      // Keyframe detection — only send if enough pixels changed OR enough time passed
       const currentData = captureCtx.getImageData(0, 0, dims.width, dims.height);
-      if (lastFrameData && lastFrameData.width === currentData.width && lastFrameData.height === currentData.height) {
+      const now = Date.now();
+      const timeSinceLastSend = now - lastSentTime;
+      let isKeyframe = timeSinceLastSend >= MIN_INTERVAL_MS; // Force send after 1s
+
+      if (!isKeyframe && lastFrameData && lastFrameData.width === currentData.width && lastFrameData.height === currentData.height) {
         let diffCount = 0;
         const totalPixels = currentData.data.length / 4;
         const cur = currentData.data;
@@ -228,13 +234,17 @@
           if (dr + dg + db > 40) diffCount++;
         }
         const changeRatio = diffCount / (totalPixels / 8);
-        if (changeRatio < CHANGE_THRESHOLD) {
-          // Not enough change — skip this frame, try again soon
-          captureIntervalId = setTimeout(captureAndSendFrame, 300);
-          return;
-        }
+        if (changeRatio >= CHANGE_THRESHOLD) isKeyframe = true;
+      } else if (!lastFrameData) {
+        isKeyframe = true; // First frame always sends
+      }
+
+      if (!isKeyframe) {
+        captureIntervalId = setTimeout(captureAndSendFrame, 300);
+        return;
       }
       lastFrameData = currentData;
+      lastSentTime = now;
 
       const dataUrl = captureCanvas.toDataURL("image/jpeg", 0.4);
       const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, "");
@@ -291,6 +301,7 @@
     captureActive = false;
     useMssFallback = false;
     lastFrameData = null;
+    lastSentTime = 0;
     if (captureIntervalId !== null) {
       clearTimeout(captureIntervalId);
       captureIntervalId = null;
