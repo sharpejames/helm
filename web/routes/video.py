@@ -523,7 +523,7 @@ async def extension_stream(websocket: WebSocket):
                 frame_buffer.append((frame_bytes, timestamp))
                 if len(frame_buffer) < BATCH_SIZE:
                     # Delay before requesting next frame — gives more visual difference
-                    await asyncio.sleep(1.5)
+                    await asyncio.sleep(0.5)
                     await websocket.send_json({"type": "need_frame"})
                 else:
                     batch = frame_buffer[:]
@@ -569,7 +569,7 @@ async def extension_stream(websocket: WebSocket):
 
                 frame_buffer.append((frame_bytes, timestamp))
                 if len(frame_buffer) < BATCH_SIZE:
-                    await asyncio.sleep(1.5)
+                    await asyncio.sleep(0.5)
                     await websocket.send_json({"type": "need_frame"})
                 else:
                     batch = frame_buffer[:]
