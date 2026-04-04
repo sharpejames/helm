@@ -233,8 +233,8 @@ def _mss_capture_region(x: int, y: int, w: int, h: int) -> bytes:
         shot = sct.grab(region)
         img = Image.frombytes("RGB", shot.size, shot.bgra, "raw", "BGRX")
 
-        # Resize to max 256px longest side — speed over detail
-        max_dim = 256
+        # Resize to max 512px longest side
+        max_dim = 512
         if img.width > max_dim or img.height > max_dim:
             scale = max_dim / max(img.width, img.height)
             new_w = max(1, round(img.width * scale))
