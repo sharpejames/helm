@@ -28,6 +28,7 @@ from video.event_detector import EventDetector
 from video.alert_system import AlertSystem
 from video.commentary import CommentaryStream
 from video.summarizer import StreamSummarizer
+from video.tts import get_kokoro_voices, synthesize as kokoro_synthesize
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -216,6 +217,12 @@ async def video_stream(websocket: WebSocket):
         await websocket.close()
 
 
+@router.get("/video/tts-voices")
+async def tts_voices():
+    """List available Kokoro TTS voices."""
+    return {"voices": get_kokoro_voices()}
+
+
 # ---------------------------------------------------------------------------
 # Extension WebSocket helpers
 # ---------------------------------------------------------------------------
@@ -260,6 +267,9 @@ async def _process_frame_batch(
     mode: str = "surveillance",
     user_context: str = "",
     context_overlay: bool = False,
+    tts_voice: str = "",
+    tts_speed: float = 1.0,
+    tts_pool: ThreadPoolExecutor | None = None,
 ) -> None:
     """Process a batch of frames with multi-image vision call."""
     if not frame_batch:
@@ -362,6 +372,25 @@ async def _process_frame_batch(
 
     await websocket.send_json(response)
 
+    # Generate TTS audio if Kokoro voice is selected (fire-and-forget, CPU-only)
+    if tts_voice.startswith("kokoro:") and tts_pool:
+        voice_name = tts_voice.split(":", 1)[1]
+        async def _gen_tts():
+            try:
+                _loop = asyncio.get_event_loop()
+                audio_b64 = await _loop.run_in_executor(
+                    tts_pool, kokoro_synthesize, description, voice_name, tts_speed,
+                )
+                if audio_b64:
+                    await websocket.send_json({
+                        "type": "tts_audio",
+                        "audio": audio_b64,
+                        "timestamp": timestamp,
+                    })
+            except Exception:
+                logger.exception("TTS generation failed")
+        asyncio.create_task(_gen_tts())
+
     # Tier 2: Summarizer (fire-and-forget)
     if summarizer and summarizer_pool:
         should_summarize = summarizer.add_description(timestamp, description)
@@ -421,9 +450,16 @@ async def extension_stream(websocket: WebSocket):
     BATCH_SIZE = 1  # Single keyframe — client-side change detection filters duplicates
     frame_buffer: list[tuple[bytes, float]] = []
 
+    # TTS config — if a kokoro voice is selected, generate audio server-side
+    session_tts_voice = ""  # e.g. "kokoro:af_heart" or "" for browser TTS
+    session_tts_speed = 1.0
+
     # Thread pool for blocking vision calls — 1 thread since we process
     # one frame at a time anyway
     vision_pool = ThreadPoolExecutor(max_workers=1)
+
+    # Separate pool for TTS (CPU-only, runs in parallel with vision on GPU)
+    tts_pool = ThreadPoolExecutor(max_workers=1)
 
     # Separate thread pool for summarizer (runs concurrently with vision)
     summarizer_pool = ThreadPoolExecutor(max_workers=1)
@@ -474,6 +510,9 @@ async def extension_stream(websocket: WebSocket):
                         mode=session_mode,
                         user_context=session_user_context,
                         context_overlay=enable_context_overlay,
+                        tts_voice=session_tts_voice,
+                        tts_speed=session_tts_speed,
+                        tts_pool=tts_pool,
                     )
                 session_active = False
                 break
@@ -493,6 +532,8 @@ async def extension_stream(websocket: WebSocket):
                 session_user_context = msg.get("userContext", "")
                 enable_summarizer = msg.get("enableSummarizer", False)
                 enable_context_overlay = msg.get("enableContextOverlay", False)
+                session_tts_voice = msg.get("ttsVoice", "")
+                session_tts_speed = msg.get("ttsSpeed", 1.0)
                 detector.set_conditions(conditions)
                 if enable_summarizer:
                     summarizer = StreamSummarizer(
@@ -540,6 +581,9 @@ async def extension_stream(websocket: WebSocket):
                         mode=session_mode,
                         user_context=session_user_context,
                         context_overlay=enable_context_overlay,
+                        tts_voice=session_tts_voice,
+                        tts_speed=session_tts_speed,
+                        tts_pool=tts_pool,
                     )
 
             # ----------------------------------------------------------
@@ -586,6 +630,9 @@ async def extension_stream(websocket: WebSocket):
                         mode=session_mode,
                         user_context=session_user_context,
                         context_overlay=enable_context_overlay,
+                        tts_voice=session_tts_voice,
+                        tts_speed=session_tts_speed,
+                        tts_pool=tts_pool,
                     )
 
             else:
@@ -602,6 +649,7 @@ async def extension_stream(websocket: WebSocket):
         session_active = False
         vision_pool.shutdown(wait=False)
         summarizer_pool.shutdown(wait=False)
+        tts_pool.shutdown(wait=False)
         commentary.stop()
         description_history.clear()
         logger.info("Extension stream session cleaned up")

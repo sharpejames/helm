@@ -23,6 +23,8 @@ let userRequestedStop = false; // true only when user clicks Stop
 let sessionUserContext = "";
 let sessionEnableSummarizer = false;
 let sessionEnableContextOverlay = false;
+let sessionTtsVoice = "";
+let sessionTtsSpeed = 1.0;
 
 // Port-based connection to side panel (reliable, no message loss)
 let panelPort = null;
@@ -84,7 +86,7 @@ function openWebSocket() {
     reconnectAttempts = 0;
     wsSendBusy = false;
     setConnectionStatus("connected");
-    try { ws.send(JSON.stringify({ type: "configure", conditions: sessionConditions, mode: sessionMode, userContext: sessionUserContext, enableSummarizer: sessionEnableSummarizer, enableContextOverlay: sessionEnableContextOverlay })); } catch (_e) {}
+    try { ws.send(JSON.stringify({ type: "configure", conditions: sessionConditions, mode: sessionMode, userContext: sessionUserContext, enableSummarizer: sessionEnableSummarizer, enableContextOverlay: sessionEnableContextOverlay, ttsVoice: sessionTtsVoice, ttsSpeed: sessionTtsSpeed })); } catch (_e) {}
     // Start keep-alive pings
     clearPingInterval();
     pingIntervalId = setInterval(() => {
@@ -233,6 +235,8 @@ function handleWebSocketMessage(data) {
     }
     wsSendBusy = false;
     if (!isRegionMode) sendToContentScript({ action: "readyForFrame" });
+  } else if (data.type === "tts_audio") {
+    sendToPanel({ type: "tts_audio", audio: data.audio, timestamp: data.timestamp });
   } else if (data.type === "error") {
     sendToPanel({ type: "status", connection: connectionStatus, message: data.message || "Backend error" });
     wsSendBusy = false;
@@ -323,6 +327,8 @@ function handlePanelMessage(message) {
       sessionUserContext = message.userContext || "";
       sessionEnableSummarizer = message.enableSummarizer || false;
       sessionEnableContextOverlay = message.enableContextOverlay || false;
+      sessionTtsVoice = message.ttsVoice || "";
+      sessionTtsSpeed = message.ttsSpeed || 1.0;
       // Restore region info from panel (survives service worker restarts)
       if (message.region) {
         isRegionMode = true;

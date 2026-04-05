@@ -129,6 +129,7 @@ function connectToBackground() {
       case "captureError": handleCaptureError(message); break;
       case "regionSelected": handleRegionSelected(message); break;
       case "thumbnail": handleThumbnailUpdate(message); break;
+      case "tts_audio": handleTtsAudio(message); break;
     }
   });
 
@@ -359,17 +360,55 @@ let ttsCurrentEl = null; // Currently highlighted element
 function populateVoices() {
   const voices = window.speechSynthesis.getVoices();
   voiceSelect.innerHTML = "";
+
+  // Kokoro local AI voices (server-side TTS)
+  const kokoroVoices = ["af_heart", "af_bella", "af_nicole", "am_adam", "am_michael", "bf_emma", "bm_george"];
+  kokoroVoices.forEach((v) => {
+    const opt = document.createElement("option");
+    opt.value = "kokoro:" + v;
+    opt.textContent = "🤖 Kokoro - " + v;
+    voiceSelect.appendChild(opt);
+  });
+
+  // Browser Web Speech voices
   voices.forEach((voice, i) => {
     const opt = document.createElement("option");
-    opt.value = i;
+    opt.value = "browser:" + i;
     opt.textContent = `${voice.name} (${voice.lang})`;
-    if (voice.default) opt.selected = true;
+    if (voice.default && voiceSelect.options.length === kokoroVoices.length) opt.selected = true;
     voiceSelect.appendChild(opt);
+  });
+}
+
+function isKokoroVoice() {
+  return voiceSelect.value.startsWith("kokoro:");
+}
+
+function handleTtsAudio(msg) {
+  if (!ttsToggle.checked || !msg.audio) return;
+  // Play base64 WAV audio from Kokoro
+  const audio = new Audio("data:audio/wav;base64," + msg.audio);
+  audio.playbackRate = 1.0; // Speed already applied server-side
+  audio.onended = () => {
+    clearTTSHighlight();
+    processNextTTS();
+  };
+  audio.play().catch(() => {
+    clearTTSHighlight();
+    processNextTTS();
   });
 }
 
 function queueTTS(text, element) {
   if (!ttsToggle.checked) return;
+  // If using Kokoro, audio comes from server — just track the element for highlighting
+  if (isKokoroVoice()) {
+    if (element) {
+      element.classList.add("speaking");
+      ttsCurrentEl = element;
+    }
+    return; // Audio will arrive via tts_audio message
+  }
   // Dedup — skip if same as last queued or currently speaking
   const last = ttsQueue.length > 0 ? ttsQueue[ttsQueue.length - 1].text : lastSpokenText;
   if (last && text.substring(0, 30) === last.substring(0, 30)) return;
@@ -397,16 +436,22 @@ function speakNow(text, element) {
   ttsSpeaking = true;
   clearTTSHighlight();
 
-  // Highlight current
   if (element) {
     element.classList.add("speaking");
     ttsCurrentEl = element;
   }
 
+  // For Kokoro voices, audio comes from server — don't use browser TTS
+  if (isKokoroVoice()) {
+    // Audio will arrive via tts_audio message, just wait
+    return;
+  }
+
   const utterance = new SpeechSynthesisUtterance(text);
   const voices = window.speechSynthesis.getVoices();
-  const selectedIndex = parseInt(voiceSelect.value, 10);
-  if (voices[selectedIndex]) utterance.voice = voices[selectedIndex];
+  const voiceVal = voiceSelect.value;
+  const browserIdx = voiceVal.startsWith("browser:") ? parseInt(voiceVal.split(":")[1], 10) : 0;
+  if (voices[browserIdx]) utterance.voice = voices[browserIdx];
   utterance.rate = clampRange(rateSlider.value);
 
   utterance.onend = () => {
@@ -475,6 +520,8 @@ btnToggle.addEventListener("click", () => {
       userContext: context,
       enableSummarizer: summarizerToggle.checked,
       enableContextOverlay: contextOverlayToggle.checked,
+      ttsVoice: voiceSelect.value,
+      ttsSpeed: parseFloat(rateSlider.value) || 1.0,
     };
     // Include region info so background can restore it after service worker restart
     if (selectedRegion) {
