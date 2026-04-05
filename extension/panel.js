@@ -386,33 +386,22 @@ function isKokoroVoice() {
 
 function handleTtsAudio(msg) {
   if (!ttsToggle.checked || !msg.audio) return;
-  // Play base64 WAV audio from Kokoro
-  const audio = new Audio("data:audio/wav;base64," + msg.audio);
-  audio.playbackRate = 1.0; // Speed already applied server-side
-  audio.onended = () => {
-    clearTTSHighlight();
-    processNextTTS();
-  };
-  audio.play().catch(() => {
-    clearTTSHighlight();
-    processNextTTS();
-  });
+  // Queue Kokoro audio — don't overlap
+  ttsQueue.push({ audio: msg.audio, element: ttsCurrentEl });
+  if (!ttsSpeaking) processNextTTS();
 }
 
 function queueTTS(text, element) {
   if (!ttsToggle.checked) return;
-  // If using Kokoro, audio comes from server — just track the element for highlighting
+  // If using Kokoro, audio comes from server — just track element for highlighting
   if (isKokoroVoice()) {
-    if (element) {
-      element.classList.add("speaking");
-      ttsCurrentEl = element;
-    }
-    return; // Audio will arrive via tts_audio message
+    // Store element reference — handleTtsAudio will pick it up
+    ttsCurrentEl = element;
+    return;
   }
-  // Dedup — skip if same as last queued or currently speaking
+  // Browser TTS: dedup and queue
   const last = ttsQueue.length > 0 ? ttsQueue[ttsQueue.length - 1].text : lastSpokenText;
   if (last && text.substring(0, 30) === last.substring(0, 30)) return;
-
   ttsQueue.push({ text, element });
   if (!ttsSpeaking) processNextTTS();
 }
@@ -429,7 +418,36 @@ function jumpToTTS(text, element) {
 function processNextTTS() {
   if (ttsQueue.length === 0) { ttsSpeaking = false; return; }
   const next = ttsQueue.shift();
-  speakNow(next.text, next.element);
+  if (next.audio) {
+    // Kokoro audio entry
+    playKokoroAudio(next.audio, next.element);
+  } else {
+    // Browser TTS text entry
+    speakNow(next.text, next.element);
+  }
+}
+
+function playKokoroAudio(audioB64, element) {
+  ttsSpeaking = true;
+  clearTTSHighlight();
+  if (element) {
+    element.classList.add("speaking");
+    ttsCurrentEl = element;
+  }
+  const audio = new Audio("data:audio/wav;base64," + audioB64);
+  audio.playbackRate = clampRange(rateSlider.value);
+  audio.onended = () => {
+    clearTTSHighlight();
+    processNextTTS();
+  };
+  audio.onerror = () => {
+    clearTTSHighlight();
+    processNextTTS();
+  };
+  audio.play().catch(() => {
+    clearTTSHighlight();
+    processNextTTS();
+  });
 }
 
 function speakNow(text, element) {
